@@ -1,0 +1,43 @@
+{
+  "name": "websocket-service",
+  "version": "1.0.0",
+  "description": "服务器级别的websocket服务",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --verbose --coverage",
+    "eslint": "eslint ./ --fix",
+    "commit": "./node_modules/cz-customizable/standalone.js",
+    "create-config": "ts-jest config:init",
+    "prepare-husky": "husky install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HandsomeTea/websocket-service.git"
+  },
+  "keywords": [
+    "websocket"
+  ],
+  "author": "HandsomeTea.coco@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/HandsomeTea/websocket-service/issues"
+  },
+  "homepage": "https://github.com/HandsomeTea/websocket-service#readme",
+  "dependencies": {
+    "log4js": "^6.9.1",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.7",
+    "@types/node": "^20.8.10",
+    "@types/ws": "^8.5.8",
+    "@typescript-eslint/eslint-plugin": "^6.9.1",
+    "cz-customizable": "^7.0.0",
+    "eslint": "^8.52.0",
+    "husky": "^8.0.3",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.2.2"
+  }
+}
