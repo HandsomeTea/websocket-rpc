@@ -12,13 +12,13 @@ export default (socket: Socket): void => {
 
         if (socket.option.compression === 'zlib') {
             if (logger) {
-                logger(`compressed-response:[${action}]`).trace(logJson);
+                logger(`compressed-response:${action}:`).trace(logJson);
             }
 
             return socket.send(zlib.deflateSync(sendJson));
         }
         if (logger) {
-            logger(`string-response:[${action}]`).trace(logJson);
+            logger(`response:${action}`).trace(logJson);
         }
         return socket.send(sendJson);
     };

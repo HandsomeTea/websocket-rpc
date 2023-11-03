@@ -11,7 +11,7 @@ export const createLogInstance = (): void => {
                 type: 'stdout',
                 layout: {
                     type: 'pattern',
-                    pattern: '%[[%d{ISO8601_WITH_TZ_OFFSET}] [%p] [SYSTEM:%X{Module}]%] %m%n'
+                    pattern: '%[[%d{ISO8601_WITH_TZ_OFFSET}] [%p] [%X{Module}]%] %m%n'
                 }
             }
             // [2021-09-23 16:59:33.762] %d{yyyy-MM-dd hh:mm:ss.SSS}
@@ -44,7 +44,7 @@ createLogInstance();
 export const log = (module?: string): log4js.Logger => {
     const _systemLogger = log4js.getLogger('systemLog');
 
-    _systemLogger.addContext('Module', (module || 'websocket').toUpperCase());
+    _systemLogger.addContext('Module', module || 'websocket');
 
     return _systemLogger;
 };

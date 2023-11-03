@@ -51,9 +51,8 @@ global._WebsocketServer = {
     middlewares: []
 };
 
+Object.freeze(global._WebsocketServer);
 export class WebsocketServer extends WebSocket.Server {
-    // private _methods: Record<string, WebsocketMethodFn> = {};
-    // private _middlewares: Array<WebsocketMiddlewareFn> = [];
     private _options: Options = {};
     constructor(options: WebSocket.ServerOptions & Options) {
         super(options);
@@ -97,36 +96,26 @@ export class WebsocketServer extends WebSocket.Server {
             if (cb) {
                 cb(_socket, request);
             }
+            // Object.freeze(global._WebsocketServer.methods);
+            // Object.freeze(global._WebsocketServer.middlewares);
         });
     }
 
-    use(method: string, cb: WebsocketMethodFn) {
-        // this._methods[method] = cb;
-        global._WebsocketServer.methods[method] = cb;
-    }
-
-    method(info: Record<string, WebsocketMethodFn>) {
-        // this._methods = { ...this._methods, ...info };
-        global._WebsocketServer.methods = { ...global._WebsocketServer.methods, ...info };
-    }
-
-    middleware(middleware: WebsocketMiddlewareFn | Array<WebsocketMiddlewareFn>) {
-        if (Array.isArray(middleware) && middleware.every(m => typeof m === 'function')) {
-            // this._middlewares.push(...middleware);
-            global._WebsocketServer.middlewares.push(...middleware);
-        } else if (typeof middleware === 'function') {
-            // this._middlewares.push(middleware);
-            global._WebsocketServer.middlewares.push(middleware);
+    method(method: string | Record<string, WebsocketMethodFn>, cb?: WebsocketMethodFn) {
+        if (typeof method === 'string' && typeof cb === 'function') {
+            global._WebsocketServer.methods[method] = cb;
+        } else if (typeof method !== 'string') {
+            Object.assign(global._WebsocketServer.methods, method);
         }
     }
 
-    setMiddleware(method: string, middleware: WebsocketMiddlewareFn | Array<WebsocketMiddlewareFn>) {
-        if (typeof middleware === 'function') {
-            global._WebsocketServer.middlewares.push({
-                [method]: middleware
-            });
-        } else if (Array.isArray(middleware) && middleware.every(m => typeof m === 'function')) {
-            global._WebsocketServer.middlewares.push(...middleware.map(m => ({ [method]: m })));
+    middleware(...middlewares: Array<WebsocketMiddlewareFn> | [string, ...Array<WebsocketMiddlewareFn>]) {
+        if (typeof middlewares[0] === 'string') {
+            const method = middlewares.shift() as string;
+
+            global._WebsocketServer.middlewares.push(...(middlewares as Array<WebsocketMiddlewareFn>).map(m => ({ [method]: m })));
+        } else if (middlewares.every(m => typeof m === 'function')) {
+            global._WebsocketServer.middlewares.push(...middlewares as Array<WebsocketMiddlewareFn>);
         }
     }
 
@@ -139,5 +128,19 @@ export class WebsocketServer extends WebSocket.Server {
             ...global._WebsocketServer.sessionMap[connectId].attempt,
             ...attribute
         };
+    }
+
+    getClientAttr(connectId: string, attribute?: string) {
+        const data = global._WebsocketServer.sessionMap[connectId].attempt;
+
+        return attribute ? data[attribute] : data;
+    }
+
+    get methodList() {
+        return Object.keys(global._WebsocketServer.methods);
+    }
+
+    get middlewareList() {
+        return global._WebsocketServer.middlewares;
     }
 }

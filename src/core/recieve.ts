@@ -9,7 +9,7 @@ export default (socket: Socket): void => {
             data = JSON.parse(parameter.toString());
         } catch (e) {
             if (socket.option.logger) {
-                socket.option.logger('socket-recieve').error(`unknown message with ${parameter.toString()}`);
+                socket.option.logger('socket-recieve').error(`Parse error with ${parameter.toString()}`);
             }
             return socket.sendByCompress({
                 jsonrpc: '2.0',
@@ -27,11 +27,11 @@ export default (socket: Socket): void => {
 
         if (!(jsonrpc === '2.0' && method && typeof method === 'string' && id && (typeof id === 'string' || typeof id === 'number'))) {
             if (socket.option.logger) {
-                socket.option.logger('socket-recieve').error('Invalid Request');
+                socket.option.logger('socket-recieve').error(`Invalid Request with ${parameter.toString()}`);
             }
             return socket.sendByCompress({
                 jsonrpc: '2.0',
-                id,
+                id: id || new Date().getTime(),
                 error: {
                     code: -32600,
                     message: 'Invalid Request',
@@ -41,7 +41,7 @@ export default (socket: Socket): void => {
         }
 
         if (socket.option.logger) {
-            socket.option.logger(`receive-socket-request:[${method}]`).debug(JSON.stringify(data, null, '   '));
+            socket.option.logger(`request:${method}`).debug(JSON.stringify(data, null, '   '));
         }
 
         // ====================================== 特殊method处理 ======================================
@@ -58,7 +58,7 @@ export default (socket: Socket): void => {
         // ====================================== method是否存在 ======================================
         if (!global._WebsocketServer.methods[method]) {
             if (socket.option.logger) {
-                socket.option.logger('socket-recieve').error('Method not found');
+                socket.option.logger(`request:${method}`).error(`Method not found with ${parameter.toString()}`);
             }
             return socket.sendByCompress({
                 jsonrpc: '2.0',
@@ -87,7 +87,7 @@ export default (socket: Socket): void => {
                 }
             } catch (error) {
                 if (socket.option.logger) {
-                    socket.option.logger('socket-middleware').error((error as Error).message);
+                    socket.option.logger(`middleware:${method}`).error((error as Error).message);
                 }
                 return socket.sendByCompress({
                     jsonrpc: '2.0',
@@ -108,11 +108,11 @@ export default (socket: Socket): void => {
             return socket.sendByCompress({
                 jsonrpc: '2.0',
                 id,
-                result
+                result: result || ''
             }, method);
         } catch (error) {
             if (socket.option.logger) {
-                socket.option.logger('socket-method').error((error as Error).message);
+                socket.option.logger(`method:${method}`).error((error as Error).message);
             }
             return socket.sendByCompress({
                 jsonrpc: '2.0',
