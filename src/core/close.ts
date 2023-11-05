@@ -12,5 +12,9 @@ export default (socket: Socket): void => {
         if (socket.option.logger) {
             socket.option.logger('close-socket-connection').warn(`socket connection ${id} is closed.`);
         }
+
+        if (socket.offline) {
+            socket.offline(socket.attempt, socket.connection);
+        }
     });
 };

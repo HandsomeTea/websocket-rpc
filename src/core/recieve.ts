@@ -11,15 +11,20 @@ export default (socket: Socket): void => {
             if (socket.option.logger) {
                 socket.option.logger('socket-recieve').error(`Parse error with ${parameter.toString()}`);
             }
-            return socket.sendByCompress({
-                jsonrpc: '2.0',
-                id: new Date().getTime(),
-                error: {
-                    code: -32700,
-                    message: 'Parse error',
-                    data: parameter.toString()
-                }
-            }, '');
+            if (socket.error) {
+                return socket.error(e as Error, socket);
+            } else {
+                return socket.sendByCompress({
+                    jsonrpc: '2.0',
+                    id: new Date().getTime(),
+                    method: '',
+                    error: {
+                        code: -32700,
+                        message: 'Parse error',
+                        data: parameter.toString()
+                    }
+                }, '');
+            }
         }
 
         // ====================================== 数据和发行检查 ======================================
@@ -29,15 +34,20 @@ export default (socket: Socket): void => {
             if (socket.option.logger) {
                 socket.option.logger('socket-recieve').error(`Invalid Request with ${parameter.toString()}`);
             }
-            return socket.sendByCompress({
-                jsonrpc: '2.0',
-                id: id || new Date().getTime(),
-                error: {
-                    code: -32600,
-                    message: 'Invalid Request',
-                    data: parameter.toString()
-                }
-            }, '');
+            if (socket.error) {
+                return socket.error(new Error('Invalid field: jsonrpc/method/id'), socket);
+            } else {
+                return socket.sendByCompress({
+                    jsonrpc: '2.0',
+                    id: id || new Date().getTime(),
+                    method: method || '',
+                    error: {
+                        code: -32600,
+                        message: 'Invalid Request',
+                        data: parameter.toString()
+                    }
+                }, '');
+            }
         }
 
         if (socket.option.logger) {
@@ -49,10 +59,11 @@ export default (socket: Socket): void => {
             return socket.sendByCompress({
                 jsonrpc: '2.0',
                 id,
+                method,
                 result: 'pong'
             }, method);
         } else if (method === 'connect') {
-            return socket.sendByCompress({ jsonrpc: '2.0', id, result: { msg: 'connected', session: socket.connection.id } }, method);
+            return socket.sendByCompress({ jsonrpc: '2.0', id, method, result: { msg: 'connected', session: socket.connection.id } }, method);
         }
 
         // ====================================== method是否存在 ======================================
@@ -60,15 +71,20 @@ export default (socket: Socket): void => {
             if (socket.option.logger) {
                 socket.option.logger(`request:${method}`).error(`Method not found with ${parameter.toString()}`);
             }
-            return socket.sendByCompress({
-                jsonrpc: '2.0',
-                id,
-                error: {
-                    code: -32601,
-                    message: 'Method not found',
-                    data: parameter.toString()
-                }
-            }, '');
+            if (socket.error) {
+                return socket.error(new Error('Method not found'), socket);
+            } else {
+                return socket.sendByCompress({
+                    jsonrpc: '2.0',
+                    id,
+                    method,
+                    error: {
+                        code: -32601,
+                        message: 'Method not found',
+                        data: parameter.toString()
+                    }
+                }, '');
+            }
         }
 
         // ====================================== 执行中间件 ======================================
@@ -89,15 +105,20 @@ export default (socket: Socket): void => {
                 if (socket.option.logger) {
                     socket.option.logger(`middleware:${method}`).error((error as Error).message);
                 }
-                return socket.sendByCompress({
-                    jsonrpc: '2.0',
-                    id,
-                    error: {
-                        code: -32001,
-                        message: 'Method Request failed',
-                        data: error
-                    }
-                }, method);
+                if (socket.error) {
+                    return socket.error(error as Error, socket);
+                } else {
+                    return socket.sendByCompress({
+                        jsonrpc: '2.0',
+                        id,
+                        method,
+                        error: {
+                            code: -32001,
+                            message: 'Method Request failed',
+                            data: error
+                        }
+                    }, method);
+                }
             }
         }
 
@@ -108,21 +129,27 @@ export default (socket: Socket): void => {
             return socket.sendByCompress({
                 jsonrpc: '2.0',
                 id,
+                method,
                 result: result || ''
             }, method);
         } catch (error) {
             if (socket.option.logger) {
                 socket.option.logger(`method:${method}`).error((error as Error).message);
             }
-            return socket.sendByCompress({
-                jsonrpc: '2.0',
-                id,
-                error: {
-                    code: -32001,
-                    message: 'Method Request failed',
-                    data: error
-                }
-            }, method);
+            if (socket.error) {
+                return socket.error(error as Error, socket);
+            } else {
+                return socket.sendByCompress({
+                    jsonrpc: '2.0',
+                    id,
+                    method,
+                    error: {
+                        code: -32001,
+                        message: 'Method Request failed',
+                        data: error
+                    }
+                }, method);
+            }
         }
     });
 };
