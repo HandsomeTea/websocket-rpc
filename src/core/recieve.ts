@@ -14,7 +14,7 @@ export default (socket: Socket): void => {
             if (socket.error) {
                 return socket.error(e as Error, socket);
             } else {
-                return socket.sendByCompress({
+                return socket.sendout({
                     jsonrpc: '2.0',
                     id: new Date().getTime(),
                     method: '',
@@ -37,7 +37,7 @@ export default (socket: Socket): void => {
             if (socket.error) {
                 return socket.error(new Error('Invalid field: jsonrpc/method/id'), socket);
             } else {
-                return socket.sendByCompress({
+                return socket.sendout({
                     jsonrpc: '2.0',
                     id: id || new Date().getTime(),
                     method: method || '',
@@ -56,14 +56,14 @@ export default (socket: Socket): void => {
 
         // ====================================== 特殊method处理 ======================================
         if (method === 'ping') {
-            return socket.sendByCompress({
+            return socket.sendout({
                 jsonrpc: '2.0',
                 id,
                 method,
                 result: 'pong'
             }, method);
         } else if (method === 'connect') {
-            return socket.sendByCompress({ jsonrpc: '2.0', id, method, result: { msg: 'connected', session: socket.connection.id } }, method);
+            return socket.sendout({ jsonrpc: '2.0', id, method, result: { msg: 'connected', session: socket.connection.id } }, method);
         }
 
         // ====================================== method是否存在 ======================================
@@ -74,7 +74,7 @@ export default (socket: Socket): void => {
             if (socket.error) {
                 return socket.error(new Error('Method not found'), socket);
             } else {
-                return socket.sendByCompress({
+                return socket.sendout({
                     jsonrpc: '2.0',
                     id,
                     method,
@@ -108,7 +108,7 @@ export default (socket: Socket): void => {
                 if (socket.error) {
                     return socket.error(error as Error, socket);
                 } else {
-                    return socket.sendByCompress({
+                    return socket.sendout({
                         jsonrpc: '2.0',
                         id,
                         method,
@@ -126,7 +126,7 @@ export default (socket: Socket): void => {
         try {
             const result = await global._WebsocketServer.methods[method](params, socket);
 
-            return socket.sendByCompress({
+            return socket.sendout({
                 jsonrpc: '2.0',
                 id,
                 method,
@@ -139,7 +139,7 @@ export default (socket: Socket): void => {
             if (socket.error) {
                 return socket.error(error as Error, socket);
             } else {
-                return socket.sendByCompress({
+                return socket.sendout({
                     jsonrpc: '2.0',
                     id,
                     method,

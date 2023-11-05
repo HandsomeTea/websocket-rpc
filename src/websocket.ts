@@ -42,7 +42,7 @@ export type Socket = WebSocket & {
     }
     offline?: (attempt: Socket['attempt'], connection: Socket['connection']) => void;
     error?: (error: Error, socket: Socket) => void;
-    sendByCompress: (message: MethodResult, action?: string) => void
+    sendout: (message: MethodResult, action?: string) => void
 }
 
 export type WebsocketMiddlewareFn = (params: unknown, socket: Socket, method: string) => Record<string, unknown> | undefined | Promise<Record<string, unknown> | undefined>

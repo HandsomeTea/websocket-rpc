@@ -2,7 +2,7 @@ import zlib from 'zlib';
 import { MethodResult, Socket } from '../websocket';
 
 export default (socket: Socket): void => {
-    socket.sendByCompress = (message: MethodResult, action?: string) => {
+    socket.sendout = (message: MethodResult, action?: string) => {
         if (!message) {
             return;
         }
