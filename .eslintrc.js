@@ -15,9 +15,13 @@ module.exports = {
     extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended'],
     plugins: ['@typescript-eslint'],
     globals: {
+        jest: true,
         describe: true,
         test: true,
-        expect: true
+        expect: true,
+        it: true,
+        beforeAll: true,
+        afterAll: true
     },
     rules: {
         '@typescript-eslint/no-explicit-any': 2,

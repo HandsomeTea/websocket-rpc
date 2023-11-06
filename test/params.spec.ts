@@ -18,7 +18,7 @@ describe('参数测试', () => {
 
     test('参数正确', async () => {
         server.register('method1', () => {
-            return 'test1'
+            return 'test1';
         });
         const reqId = new Date().getTime();
         const result = await new Promise(resolve => {
@@ -64,8 +64,8 @@ describe('参数测试', () => {
             id: expect.any(Number),
             method: 'method1',
             error: {
-                code: -32600,
-                message: 'Invalid Request',
+                code: -32602,
+                message: 'Invalid params',
                 data: expect.any(String)
             }
         });
@@ -82,8 +82,8 @@ describe('参数测试', () => {
             id: expect.any(Number),
             method: '',
             error: {
-                code: -32600,
-                message: 'Invalid Request',
+                code: -32602,
+                message: 'Invalid params',
                 data: expect.any(String)
             }
         });
@@ -100,8 +100,8 @@ describe('参数测试', () => {
             id: expect.any(Number),
             method: 'mm',
             error: {
-                code: -32600,
-                message: 'Invalid Request',
+                code: -32602,
+                message: 'Invalid params',
                 data: expect.any(String)
             }
         });
@@ -118,8 +118,8 @@ describe('参数测试', () => {
             id: expect.any(Number),
             method: 'mm',
             error: {
-                code: -32600,
-                message: 'Invalid Request',
+                code: -32602,
+                message: 'Invalid params',
                 data: expect.any(String)
             }
         });
@@ -136,8 +136,8 @@ describe('参数测试', () => {
             id: expect.any(Number),
             method: '',
             error: {
-                code: -32600,
-                message: 'Invalid Request',
+                code: -32602,
+                message: 'Invalid params',
                 data: expect.any(String)
             }
         });

@@ -38,7 +38,7 @@ describe('method', () => {
         server.register('method2', () => {
             return {
                 method: 'method2'
-            }
+            };
         });
         const result = await new Promise(resolve => {
             client.send(JSON.stringify({ method: 'method2', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
@@ -51,7 +51,7 @@ describe('method', () => {
             method: 'method2',
             result: { method: 'method2' }
         });
-        expect(server.methodList).toStrictEqual(['method2'])
+        expect(server.methodList).toStrictEqual(['method2']);
     });
 
     it('通过object设置method', async () => {
@@ -59,7 +59,7 @@ describe('method', () => {
             method3() {
                 return {
                     method: 'method3'
-                }
+                };
             }
         });
         const result = await new Promise(resolve => {
@@ -73,7 +73,7 @@ describe('method', () => {
             method: 'method3',
             result: { method: 'method3' }
         });
-        expect(server.methodList).toStrictEqual(['method2', 'method3'])
+        expect(server.methodList).toStrictEqual(['method2', 'method3']);
     });
 
     it('通过object设置多个method', async () => {
@@ -81,12 +81,12 @@ describe('method', () => {
             method4() {
                 return {
                     method: 'method4'
-                }
+                };
             },
             method5() {
                 return {
                     method: 'method5'
-                }
+                };
             }
         });
         const result1 = await new Promise(resolve => {
@@ -110,7 +110,7 @@ describe('method', () => {
             method: 'method5',
             result: { method: 'method5' }
         });
-        expect(server.methodList).toStrictEqual(['method2', 'method3', 'method4', 'method5'])
+        expect(server.methodList).toStrictEqual(['method2', 'method3', 'method4', 'method5']);
     });
 
     it('通过method名称设置多个method', async () => {
@@ -141,7 +141,7 @@ describe('method', () => {
             method: 'method7',
             result: { method: 'method7' }
         });
-        expect(server.methodList).toStrictEqual(['method2', 'method3', 'method4', 'method5', 'method6', 'method7'])
+        expect(server.methodList).toStrictEqual(['method2', 'method3', 'method4', 'method5', 'method6', 'method7']);
     });
 
     it('method接收参数测试', async () => {
@@ -166,9 +166,9 @@ describe('method', () => {
             client.on('message', data => {
                 const res = JSON.parse(data.toString());
 
-                if (typeof res === 'object' && res.hasOwnProperty('sub') && res.sub === 'test') {
+                if (typeof res === 'object' && res.sub === 'test') {
                     client.removeEventListener('message', () => { });
-                    resolve(res)
+                    resolve(res);
                 }
             });
         });

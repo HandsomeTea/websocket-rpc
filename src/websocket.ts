@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import http from 'http';
 import crypto from 'crypto';
-import { log } from './logger';
+import { createLogInstance, log } from './logger';
 import setCore from './core';
 
 interface Logger {
@@ -10,7 +10,6 @@ interface Logger {
     info(message: string): void;
     warn(message: string): void;
     error(message: string): void;
-    fatal(message: string): void;
 }
 
 interface Options {
@@ -24,6 +23,7 @@ export interface MethodResult {
     method: string
     result?: unknown
     error?: {
+        /** 应为-32000到-32099之间的数字 */
         code: number
         message: string
         data?: unknown
@@ -42,7 +42,7 @@ export type Socket = WebSocket & {
     }
     offline?: (attempt: Socket['attempt'], connection: Socket['connection']) => void;
     error?: (error: Error, socket: Socket) => void;
-    sendout: (message: MethodResult, action?: string) => void
+    sendout: (message: Omit<MethodResult, 'jsonrpc'>) => void
 }
 
 export type WebsocketMiddlewareFn = (params: unknown, socket: Socket, method: string) => Record<string, unknown> | undefined | Promise<Record<string, unknown> | undefined>
@@ -141,6 +141,7 @@ export class WebsocketServer implements WebsocketService {
             if (typeof options.log === 'function') {
                 this.logger = options.log;
             } else {
+                createLogInstance();
                 this.logger = log;
             }
         }

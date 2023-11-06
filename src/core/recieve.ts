@@ -15,7 +15,6 @@ export default (socket: Socket): void => {
                 return socket.error(e as Error, socket);
             } else {
                 return socket.sendout({
-                    jsonrpc: '2.0',
                     id: new Date().getTime(),
                     method: '',
                     error: {
@@ -23,30 +22,29 @@ export default (socket: Socket): void => {
                         message: 'Parse error',
                         data: parameter.toString()
                     }
-                }, '');
+                });
             }
         }
 
-        // ====================================== 数据和发行检查 ======================================
+        // ====================================== 数据合法性检查 ======================================
         const { jsonrpc, id, method, params } = data as { jsonrpc: '2.0', method: string, id: string | number, params?: unknown };
 
         if (!(jsonrpc === '2.0' && method && typeof method === 'string' && id && (typeof id === 'string' || typeof id === 'number'))) {
             if (socket.option.logger) {
-                socket.option.logger('socket-recieve').error(`Invalid Request with ${parameter.toString()}`);
+                socket.option.logger('socket-recieve').error(`Invalid params with ${parameter.toString()}`);
             }
             if (socket.error) {
                 return socket.error(new Error('Invalid field: jsonrpc/method/id'), socket);
             } else {
                 return socket.sendout({
-                    jsonrpc: '2.0',
                     id: id || new Date().getTime(),
                     method: method || '',
                     error: {
-                        code: -32600,
-                        message: 'Invalid Request',
+                        code: -32602,
+                        message: 'Invalid params',
                         data: parameter.toString()
                     }
-                }, '');
+                });
             }
         }
 
@@ -57,13 +55,12 @@ export default (socket: Socket): void => {
         // ====================================== 特殊method处理 ======================================
         if (method === 'ping') {
             return socket.sendout({
-                jsonrpc: '2.0',
                 id,
                 method,
                 result: 'pong'
-            }, method);
+            });
         } else if (method === 'connect') {
-            return socket.sendout({ jsonrpc: '2.0', id, method, result: { msg: 'connected', session: socket.connection.id } }, method);
+            return socket.sendout({ id, method, result: { msg: 'connected', session: socket.connection.id } });
         }
 
         // ====================================== method是否存在 ======================================
@@ -75,7 +72,6 @@ export default (socket: Socket): void => {
                 return socket.error(new Error('Method not found'), socket);
             } else {
                 return socket.sendout({
-                    jsonrpc: '2.0',
                     id,
                     method,
                     error: {
@@ -83,7 +79,7 @@ export default (socket: Socket): void => {
                         message: 'Method not found',
                         data: parameter.toString()
                     }
-                }, '');
+                });
             }
         }
 
@@ -109,7 +105,6 @@ export default (socket: Socket): void => {
                     return socket.error(error as Error, socket);
                 } else {
                     return socket.sendout({
-                        jsonrpc: '2.0',
                         id,
                         method,
                         error: {
@@ -117,7 +112,7 @@ export default (socket: Socket): void => {
                             message: 'Method Request failed',
                             data: error
                         }
-                    }, method);
+                    });
                 }
             }
         }
@@ -127,11 +122,10 @@ export default (socket: Socket): void => {
             const result = await global._WebsocketServer.methods[method](params, socket);
 
             return socket.sendout({
-                jsonrpc: '2.0',
                 id,
                 method,
                 result: result || ''
-            }, method);
+            });
         } catch (error) {
             if (socket.option.logger) {
                 socket.option.logger(`method:${method}`).error((error as Error).message);
@@ -140,7 +134,6 @@ export default (socket: Socket): void => {
                 return socket.error(error as Error, socket);
             } else {
                 return socket.sendout({
-                    jsonrpc: '2.0',
                     id,
                     method,
                     error: {
@@ -148,7 +141,7 @@ export default (socket: Socket): void => {
                         message: 'Method Request failed',
                         data: error
                     }
-                }, method);
+                });
             }
         }
     });

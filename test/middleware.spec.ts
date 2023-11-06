@@ -40,7 +40,7 @@ describe('middleware', () => {
             method: 'method1',
             result: { result: 'success', status: 'method1-success' }
         });
-        expect(server.methodList).toStrictEqual(['method1'])
+        expect(server.methodList).toStrictEqual(['method1']);
         expect(server.middlewareList.length).toEqual(1);
     });
 
@@ -61,7 +61,7 @@ describe('middleware', () => {
             method: 'method1',
             result: { result: 'success', status: 'method2-success' }
         });
-        expect(server.methodList).toStrictEqual(['method1'])
+        expect(server.methodList).toStrictEqual(['method1']);
         expect(server.middlewareList.length).toEqual(2);
     });
 });

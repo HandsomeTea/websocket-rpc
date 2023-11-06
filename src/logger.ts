@@ -35,8 +35,6 @@ export const createLogInstance = (): void => {
     } as Configuration);
 };
 
-createLogInstance();
-
 /**
  * 系统日志使用
  * @param {string} module

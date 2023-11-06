@@ -46,6 +46,7 @@ module.exports = {
         ['middleware', 'middleware'],
         ['online/offline回调', '业务回调'],
         ['log', '日至相关'],
+        ['config', '配置相关'],
         ['test', '测试相关'],
         ['deps', '项目依赖'],
         ['other', '其他'],
