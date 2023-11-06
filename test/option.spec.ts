@@ -1,5 +1,5 @@
 import WS from 'ws';
-import { WebsocketServer } from '../src/websocket';
+import { WebsocketServer } from '../src';
 import zlib from 'zlib';
 
 describe('配置选项', () => {

@@ -1,5 +1,5 @@
 import WS from 'ws';
-import { WebsocketServer } from '../src/websocket';
+import { WebsocketServer } from '../src';
 
 const port = 3306;
 const server = new WebsocketServer({ port });

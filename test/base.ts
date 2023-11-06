@@ -1,5 +1,5 @@
 /* istanbul ignore file */
-import { WebsocketServer } from '../src/websocket';
+import { WebsocketServer } from '../src';
 import WS from 'ws';
 
 export default (port: number) => {
