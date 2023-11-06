@@ -48,7 +48,7 @@ describe('参数测试', () => {
             error: {
                 code: -32700,
                 message: 'Parse error',
-                data: 'asdasdasd'
+                data: expect.any(String)
             }
         });
     });

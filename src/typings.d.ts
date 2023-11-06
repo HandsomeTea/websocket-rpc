@@ -1,5 +1,4 @@
 import WebSocket from 'ws';
-import { Socket, WebsocketMiddlewareFn, WebsocketMethodFn } from './websocket';
 
 /**global变量 */
 declare global {

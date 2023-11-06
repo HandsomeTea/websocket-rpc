@@ -7,12 +7,12 @@ export default (socket: Socket): void => {
 
         try {
             data = JSON.parse(parameter.toString());
-        } catch (e) {
+        } catch (error) {
             if (socket.option.logger) {
                 socket.option.logger('socket-recieve').error(`Parse error with ${parameter.toString()}`);
             }
             if (socket.error) {
-                return socket.error(e as Error, socket);
+                return socket.error(error as Error, socket);
             } else {
                 return socket.sendout({
                     id: new Date().getTime(),
@@ -20,7 +20,7 @@ export default (socket: Socket): void => {
                     error: {
                         code: -32700,
                         message: 'Parse error',
-                        data: parameter.toString()
+                        data: (error as Error).message
                     }
                 });
             }
@@ -42,7 +42,7 @@ export default (socket: Socket): void => {
                     error: {
                         code: -32602,
                         message: 'Invalid params',
-                        data: parameter.toString()
+                        data: 'Invalid field: jsonrpc/method/id'
                     }
                 });
             }
@@ -77,7 +77,7 @@ export default (socket: Socket): void => {
                     error: {
                         code: -32601,
                         message: 'Method not found',
-                        data: parameter.toString()
+                        data: 'Method not found'
                     }
                 });
             }
@@ -99,7 +99,9 @@ export default (socket: Socket): void => {
                 }
             } catch (error) {
                 if (socket.option.logger) {
-                    socket.option.logger(`middleware:${method}`).error((error as Error).message);
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    socket.option.logger(`middleware:${method}`).error(error);
                 }
                 if (socket.error) {
                     return socket.error(error as Error, socket);
@@ -110,7 +112,7 @@ export default (socket: Socket): void => {
                         error: {
                             code: -32001,
                             message: 'Method Request failed',
-                            data: error
+                            data: (error as Error).message
                         }
                     });
                 }
@@ -128,7 +130,9 @@ export default (socket: Socket): void => {
             });
         } catch (error) {
             if (socket.option.logger) {
-                socket.option.logger(`method:${method}`).error((error as Error).message);
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                socket.option.logger(`method:${method}`).error(error);
             }
             if (socket.error) {
                 return socket.error(error as Error, socket);
@@ -139,7 +143,7 @@ export default (socket: Socket): void => {
                     error: {
                         code: -32001,
                         message: 'Method Request failed',
-                        data: error
+                        data: (error as Error).message
                     }
                 });
             }
