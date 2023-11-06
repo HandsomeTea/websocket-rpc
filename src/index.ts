@@ -1,3 +1,4 @@
 import './logger';
 
-export { MethodResult, Socket, WebsocketMiddlewareFn, WebsocketMethodFn, WebsocketServer } from './websocket';
+export { WebsocketServer } from './websocket';
+export { MethodResult, Socket, WebsocketMiddlewareFn, WebsocketMethodFn } from './typings';

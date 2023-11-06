@@ -1,5 +1,5 @@
 import zlib from 'zlib';
-import { MethodResult, Socket } from '../websocket';
+import { MethodResult, Socket } from '../typings';
 
 export default (socket: Socket): void => {
     socket.sendout = (message: Omit<MethodResult, 'jsonrpc'>) => {

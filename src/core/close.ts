@@ -1,5 +1,4 @@
-import { Socket } from '../websocket';
-
+import { Socket } from '../typings';
 
 export default (socket: Socket): void => {
     socket.on('close', () => {

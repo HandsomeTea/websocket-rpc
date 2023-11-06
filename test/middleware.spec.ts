@@ -1,4 +1,4 @@
-import { Socket } from '../src/websocket';
+import { Socket } from '../src/typings';
 import instance from './base';
 
 const { server, client } = instance(3305);
