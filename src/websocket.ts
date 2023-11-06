@@ -30,8 +30,10 @@ export interface MethodResult {
     }
 }
 
+type AttemptValue = string | boolean | number | null
+
 export type Socket = WebSocket & {
-    attempt: Record<string, unknown>
+    attempt: Record<string, AttemptValue>
     connection: {
         id: string
         ip?: string
@@ -45,7 +47,7 @@ export type Socket = WebSocket & {
     sendout: (message: Omit<MethodResult, 'jsonrpc'>) => void
 }
 
-export type WebsocketMiddlewareFn = (params: unknown, socket: Socket, method: string) => Record<string, unknown> | undefined | Promise<Record<string, unknown> | undefined>
+export type WebsocketMiddlewareFn = (params: unknown, socket: Socket, method: string) => Record<string, AttemptValue> | undefined | Promise<Record<string, AttemptValue> | undefined>
 export type WebsocketMethodFn = (params: unknown, socket: Socket) => unknown | Promise<unknown>;
 export type OnlineCallbackFn = (socket: Socket, request: http.IncomingMessage) => void;
 export type OfflineCallbackFn = (attempt: Socket['attempt'], connection: Socket['connection']) => void;
@@ -232,26 +234,60 @@ export class WebsocketServer implements WebsocketService {
         this._error = cb;
     }
 
-    // get sockets() {
-    //     return this.server.clients as Set<Socket>;
-    // }
+    get clients() {
+        return this.server.clients as Set<Socket>;
+    }
 
-    // getSocket(connectId: string) {
-    //     return global._WebsocketServer.sessionMap[connectId];
-    // }
+    getClient(connectId: string) {
+        return global._WebsocketServer.sessionMap[connectId];
+    }
 
-    // setClientAttr(connectId: string, attribute: Record<string, unknown>) {
-    //     global._WebsocketServer.sessionMap[connectId].attempt = {
-    //         ...global._WebsocketServer.sessionMap[connectId].attempt,
-    //         ...attribute
-    //     };
-    // }
+    getClientsByAttr(options: Record<string, unknown> & Partial<{ connectId: string }>) {
+        const clients: Set<Socket> = new Set();
 
-    // getClientAttr(connectId: string, attribute?: string) {
-    //     const data = global._WebsocketServer.sessionMap[connectId].attempt;
+        if (options.connectId) {
+            const socket = this.getClient(options.connectId);
 
-    //     return attribute ? data[attribute] : data;
-    // }
+            if (socket) {
+                clients.add(socket);
+            }
+            return clients;
+        }
+
+        for (const socket of this.clients) {
+            const attr = socket.attempt;
+            let is = true;
+
+            for (const key in options) {
+                if (attr[key] !== options[key]) {
+                    is = false;
+                    break;
+                }
+            }
+            if (is) {
+                clients.add(socket);
+            }
+        }
+        return clients;
+    }
+
+    setClientAttr(connectId: string, attribute: Record<string, AttemptValue>) {
+        if (global._WebsocketServer.sessionMap[connectId]) {
+            global._WebsocketServer.sessionMap[connectId].attempt = {
+                ...global._WebsocketServer.sessionMap[connectId].attempt,
+                ...attribute
+            };
+        }
+    }
+
+    getClientAttr(connectId: string, attribute?: string) {
+        if (global._WebsocketServer.sessionMap[connectId]) {
+            const data = global._WebsocketServer.sessionMap[connectId].attempt;
+
+            return attribute ? data[attribute] : data;
+        }
+        return null;
+    }
 
     get methodList() {
         return Object.keys(global._WebsocketServer.methods);
