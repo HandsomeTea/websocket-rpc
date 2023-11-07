@@ -1,15 +1,14 @@
-import { Socket } from '../src';
 import instance from './base';
 
-const { server, client } = instance(3305);
+const { server, client } = instance(3304);
 
 beforeAll(async () => {
     await new Promise(resolve => {
         server.start();
-        server.register('method1', (_params: unknown, socket: Socket) => {
+        server.register('method1', (_params: unknown, socket) => {
             return {
                 result: 'success',
-                ...socket.attempt
+                ...socket.attribute
             };
         });
         client.on('open', () => resolve(0));
@@ -47,7 +46,7 @@ describe('middleware', () => {
     it('通过object设置middleware', async () => {
         server.use(() => {
             return {
-                status: 'method2-success'
+                status: 'method1-success-global-middleware'
             };
         });
         const result = await new Promise(resolve => {
@@ -59,7 +58,7 @@ describe('middleware', () => {
             jsonrpc: '2.0',
             id: expect.any(Number),
             method: 'method1',
-            result: { result: 'success', status: 'method2-success' }
+            result: { result: 'success', status: 'method1-success-global-middleware' }
         });
         expect(server.methodList).toStrictEqual(['method1']);
         expect(server.middlewareList.length).toEqual(2);

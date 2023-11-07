@@ -4,7 +4,8 @@ import sendout from './sendout';
 import recieve from './recieve';
 import { Socket } from '../typings';
 
-export default (socket: Socket): void => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default (socket: Socket<Record<string, any>>): void => {
     err(socket);
     sendout(socket);
     close(socket);

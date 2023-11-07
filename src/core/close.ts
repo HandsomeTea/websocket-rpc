@@ -1,7 +1,8 @@
 import { Socket } from '../typings';
 
-export default (socket: Socket): void => {
-    socket.on('close', () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default (socket: Socket<Record<string, any>>): void => {
+    socket.on('close', async () => {
         const { connection: { id } } = socket;
 
         if (global._WebsocketServer.sessionMap[id]) {
@@ -12,8 +13,18 @@ export default (socket: Socket): void => {
             socket.option.logger('close-socket-connection').warn(`socket:${id} is closed.`);
         }
 
-        if (socket.offline) {
-            socket.offline(socket.attempt, socket.connection);
+        if (socket.offline.length > 0) {
+            try {
+                for (const fn of socket.offline) {
+                    await fn(socket.attribute, socket.connection);
+                }
+            } catch (error) {
+                if (socket.option.logger) {
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    socket.option.logger('close-socket-connection').error(error);
+                }
+            }
         }
     });
 };

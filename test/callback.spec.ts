@@ -1,21 +1,14 @@
 import WS from 'ws';
 import { WebsocketServer } from '../src';
 
-const port = 3306;
-const server = new WebsocketServer({ port });
-
-beforeAll(() => {
-    server.start();
-});
-
-afterAll(() => {
-    server.close();
-});
-
 describe('事件', () => {
 
     it('online', async () => {
         const result = await new Promise(resolve => {
+            const port = 3202;
+            const server = new WebsocketServer({ port });
+
+            server.start();
             server.online(socket => {
                 socket.sendout({
                     id: new Date().getTime(),
@@ -26,8 +19,11 @@ describe('事件', () => {
             const client = new WS(`ws://localhost:${port}`);
 
             client.once('message', data => {
-                client.close();
+                server.close();
                 resolve(JSON.parse(data.toString()));
+            });
+            client.once('open', () => {
+                client.close();
             });
         });
 
@@ -42,15 +38,22 @@ describe('事件', () => {
     it('offline', async () => {
         let sessionId = '';
         const result = await new Promise(resolve => {
+            const port = 3203;
+            const server = new WebsocketServer({ port });
+
+            server.start();
             server.online(socket => {
                 sessionId = socket.connection.id;
             });
-            server.offline((_attempt, connection) => {
+            server.offline((_attribute, connection) => {
+                server.close();
                 resolve(connection.id);
             });
             const client = new WS(`ws://localhost:${port}`);
 
-            client.on('open', client.close);
+            client.on('open', () => {
+                client.close();
+            });
         });
 
         expect(result).toEqual(sessionId);
@@ -58,8 +61,13 @@ describe('事件', () => {
 
     it('method error', async () => {
         const result = await new Promise(resolve => {
+            const port = 3204;
+            const server = new WebsocketServer({ port });
+
+            server.start();
             server.error((error, socket) => {
                 socket.send(error.message);
+                server.close();
             });
             server.register('m1', () => {
                 throw new Error('method-error');
@@ -80,8 +88,13 @@ describe('事件', () => {
 
     it('某个method的中间件error', async () => {
         const result = await new Promise(resolve => {
+            const port = 3205;
+            const server = new WebsocketServer({ port });
+
+            server.start();
             server.error((error, socket) => {
                 socket.send(error.message);
+                server.close();
             });
             server.use('m1', () => {
                 throw new Error('m1-middleware-error');
@@ -103,8 +116,13 @@ describe('事件', () => {
 
     it('对所有method起作用的中间件error', async () => {
         const result = await new Promise(resolve => {
+            const port = 3206;
+            const server = new WebsocketServer({ port });
+
+            server.start();
             server.error((error, socket) => {
                 socket.send(error.message);
+                server.close();
             });
             server.use(() => {
                 throw new Error('middleware-error');

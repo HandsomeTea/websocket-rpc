@@ -1,7 +1,8 @@
 import zlib from 'zlib';
 import { MethodResult, Socket } from '../typings';
 
-export default (socket: Socket): void => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default (socket: Socket<Record<string, any>>): void => {
     socket.sendout = (message: Omit<MethodResult, 'jsonrpc'>) => {
         if (typeof message.error === 'undefined' && typeof message.result === 'undefined') {
             return;
@@ -18,7 +19,7 @@ export default (socket: Socket): void => {
                 message: message.error.message || 'Unknown Error',
                 data: message.error.data || ''
             };
-        } else if (typeof message.result !== 'undefined') {
+        } else {
             msg.result = message.result || '';
         }
         const sendJson = JSON.stringify(msg);

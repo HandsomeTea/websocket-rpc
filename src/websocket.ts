@@ -13,14 +13,15 @@ global._WebsocketServer = {
 
 Object.freeze(global._WebsocketServer);
 
-export class WebsocketServer implements WebsocketService {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export class WebsocketServer<Attr extends Record<string, any>> implements WebsocketService<Attr> {
     private options: Options = {};
     private configs: WebSocket.ServerOptions = {};
     private server: WebSocket.Server;
     private logger?: ((module?: string) => Logger);
-    private _online?: OnlineCallbackFn;
-    private _offline?: OfflineCallbackFn;
-    private _error?: ErrorCallbackFn;
+    private _online: Array<OnlineCallbackFn> = [];
+    private _offline: Array<OfflineCallbackFn<Attr>> = [];
+    private _error: Array<ErrorCallbackFn<Attr>> = [];
     constructor(configs: WebSocket.ServerOptions, options?: Options) {
         if (options?.log) {
             if (typeof options.log === 'function') {
@@ -36,6 +37,11 @@ export class WebsocketServer implements WebsocketService {
         this.configs = configs;
     }
 
+    /**
+     * 启动服务
+     *
+     * @memberof WebsocketServer
+     */
     start() {
         this.server = new WebSocket.Server(this.configs);
         this.server.on('error', (error: Error) => {
@@ -45,7 +51,7 @@ export class WebsocketServer implements WebsocketService {
                 this.logger('startup').error(error);
             }
         });
-        this.server.on('connection', (socket: Socket, request: http.IncomingMessage) => {
+        this.server.on('connection', async (socket: Socket<Attr>, request: http.IncomingMessage) => {
             if (this._offline) {
                 socket.offline = this._offline;
             }
@@ -67,112 +73,219 @@ export class WebsocketServer implements WebsocketService {
             };
             Object.freeze(socket.connection);
 
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             global._WebsocketServer.sessionMap[socket.connection.id] = socket;
 
-            socket.attempt = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            socket.attribute = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             setCore(socket);
 
             if (socket.option.logger) {
                 socket.option.logger('connection').debug(`socket:${socket.connection.id} is connected!`);
             }
 
-            if (this._online) {
-                this._online(socket, request);
+            if (this._online.length > 0) {
+                try {
+                    for (const fn of this._online) {
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-ignore
+                        await fn(socket, request);
+                    }
+                } catch (error) {
+                    if (socket.option.logger) {
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-ignore
+                        socket.option.logger('connection').error(error);
+                    }
+                }
             }
-            // Object.freeze(global._WebsocketServer.methods);
-            // Object.freeze(global._WebsocketServer.middlewares);
         });
     }
 
-    register(method: string | Record<string, WebsocketMethodFn>, cb?: WebsocketMethodFn) {
+    /**
+     * 通过method名称注册一个method
+     *
+     * @param {string} method method名称
+     * @param {WebsocketMethodFn<Attr>} cb
+     * @memberof WebsocketServer
+     */
+    register(method: string, cb: WebsocketMethodFn<Attr>): void;
+    /**
+     * 注册多个method
+     *
+     * @param {Record<string, WebsocketMethodFn<Attr>>} method method的定义
+     * @memberof WebsocketServer
+     */
+    register(method: Record<string, WebsocketMethodFn<Attr>>): void;
+
+    register(method: string | Record<string, WebsocketMethodFn<Attr>>, cb?: WebsocketMethodFn<Attr>) {
         if (typeof method === 'string' && typeof cb === 'function') {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             global._WebsocketServer.methods[method] = cb;
         } else if (typeof method !== 'string') {
             Object.assign(global._WebsocketServer.methods, method);
         }
     }
 
-    use(...middlewares: Array<WebsocketMiddlewareFn> | [string, ...Array<WebsocketMiddlewareFn>]) {
+    /**
+     * 注册中间件,适用于所有method
+     *
+     * @param {...Array<WebsocketMiddlewareFn<Attr>>} middlewares
+     * @memberof WebsocketServer
+     */
+    use(...middlewares: Array<WebsocketMiddlewareFn<Attr>>): void;
+    /**
+     * 注册中间件，适用于某个method
+     *
+     * @param {string} method 中间件作用的method
+     * @param {...Array<WebsocketMiddlewareFn<Attr>>} middlewares
+     * @memberof WebsocketServer
+     */
+    use(method: string, ...middlewares: Array<WebsocketMiddlewareFn<Attr>>): void;
+
+    use(...middlewares: Array<WebsocketMiddlewareFn<Attr>> | [string, ...Array<WebsocketMiddlewareFn<Attr>>]) {
         if (typeof middlewares[0] === 'string') {
             const method = middlewares.shift() as string;
 
-            global._WebsocketServer.middlewares.push(...(middlewares as Array<WebsocketMiddlewareFn>).map(m => ({ [method]: m })));
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            global._WebsocketServer.middlewares.push(...(middlewares as Array<WebsocketMiddlewareFn<Attr>>).map(m => ({ [method]: m })));
         } else if (middlewares.every(m => typeof m === 'function')) {
-            global._WebsocketServer.middlewares.push(...middlewares as Array<WebsocketMiddlewareFn>);
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            global._WebsocketServer.middlewares.push(...middlewares as Array<WebsocketMiddlewareFn<Attr>>);
         }
     }
+
+    /**
+     * 停止服务
+     *
+     * @memberof WebsocketService
+     */
     close() {
         this.server.close();
     }
 
-    online(cb: OnlineCallbackFn): void {
-        this._online = cb;
+    /**
+     * 有新的连接构建时的回调
+     *
+     * @param {...Array<OnlineCallbackFn>} args
+     * @memberof WebsocketServer
+     */
+    online(...args: Array<OnlineCallbackFn>): void {
+        this._online.push(...args);
     }
 
-    offline(cb: OfflineCallbackFn): void {
-        this._offline = cb;
+    /**
+     * 连接断开时的回调
+     *
+     * @param {...Array<OfflineCallbackFn<Attr>>} args
+     * @memberof WebsocketServer
+     */
+    offline(...args: Array<OfflineCallbackFn<Attr>>): void {
+        this._offline.push(...args);
     }
 
-    error(cb: ErrorCallbackFn): void {
-        this._error = cb;
+    /**
+     * middleware或method运行出错时的错误处理
+     * 注意：只处理middleware和method执行抛出的错误
+     * @param {...Array<ErrorCallbackFn<Attr>>} args
+     * @memberof WebsocketServer
+     */
+    error(...args: Array<ErrorCallbackFn<Attr>>): void {
+        this._error.push(...args);
     }
 
-    get clients() {
-        return this.server.clients as unknown as Set<Socket>;
+    /**
+     * 根据socket的连接id获取socket对象
+     *
+     * @param {string} connectId
+     * @returns
+     * @memberof WebsocketServer
+     */
+    getClient(connectId: string): Socket<Attr> | undefined {
+        return global._WebsocketServer.sessionMap[connectId] as Socket<Attr> | undefined;
     }
 
-    getClient(connectId: string) {
-        return global._WebsocketServer.sessionMap[connectId];
-    }
-
-    getClientsByAttr(options: Record<string, boolean | string | number> & Partial<{ connectId: string }>) {
-        const clients: Set<Socket> = new Set();
-
-        if (options.connectId) {
-            const socket = this.getClient(options.connectId);
-
-            if (socket) {
-                clients.add(socket);
-            }
-            return clients;
-        }
+    /**
+     * 根据socket连接的属性数据获取socket对象
+     *
+     * @param {(attribute: Attr) => boolean} is
+     * @returns
+     * @memberof WebsocketServer
+     */
+    getClientsByAttr(is: (attribute: Attr) => boolean) {
+        const clients: Set<Socket<Attr>> = new Set();
 
         for (const socket of this.clients) {
-            const attr = socket.attempt;
-            let is = true;
+            const attr = socket.attribute;
 
-            for (const key in options) {
-                if (attr[key] !== options[key]) {
-                    is = false;
-                    break;
-                }
-            }
-            if (is) {
+            if (is(attr) === true) {
                 clients.add(socket);
             }
         }
         return clients;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setClientAttr(connectId: string, attribute: Record<string, any>) {
+    /**
+     * 设置socket连接的属性
+     *
+     * @param {string} connectId
+     * @param {Partial<Attr>} attribute
+     * @memberof WebsocketServer
+     */
+    setClientAttr(connectId: string, attribute: Partial<Attr>) {
         if (global._WebsocketServer.sessionMap[connectId]) {
-            global._WebsocketServer.sessionMap[connectId].attempt = {
-                ...global._WebsocketServer.sessionMap[connectId].attempt,
-                ...attribute
-            };
+            Object.assign(global._WebsocketServer.sessionMap[connectId].attribute, attribute);
         }
     }
 
-    getClientAttr(connectId: string, attribute?: string) {
-        if (global._WebsocketServer.sessionMap[connectId]) {
-            const data = global._WebsocketServer.sessionMap[connectId].attempt;
 
+    /**
+     * 获取socket连接的全部属性
+     *
+     * @param {string} connectId
+     * @returns {(Attr | undefined)}
+     * @memberof WebsocketServer
+     */
+    getClientAttr(connectId: string): Attr | undefined;
+    /**
+     * 获取socket连接中指定的属性
+     *
+     * @param {string} connectId
+     * @param {Partial<keyof Attr>} attribute
+     * @returns {*}
+     * @memberof WebsocketServer
+     */
+    getClientAttr<K extends Partial<keyof Attr>>(connectId: string, attribute: K): Attr[K];
+
+    getClientAttr<K extends Partial<keyof Attr>>(connectId: string, attribute?: K) {
+        if (global._WebsocketServer.sessionMap[connectId]) {
+            const data = global._WebsocketServer.sessionMap[connectId].attribute;
+
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             return attribute ? data[attribute] : data;
         }
         return null;
     }
 
+    /**
+     * 所有socket连接
+     *
+     * @readonly
+     * @memberof WebsocketServer
+     */
+    get clients() {
+        return this.server.clients as unknown as Set<Socket<Attr>>;
+    }
+
+    /** 所有定义的method名称 */
     get methodList() {
         return Object.keys(global._WebsocketServer.methods);
     }
