@@ -107,7 +107,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
     }
 
     /**
-     * 通过method名称注册一个method
+     * 注册一个method
      *
      * @param {string} method method名称
      * @param {WebsocketMethodFn<Attr>} cb
@@ -115,9 +115,9 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      */
     register(method: string, cb: WebsocketMethodFn<Attr>): void;
     /**
-     * 注册多个method
+     * 注册一个或多个method
      *
-     * @param {Record<string, WebsocketMethodFn<Attr>>} method method的定义
+     * @param {Record<string, WebsocketMethodFn<Attr>>} method method回调函数
      * @memberof WebsocketServer
      */
     register(method: Record<string, WebsocketMethodFn<Attr>>): void;
@@ -133,16 +133,16 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
     }
 
     /**
-     * 注册中间件,适用于所有method
+     * 注册一个或多个适用于所有method的中间件
      *
      * @param {...Array<WebsocketMiddlewareFn<Attr>>} middlewares
      * @memberof WebsocketServer
      */
     use(...middlewares: Array<WebsocketMiddlewareFn<Attr>>): void;
     /**
-     * 注册中间件，适用于某个method
+     * 注册一个或多个只适用于某个method的中间件
      *
-     * @param {string} method 中间件作用的method
+     * @param {string} method method名称
      * @param {...Array<WebsocketMiddlewareFn<Attr>>} middlewares
      * @memberof WebsocketServer
      */
@@ -172,7 +172,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
     }
 
     /**
-     * 有新的连接构建时的回调
+     * 新连接构建成功后的回调
      *
      * @param {...Array<OnlineCallbackFn>} args
      * @memberof WebsocketServer
@@ -182,7 +182,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
     }
 
     /**
-     * 连接断开时的回调
+     * 连接断开后的回调
      *
      * @param {...Array<OfflineCallbackFn<Attr>>} args
      * @memberof WebsocketServer
@@ -219,7 +219,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      * @returns
      * @memberof WebsocketServer
      */
-    getClientsByAttr(is: (attribute: Attr) => boolean) {
+    getClients(is: (attribute: Attr) => boolean) {
         const clients: Set<Socket<Attr>> = new Set();
 
         for (const socket of this.clients) {
@@ -233,38 +233,24 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
     }
 
     /**
-     * 设置socket连接的属性
-     *
-     * @param {string} connectId
-     * @param {Partial<Attr>} attribute
-     * @memberof WebsocketServer
-     */
-    setClientAttr(connectId: string, attribute: Partial<Attr>) {
-        if (global._WebsocketServer.sessionMap[connectId]) {
-            Object.assign(global._WebsocketServer.sessionMap[connectId].attribute, attribute);
-        }
-    }
-
-
-    /**
-     * 获取socket连接的全部属性
+     * 获取某个socket连接的全部属性
      *
      * @param {string} connectId
      * @returns {(Attr | undefined)}
      * @memberof WebsocketServer
      */
-    getClientAttr(connectId: string): Attr | undefined;
+    getAttr(connectId: string): Attr | undefined;
     /**
-     * 获取socket连接中指定的属性
+     * 获取某个socket连接指定的属性
      *
      * @param {string} connectId
      * @param {Partial<keyof Attr>} attribute
      * @returns {*}
      * @memberof WebsocketServer
      */
-    getClientAttr<K extends Partial<keyof Attr>>(connectId: string, attribute: K): Attr[K];
+    getAttr<K extends Partial<keyof Attr>>(connectId: string, attribute: K): Attr[K] | undefined;
 
-    getClientAttr<K extends Partial<keyof Attr>>(connectId: string, attribute?: K) {
+    getAttr<K extends Partial<keyof Attr>>(connectId: string, attribute?: K) {
         if (global._WebsocketServer.sessionMap[connectId]) {
             const data = global._WebsocketServer.sessionMap[connectId].attribute;
 
@@ -272,7 +258,20 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
             // @ts-ignore
             return attribute ? data[attribute] : data;
         }
-        return null;
+        return undefined;
+    }
+
+    /**
+     * 设置socket连接的属性
+     *
+     * @param {string} connectId
+     * @param {Partial<Attr>} attribute
+     * @memberof WebsocketServer
+     */
+    setAttr(connectId: string, attribute: Partial<Attr>) {
+        if (global._WebsocketServer.sessionMap[connectId]) {
+            Object.assign(global._WebsocketServer.sessionMap[connectId].attribute, attribute);
+        }
     }
 
     /**
@@ -285,12 +284,13 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
         return this.server.clients as unknown as Set<Socket<Attr>>;
     }
 
-    /** 所有定义的method名称 */
+    /**
+     * 所有定义的method名称
+     *
+     * @readonly
+     * @memberof WebsocketServer
+     */
     get methodList() {
         return Object.keys(global._WebsocketServer.methods);
-    }
-
-    get middlewareList() {
-        return global._WebsocketServer.middlewares;
     }
 }

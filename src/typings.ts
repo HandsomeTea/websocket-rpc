@@ -18,10 +18,13 @@ export interface Options {
 export interface MethodResult {
     jsonrpc: '2.0'
     id: string | number
-    method: string
+    /** 非jsonrpc2.0标准字段。
+     * 用于标记结果所属的method时，可取请求数据的method值；也可自定义取值，标记服务器自定义推送信息
+     */
+    method?: string
     result?: unknown
     error?: {
-        /** 应为-32000到-32099之间的数字 */
+        /** 应为-32768至-32000之间的数字 */
         code: number
         message: string
         data?: unknown
@@ -70,11 +73,11 @@ export interface WebsocketService<Attribute extends AnyObject> {
 
     getClient(connectId: string): Socket<Attribute> | undefined;
 
-    getClientsByAttr(is: (attribute: Attribute) => boolean): Set<Socket<Attribute>>;
+    getClients(is: (attribute: Attribute) => boolean): Set<Socket<Attribute>>;
 
-    setClientAttr(connectId: string, attribute: Partial<Attribute>): void;
+    getAttr<K extends Partial<keyof Attribute>>(connectId: string, attribute?: K): Attribute | Attribute[K] | undefined;
 
-    getClientAttr(connectId: string, attribute?: Partial<keyof Attribute>): any;
+    setAttr(connectId: string, attribute: Partial<Attribute>): void;
 
     readonly clients: Set<Socket<Attribute>>;
 

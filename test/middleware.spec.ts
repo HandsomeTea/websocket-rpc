@@ -40,7 +40,6 @@ describe('middleware', () => {
             result: { result: 'success', status: 'method1-success' }
         });
         expect(server.methodList).toStrictEqual(['method1']);
-        expect(server.middlewareList.length).toEqual(1);
     });
 
     it('通过object设置middleware', async () => {
@@ -61,6 +60,5 @@ describe('middleware', () => {
             result: { result: 'success', status: 'method1-success-global-middleware' }
         });
         expect(server.methodList).toStrictEqual(['method1']);
-        expect(server.middlewareList.length).toEqual(2);
     });
 });

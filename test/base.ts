@@ -2,8 +2,9 @@
 import { WebsocketServer } from '../src';
 import WS from 'ws';
 
-export default (port: number) => {
-    const server = new WebsocketServer({ port });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default <Attr extends Record<string, any>>(port: number) => {
+    const server = new WebsocketServer<Attr>({ port });
     const client = new WS(`ws://localhost:${port}`);
 
     return {
