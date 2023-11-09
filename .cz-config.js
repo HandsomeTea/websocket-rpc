@@ -44,9 +44,11 @@ module.exports = {
     scopes: [
         ['method', 'method'],
         ['middleware', 'middleware'],
-        ['online/offline回调', '业务回调'],
+        ['callback', '业务回调'],
+        ['server', 'websocket核心相关'],
         ['socket', '客户端连接相关'],
-        ['log', '日至相关'],
+        ['interface', '接口定义相关'],
+        ['log', '日志相关'],
         ['config', '配置相关'],
         ['test', '测试相关'],
         ['deps', '项目依赖'],

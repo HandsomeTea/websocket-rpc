@@ -3,7 +3,7 @@ import http from 'http';
 import crypto from 'crypto';
 import { createLogInstance, log } from './logger';
 import setCore from './core';
-import { ErrorCallbackFn, Logger, OfflineCallbackFn, OnlineCallbackFn, Options, Socket, WebsocketMethodFn, WebsocketMiddlewareFn, WebsocketService } from './typings';
+import { WebsocketService, Logger, Socket } from './typings';
 
 global._WebsocketServer = {
     sessionMap: {},
@@ -14,15 +14,15 @@ global._WebsocketServer = {
 Object.freeze(global._WebsocketServer);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export class WebsocketServer<Attr extends Record<string, any>> implements WebsocketService<Attr> {
-    private options: Options = {};
+export class WebsocketServer<Attr extends Record<string, any>> implements WebsocketService.Server<Attr> {
+    private options: WebsocketService.Options = {};
     private configs: WebSocket.ServerOptions = {};
     private server: WebSocket.Server;
     private logger?: ((module?: string) => Logger);
-    private _online: Array<OnlineCallbackFn> = [];
-    private _offline: Array<OfflineCallbackFn<Attr>> = [];
-    private _error: Array<ErrorCallbackFn<Attr>> = [];
-    constructor(configs: WebSocket.ServerOptions, options?: Options) {
+    private _online: Array<WebsocketService.OnlineCallbackFn> = [];
+    private _offline: Array<WebsocketService.OfflineCallbackFn<Attr>> = [];
+    private _error: Array<WebsocketService.ErrorCallbackFn<Attr>> = [];
+    constructor(configs: WebSocket.ServerOptions, options?: WebsocketService.Options) {
         if (options?.log) {
             if (typeof options.log === 'function') {
                 this.logger = options.log;
@@ -51,7 +51,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
                 this.logger('startup').error(error);
             }
         });
-        this.server.on('connection', async (socket: Socket<Attr>, request: http.IncomingMessage) => {
+        this.server.on('connection', async (socket: Socket.Link<Attr>, request: http.IncomingMessage) => {
             if (this._offline) {
                 socket.offline = this._offline;
             }
@@ -106,19 +106,19 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      * 注册一个method
      *
      * @param {string} method method名称
-     * @param {WebsocketMethodFn<Attr>} cb
+     * @param {WebsocketService.WebsocketMethodFn<Attr>} cb
      * @memberof WebsocketServer
      */
-    register(method: string, cb: WebsocketMethodFn<Attr>): void;
+    register(method: string, cb: WebsocketService.WebsocketMethodFn<Attr>): void;
     /**
      * 注册一个或多个method
      *
-     * @param {Record<string, WebsocketMethodFn<Attr>>} method method回调函数
+     * @param {Record<string, WebsocketService.WebsocketMethodFn<Attr>>} method method回调函数
      * @memberof WebsocketServer
      */
-    register(method: Record<string, WebsocketMethodFn<Attr>>): void;
+    register(method: Record<string, WebsocketService.WebsocketMethodFn<Attr>>): void;
 
-    register(method: string | Record<string, WebsocketMethodFn<Attr>>, cb?: WebsocketMethodFn<Attr>) {
+    register(method: string | Record<string, WebsocketService.WebsocketMethodFn<Attr>>, cb?: WebsocketService.WebsocketMethodFn<Attr>) {
         if (typeof method === 'string' && typeof cb === 'function') {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -131,30 +131,30 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
     /**
      * 注册一个或多个适用于所有method的中间件
      *
-     * @param {...Array<WebsocketMiddlewareFn<Attr>>} middlewares
+     * @param {...Array<WebsocketService.WebsocketMiddlewareFn<Attr>>} middlewares
      * @memberof WebsocketServer
      */
-    use(...middlewares: Array<WebsocketMiddlewareFn<Attr>>): void;
+    use(...middlewares: Array<WebsocketService.WebsocketMiddlewareFn<Attr>>): void;
     /**
      * 注册一个或多个只适用于某个method的中间件
      *
      * @param {string} method method名称
-     * @param {...Array<WebsocketMiddlewareFn<Attr>>} middlewares
+     * @param {...Array<WebsocketService.WebsocketMiddlewareFn<Attr>>} middlewares
      * @memberof WebsocketServer
      */
-    use(method: string, ...middlewares: Array<WebsocketMiddlewareFn<Attr>>): void;
+    use(method: string, ...middlewares: Array<WebsocketService.WebsocketMiddlewareFn<Attr>>): void;
 
-    use(...middlewares: Array<WebsocketMiddlewareFn<Attr>> | [string, ...Array<WebsocketMiddlewareFn<Attr>>]) {
+    use(...middlewares: Array<WebsocketService.WebsocketMiddlewareFn<Attr>> | [string, ...Array<WebsocketService.WebsocketMiddlewareFn<Attr>>]) {
         if (typeof middlewares[0] === 'string') {
             const method = middlewares.shift() as string;
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            global._WebsocketServer.middlewares.push(...(middlewares as Array<WebsocketMiddlewareFn<Attr>>).map(m => ({ [method]: m })));
+            global._WebsocketServer.middlewares.push(...(middlewares as Array<WebsocketService.WebsocketMiddlewareFn<Attr>>).map(m => ({ [method]: m })));
         } else if (middlewares.every(m => typeof m === 'function')) {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            global._WebsocketServer.middlewares.push(...middlewares as Array<WebsocketMiddlewareFn<Attr>>);
+            global._WebsocketServer.middlewares.push(...middlewares as Array<WebsocketService.WebsocketMiddlewareFn<Attr>>);
         }
     }
 
@@ -170,30 +170,30 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
     /**
      * 新连接构建成功后的回调
      *
-     * @param {...Array<OnlineCallbackFn>} args
+     * @param {...Array<WebsocketService.OnlineCallbackFn>} args
      * @memberof WebsocketServer
      */
-    online(...args: Array<OnlineCallbackFn>): void {
+    online(...args: Array<WebsocketService.OnlineCallbackFn>): void {
         this._online.push(...args);
     }
 
     /**
      * 连接断开后的回调
      *
-     * @param {...Array<OfflineCallbackFn<Attr>>} args
+     * @param {...Array<WebsocketService.OfflineCallbackFn<Attr>>} args
      * @memberof WebsocketServer
      */
-    offline(...args: Array<OfflineCallbackFn<Attr>>): void {
+    offline(...args: Array<WebsocketService.OfflineCallbackFn<Attr>>): void {
         this._offline.push(...args);
     }
 
     /**
      * middleware或method运行出错时的错误处理
      * 注意：只处理middleware和method执行抛出的错误
-     * @param {...Array<ErrorCallbackFn<Attr>>} args
+     * @param {...Array<WebsocketService.ErrorCallbackFn<Attr>>} args
      * @memberof WebsocketServer
      */
-    error(...args: Array<ErrorCallbackFn<Attr>>): void {
+    error(...args: Array<WebsocketService.ErrorCallbackFn<Attr>>): void {
         this._error.push(...args);
     }
 
@@ -204,8 +204,8 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      * @returns
      * @memberof WebsocketServer
      */
-    getSocket(connectId: string): Socket<Attr> | undefined {
-        return global._WebsocketServer.sessionMap[connectId] as Socket<Attr> | undefined;
+    getSocket(connectId: string): Socket.Link<Attr> | undefined {
+        return global._WebsocketServer.sessionMap[connectId] as Socket.Link<Attr> | undefined;
     }
 
     /**
@@ -216,7 +216,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      * @memberof WebsocketServer
      */
     getSockets(is: (attribute: Attr) => boolean) {
-        const clients: Set<Socket<Attr>> = new Set();
+        const clients: Set<Socket.Link<Attr>> = new Set();
 
         for (const socket of this.clients) {
             const attr = socket.attribute;
@@ -275,7 +275,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      * @memberof WebsocketServer
      */
     get clients() {
-        return this.server.clients as unknown as Set<Socket<Attr>>;
+        return this.server.clients as unknown as Set<Socket.Link<Attr>>;
     }
 
     /**

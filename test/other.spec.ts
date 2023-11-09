@@ -24,7 +24,7 @@ afterAll(() => {
 
 describe('其它', () => {
     it('getSocket', async () => {
-        let ins: null | Socket<SocketAttr> = null;
+        let ins: null | Socket.Link<SocketAttr> = null;
         const result: { result: { id: string } } = await new Promise(resolve => {
             server.register('getSocketId', (_params, socket) => {
                 ins = socket;
@@ -38,7 +38,7 @@ describe('其它', () => {
     });
 
     it('getSockets', async () => {
-        let ins: null | Socket<SocketAttr> = null;
+        let ins: null | Socket.Link<SocketAttr> = null;
         const result: { result: { id: string } } = await new Promise(resolve => {
             server.use((_params, socket) => {
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -104,7 +104,7 @@ describe('其它', () => {
     });
 
     it('getAttr', async () => {
-        const result: { result: { id: string } } = await new Promise(resolve => {
+        const result: { result: { id: string, socketSetAttr: number, testSetAttr: string } } = await new Promise(resolve => {
             server.register('socketGetAttr', (_params, socket) => {
                 return socket.getAttr();
             });
@@ -112,8 +112,20 @@ describe('其它', () => {
             client.send(JSON.stringify({ method: 'socketGetAttr', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
         });
 
-        expect(server.getSocketAttr(result.result.id, 'socketSetAttr')).toStrictEqual(11);
-        expect(server.getSocketAttr(result.result.id, 'testSetAttr')).toStrictEqual('11');
+        expect(result.result.socketSetAttr).toStrictEqual(11);
+        expect(result.result.testSetAttr).toStrictEqual('11');
+    });
+
+    it('getAttr', async () => {
+        const result: { result: { id: string } } = await new Promise(resolve => {
+            server.register('socketGetAttr', (_params, socket) => {
+                return socket.getAttr('socketSetAttr');
+            });
+            client.once('message', data => resolve(JSON.parse(data.toString())));
+            client.send(JSON.stringify({ method: 'socketGetAttr', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+        });
+
+        expect(result.result).toStrictEqual(11);
     });
 
     it('methodList', async () => {

@@ -1,7 +1,7 @@
 import { Socket } from '../typings';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const errorFn = async (error: Error, socket: Socket<Record<string, any>>, method?: string) => {
+const errorFn = async (error: Error, socket: Socket.Link<Record<string, any>>, method?: string) => {
     try {
         for (const fn of socket.error) {
             await fn(error, socket, method);
@@ -12,7 +12,7 @@ const errorFn = async (error: Error, socket: Socket<Record<string, any>>, method
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default (socket: Socket<Record<string, any>>): void => {
+export default (socket: Socket.Link<Record<string, any>>): void => {
     socket.on('message', async parameter => {
         // ====================================== 数据格式化 ======================================
         let data = null;
