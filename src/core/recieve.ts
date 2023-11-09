@@ -72,7 +72,7 @@ export default (socket: Socket<Record<string, any>>): void => {
                 result: 'pong'
             });
         } else if (method === 'connect') {
-            return socket.sendout({ id, method, result: { msg: 'connected', session: socket.connection.id } });
+            return socket.sendout({ id, method, result: { msg: 'connected', session: socket.id } });
         }
 
         // ====================================== method是否存在 ======================================

@@ -22,42 +22,42 @@ afterAll(() => {
 });
 
 describe('其它', () => {
-    it('getClient', async () => {
+    it('getSocket', async () => {
         let ins: null | Socket<SocketAttr> = null;
         const result: { result: { id: string } } = await new Promise(resolve => {
-            server.register('getClientId', (_params, socket) => {
+            server.register('getSocketId', (_params, socket) => {
                 ins = socket;
-                return { id: socket.connection.id };
+                return { id: socket.id };
             });
             client.once('message', data => resolve(JSON.parse(data.toString())));
-            client.send(JSON.stringify({ method: 'getClientId', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ method: 'getSocketId', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
         });
 
-        expect(server.getClient(result.result.id)).toBe(ins);
+        expect(server.getSocket(result.result.id)).toBe(ins);
     });
 
-    it('getClients', async () => {
+    it('getSockets', async () => {
         let ins: null | Socket<SocketAttr> = null;
         const result: { result: { id: string } } = await new Promise(resolve => {
             server.use((_params, socket) => {
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
                 ins = socket;
-                return { id: socket.connection.id };
+                return { id: socket.id };
             });
             client.once('message', data => resolve(JSON.parse(data.toString())));
-            client.send(JSON.stringify({ method: 'getClientId', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ method: 'getSocketId', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
         });
 
         expect(ins).not.toBeNull();
-        const clents = server.getClients(attr => attr.id === result.result.id);
+        const clents = server.getSockets(attr => attr.id === result.result.id);
 
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         expect(clents.has(ins)).toBe(true);
     });
 
-    it('getAttr', async () => {
+    it('getSocketAttr', async () => {
         const result: { result: { id: string } } = await new Promise(resolve => {
             server.use(() => {
                 return {
@@ -71,23 +71,23 @@ describe('其它', () => {
             client.send(JSON.stringify({ method: 'getAttr', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
         });
 
-        expect(server.getAttr(result.result.id)).toStrictEqual(result.result);
+        expect(server.getSocketAttr(result.result.id)).toStrictEqual(result.result);
     });
 
-    it('setAttr', async () => {
+    it('setSocketAttr', async () => {
         const result: { result: { id: string } } = await new Promise(resolve => {
             server.register('getAttr', (_params, socket) => {
-                server.setAttr(socket.connection.id, { testSetAttr: 'value-123' });
+                server.setSocketAttr(socket.id, { testSetAttr: 'value-123' });
                 return socket.attribute;
             });
             client.once('message', data => resolve(JSON.parse(data.toString())));
             client.send(JSON.stringify({ method: 'getAttr', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
         });
 
-        expect(server.getAttr(result.result.id, 'testSetAttr')).toStrictEqual('value-123');
+        expect(server.getSocketAttr(result.result.id, 'testSetAttr')).toStrictEqual('value-123');
     });
 
     it('methodList', async () => {
-        expect(server.methodList).toStrictEqual(['getClientId', 'getAttr']);
+        expect(server.methodList).toStrictEqual(['getSocketId', 'getAttr']);
     });
 });

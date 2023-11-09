@@ -3,7 +3,7 @@ import { Socket } from '../typings';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default (socket: Socket<Record<string, any>>): void => {
     socket.on('close', async () => {
-        const { connection: { id } } = socket;
+        const { id } = socket;
 
         if (global._WebsocketServer.sessionMap[id]) {
             delete global._WebsocketServer.sessionMap[id];
@@ -16,7 +16,7 @@ export default (socket: Socket<Record<string, any>>): void => {
         if (socket.offline.length > 0) {
             try {
                 for (const fn of socket.offline) {
-                    await fn(socket.attribute, socket.connection);
+                    await fn(socket.attribute, socket.id);
                 }
             } catch (error) {
                 if (socket.option.logger) {

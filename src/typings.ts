@@ -33,25 +33,24 @@ export interface MethodResult {
 
 type AnyObject = Record<string, any>;
 
-export type Socket<T extends AnyObject> = WebSocket & {
+export interface Socket<T extends AnyObject> extends WebSocket {
     attribute: T
-    connection: {
-        id: string
-        ip?: string
-    }
+    id: string
     option: {
         logger?: (module?: string) => Logger
         compression?: 'zlib'
     }
-    offline: Array<(attribute: T, connection: Socket<T>['connection']) => void | Promise<void>>;
+    offline: Array<(attribute: T, id: string) => void | Promise<void>>;
     error: Array<(error: Error, socket: Socket<Partial<T>>, method?: string) => void | Promise<void>>;
     sendout: (message: Omit<MethodResult, 'jsonrpc'>) => void
+    setAttr: <K extends keyof T>(attribute: K | Partial<T>, value?: T[K]) => void;
+    getAttr: <K extends keyof T>(attribute?: K) => T | T[K] | undefined;
 }
 
 export type WebsocketMiddlewareFn<Attribute extends AnyObject> = (params: unknown, socket: Socket<Partial<Attribute>>, method: string) => Partial<Attribute> | undefined | Promise<Partial<Attribute> | undefined>
 export type WebsocketMethodFn<Attribute extends AnyObject> = (params: unknown, socket: Socket<Attribute>) => any | Promise<any>;
 export type OnlineCallbackFn = (socket: Socket<NonNullable<unknown>>, request: http.IncomingMessage) => void | Promise<void>;
-export type OfflineCallbackFn<Attribute extends AnyObject> = (attribute: Attribute, connection: Socket<Attribute>['connection']) => void | Promise<void>;
+export type OfflineCallbackFn<Attribute extends AnyObject> = (attribute: Attribute, id: string) => void | Promise<void>;
 export type ErrorCallbackFn<Attribute extends AnyObject> = (error: Error, socket: Socket<Partial<Attribute>>, method?: string) => void | Promise<void>;
 
 export interface WebsocketService<Attribute extends AnyObject> {
@@ -71,13 +70,13 @@ export interface WebsocketService<Attribute extends AnyObject> {
 
     error(...args: Array<ErrorCallbackFn<Attribute>>): void;
 
-    getClient(connectId: string): Socket<Attribute> | undefined;
+    getSocket(connectId: string): Socket<Attribute> | undefined;
 
-    getClients(is: (attribute: Attribute) => boolean): Set<Socket<Attribute>>;
+    getSockets(is: (attribute: Attribute) => boolean): Set<Socket<Attribute>>;
 
-    getAttr<K extends Partial<keyof Attribute>>(connectId: string, attribute?: K): Attribute | Attribute[K] | undefined;
+    getSocketAttr<K extends keyof Attribute>(connectId: string, attribute?: K): Attribute | Attribute[K] | undefined;
 
-    setAttr(connectId: string, attribute: Partial<Attribute>): void;
+    setSocketAttr(connectId: string, attribute: Partial<Attribute>): void;
 
     readonly clients: Set<Socket<Attribute>>;
 

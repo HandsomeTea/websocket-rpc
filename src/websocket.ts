@@ -67,15 +67,11 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
             }
             Object.freeze(socket.option);
 
-            socket.connection = {
-                id: crypto.randomBytes(24).toString('hex').substring(0, 16),
-                ip: request.headers['x-forwarded-for']?.toString().split(',')[0].trim() || request.socket.remoteAddress
-            };
-            Object.freeze(socket.connection);
+            socket.id = crypto.randomBytes(24).toString('hex').substring(0, 16);
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            global._WebsocketServer.sessionMap[socket.connection.id] = socket;
+            global._WebsocketServer.sessionMap[socket.id] = socket;
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -85,7 +81,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
             setCore(socket);
 
             if (socket.option.logger) {
-                socket.option.logger('connection').debug(`socket:${socket.connection.id} is connected!`);
+                socket.option.logger('connection').debug(`socket:${socket.id} is connected!`);
             }
 
             if (this._online.length > 0) {
@@ -208,7 +204,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      * @returns
      * @memberof WebsocketServer
      */
-    getClient(connectId: string): Socket<Attr> | undefined {
+    getSocket(connectId: string): Socket<Attr> | undefined {
         return global._WebsocketServer.sessionMap[connectId] as Socket<Attr> | undefined;
     }
 
@@ -219,7 +215,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      * @returns
      * @memberof WebsocketServer
      */
-    getClients(is: (attribute: Attr) => boolean) {
+    getSockets(is: (attribute: Attr) => boolean) {
         const clients: Set<Socket<Attr>> = new Set();
 
         for (const socket of this.clients) {
@@ -239,24 +235,22 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      * @returns {(Attr | undefined)}
      * @memberof WebsocketServer
      */
-    getAttr(connectId: string): Attr | undefined;
+    getSocketAttr(connectId: string): Attr | undefined;
     /**
      * 获取某个socket连接指定的属性
      *
      * @param {string} connectId
-     * @param {Partial<keyof Attr>} attribute
+     * @param {keyof Attr} attribute
      * @returns {*}
      * @memberof WebsocketServer
      */
-    getAttr<K extends Partial<keyof Attr>>(connectId: string, attribute: K): Attr[K] | undefined;
+    getSocketAttr<K extends keyof Attr>(connectId: string, attribute: K): Attr[K] | undefined;
 
-    getAttr<K extends Partial<keyof Attr>>(connectId: string, attribute?: K) {
+    getSocketAttr<K extends keyof Attr>(connectId: string, attribute?: K) {
         if (global._WebsocketServer.sessionMap[connectId]) {
-            const data = global._WebsocketServer.sessionMap[connectId].attribute;
-
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            return attribute ? data[attribute] : data;
+            return global._WebsocketServer.sessionMap[connectId].getAttr(attribute);
         }
         return undefined;
     }
@@ -268,9 +262,9 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      * @param {Partial<Attr>} attribute
      * @memberof WebsocketServer
      */
-    setAttr(connectId: string, attribute: Partial<Attr>) {
+    setSocketAttr(connectId: string, attribute: Partial<Attr>) {
         if (global._WebsocketServer.sessionMap[connectId]) {
-            Object.assign(global._WebsocketServer.sessionMap[connectId].attribute, attribute);
+            global._WebsocketServer.sessionMap[connectId].setAttr(attribute);
         }
     }
 

@@ -45,7 +45,7 @@ module.exports = {
         ['method', 'method'],
         ['middleware', 'middleware'],
         ['online/offline回调', '业务回调'],
-        ['client', '客户端连接相关'],
+        ['socket', '客户端连接相关'],
         ['log', '日至相关'],
         ['config', '配置相关'],
         ['test', '测试相关'],

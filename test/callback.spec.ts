@@ -43,11 +43,11 @@ describe('事件', () => {
 
             server.start();
             server.online(socket => {
-                sessionId = socket.connection.id;
+                sessionId = socket.id;
             });
-            server.offline((_attribute, connection) => {
+            server.offline((_attribute, id) => {
                 server.close();
-                resolve(connection.id);
+                resolve(id);
             });
             const client = new WS(`ws://localhost:${port}`);
 
