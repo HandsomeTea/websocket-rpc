@@ -5,6 +5,7 @@ interface SocketAttr {
     id: string
     testAttr: string
     testSetAttr: string
+    socketSetAttr: number
 }
 
 const { server, client } = instance<SocketAttr>(3306);
@@ -87,7 +88,35 @@ describe('其它', () => {
         expect(server.getSocketAttr(result.result.id, 'testSetAttr')).toStrictEqual('value-123');
     });
 
+    it('setAttr', async () => {
+        const result: { result: { id: string } } = await new Promise(resolve => {
+            server.register('socketGetAttr', (_params, socket) => {
+                socket.setAttr({ socketSetAttr: 11 });
+                socket.setAttr('testSetAttr', '11');
+                return socket.attribute;
+            });
+            client.once('message', data => resolve(JSON.parse(data.toString())));
+            client.send(JSON.stringify({ method: 'socketGetAttr', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+        });
+
+        expect(server.getSocketAttr(result.result.id, 'socketSetAttr')).toStrictEqual(11);
+        expect(server.getSocketAttr(result.result.id, 'testSetAttr')).toStrictEqual('11');
+    });
+
+    it('getAttr', async () => {
+        const result: { result: { id: string } } = await new Promise(resolve => {
+            server.register('socketGetAttr', (_params, socket) => {
+                return socket.getAttr();
+            });
+            client.once('message', data => resolve(JSON.parse(data.toString())));
+            client.send(JSON.stringify({ method: 'socketGetAttr', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+        });
+
+        expect(server.getSocketAttr(result.result.id, 'socketSetAttr')).toStrictEqual(11);
+        expect(server.getSocketAttr(result.result.id, 'testSetAttr')).toStrictEqual('11');
+    });
+
     it('methodList', async () => {
-        expect(server.methodList).toStrictEqual(['getSocketId', 'getAttr']);
+        expect(server.methodList).toStrictEqual(['getSocketId', 'getAttr', 'socketGetAttr']);
     });
 });
