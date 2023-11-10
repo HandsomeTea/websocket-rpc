@@ -2,13 +2,13 @@
 import WebSocket from 'ws';
 import http from 'http';
 
-export interface Logger {
-    trace(message: string): void;
-    debug(message: string): void;
-    info(message: string): void;
-    warn(message: string): void;
-    error(message: string): void;
-}
+// export interface Logger {
+//     trace(message: string): void;
+//     debug(message: string): void;
+//     info(message: string): void;
+//     warn(message: string): void;
+//     error(message: string): void;
+// }
 
 // export interface Options {
 //     log?: boolean | ((module?: string) => Logger)
@@ -98,21 +98,31 @@ export interface Logger {
 // }
 
 
+export interface Logger {
+    trace(message: string): void;
+    debug(message: string): void;
+    info(message: string): void;
+    warn(message: string): void;
+    error(message: string): void;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Socket {
 
     type AnyObject = Record<string, any>;
 
     interface SetAttr<T extends AnyObject> {
-        /** 为socket设置attribute属性，值为value */
+        /** 为socket设置key为attribute属性，值为value */
         <K extends keyof T>(attribute: K, value: T[K]): void;
+
         /** 将attribute的键值设置到socket的属性中 */
         (attribute: Partial<T>): void;
     }
 
     interface GetAttr<T extends AnyObject> {
-        /** 获取socket的attribute属性 */
+        /** 获取socket的某个属性 */
         <K extends keyof T>(attribute: K): T[K];
+
         /** 获取socket的全部属性 */
         (): T;
     }
@@ -120,7 +130,8 @@ export namespace Socket {
     export interface MethodResult {
         jsonrpc: '2.0'
         id: string | number
-        /** 非jsonrpc2.0标准字段。
+        /**
+         * 非jsonrpc2.0标准字段。
          * 用于标记结果所属的method时，可取请求数据的method值；也可自定义取值，标记服务器自定义推送信息
          */
         method?: string
@@ -132,6 +143,7 @@ export namespace Socket {
             data?: unknown
         }
     }
+
     export interface Link<T extends AnyObject> extends WebSocket {
         attribute: T
         id: string
@@ -139,9 +151,19 @@ export namespace Socket {
             logger?: (module?: string) => Logger
             compression?: 'zlib'
         }
-        offline: Array<(attribute: T, id: string) => void | Promise<void>>;
-        error: Array<(error: Error, socket: Link<Partial<T>>, method?: string) => void | Promise<void>>;
-        sendout: (message: Omit<MethodResult, 'jsonrpc'>) => void
+        // eslint-disable-next-line no-use-before-define
+        offline: Array<WebsocketService.OfflineCallbackFn<T>>;
+        // eslint-disable-next-line no-use-before-define
+        error: Array<WebsocketService.ErrorCallbackFn<T>>;
+
+        /**
+         * 发送符合jsonrpc2.0规范的数据
+         *
+         * @param {Omit<MethodResult, 'jsonrpc'>} message
+         * @memberof Link
+         */
+        sendout(message: Omit<MethodResult, 'jsonrpc'>): void;
+
         setAttr: SetAttr<T>;
         getAttr: GetAttr<T>;
     }
@@ -163,31 +185,116 @@ export namespace WebsocketService {
     export type OfflineCallbackFn<Attribute extends AnyObject> = (attribute: Attribute, id: string) => void | Promise<void>;
     export type ErrorCallbackFn<Attribute extends AnyObject> = (error: Error, socket: Socket.Link<Partial<Attribute>>, method?: string) => void | Promise<void>;
 
+    interface Use<Attribute extends AnyObject> {
+        /** 注册一个或多个适用于所有method的中间件 */
+        (...middlewares: Array<WebsocketMiddlewareFn<Attribute>>): void;
+
+        /** 注册一个或多个只适用于某个method的中间件 */
+        (method: string, ...middlewares: Array<WebsocketMiddlewareFn<Attribute>>): void;
+    }
+
+    interface Register<Attribute extends AnyObject> {
+        /** 注册一个method */
+        (method: string, cb: WebsocketMethodFn<Attribute>): void;
+
+        /** 注册一个或多个method */
+        (method: Record<string, WebsocketMethodFn<Attribute>>): void;
+    }
+
+    interface GetSocketAttr<Attribute extends AnyObject> {
+        /** 获取某个socket连接的全部属性 */
+        (connectId: string): Attribute | undefined;
+
+        /** 获取某个socket连接指定的属性 */
+        <K extends keyof Attribute>(connectId: string, attribute: K): Attribute[K] | undefined;
+    }
+
     export interface Server<Attribute extends AnyObject> {
-        use(...middlewares: Array<WebsocketMiddlewareFn<Attribute>> | [string, ...Array<WebsocketMiddlewareFn<Attribute>>]): void;
+        use: Use<Attribute>;
+        register: Register<Attribute>;
 
-        register(method: string | Record<string, WebsocketMethodFn<Attribute>>, cb?: WebsocketMethodFn<Attribute>): void;
-
+        /**
+         * 启动服务
+         *
+         * @memberof Server
+         */
         start(): void;
 
+        /**
+         * 停止服务
+         *
+         * @memberof Server
+         */
         close(): void;
 
+        /**
+         * 新连接构建成功后的回调
+         *
+         * @param {...Array<OnlineCallbackFn>} args
+         * @memberof Server
+         */
         online(...args: Array<OnlineCallbackFn>): void;
 
+        /**
+         * 连接断开后的回调
+         *
+         * @param {...Array<OfflineCallbackFn<Attribute>>} args
+         * @memberof Server
+         */
         offline(...args: Array<OfflineCallbackFn<Attribute>>): void;
 
+        /**
+         * middleware或method运行出错时的错误处理。
+         * 注意：只处理middleware和method执行抛出的错误
+         *
+         * @param {...Array<ErrorCallbackFn<Attribute>>} args
+         * @memberof Server
+         */
         error(...args: Array<ErrorCallbackFn<Attribute>>): void;
 
+        /**
+         * 根据socket的连接id获取socket对象
+         *
+         * @param {string} connectId
+         * @returns {(Socket.Link<Attribute> | undefined)}
+         * @memberof Server
+         */
         getSocket(connectId: string): Socket.Link<Attribute> | undefined;
 
+        /**
+         * 根据socket连接的属性数据获取socket对象
+         *
+         * @param {(attribute: Attribute) => boolean} is
+         * @returns {Set<Socket.Link<Attribute>>}
+         * @memberof Server
+         */
         getSockets(is: (attribute: Attribute) => boolean): Set<Socket.Link<Attribute>>;
 
-        getSocketAttr<K extends keyof Attribute>(connectId: string, attribute?: K): Attribute | Attribute[K] | undefined;
+        getSocketAttr: GetSocketAttr<Attribute>;
 
+        /**
+         * 设置socket连接的属性
+         *
+         * @param {string} connectId
+         * @param {Partial<Attribute>} attribute
+         * @memberof Server
+         */
         setSocketAttr(connectId: string, attribute: Partial<Attribute>): void;
 
+        /**
+         * 所有socket连接
+         *
+         * @type {Set<Socket.Link<Attribute>>}
+         * @memberof Server
+         */
         readonly clients: Set<Socket.Link<Attribute>>;
 
+        /**
+         * 所有定义的method名称
+         *
+         * @type {Array<string>}
+         * @memberof Server
+         */
         readonly methodList: Array<string>;
     }
 }

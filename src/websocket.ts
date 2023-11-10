@@ -37,11 +37,6 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
         this.configs = configs;
     }
 
-    /**
-     * 启动服务
-     *
-     * @memberof WebsocketServer
-     */
     start() {
         this.server = new WebSocket.Server(this.configs);
         this.server.on('error', (error: Error) => {
@@ -85,19 +80,19 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
             }
 
             if (this._online.length > 0) {
-                try {
-                    for (const fn of this._online) {
-                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                        // @ts-ignore
-                        await fn(socket, request);
-                    }
-                } catch (error) {
-                    if (socket.option.logger) {
-                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                        // @ts-ignore
-                        socket.option.logger('connection').error(error);
-                    }
+                // try {
+                for (const fn of this._online) {
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    await fn(socket, request);
                 }
+                // } catch (error) {
+                //     if (socket.option.logger) {
+                //         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                //         // @ts-ignore
+                //         socket.option.logger('connection').error(error);
+                //     }
+                // }
             }
         });
     }
@@ -123,8 +118,14 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             global._WebsocketServer.methods[method] = cb;
-        } else if (typeof method !== 'string') {
-            Object.assign(global._WebsocketServer.methods, method);
+        } else if (typeof method === 'object' && !Array.isArray(method)) {
+            for (const key in method) {
+                if (key && typeof method[key] === 'function') {
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    global._WebsocketServer.methods[key] = method[key];
+                }
+            }
         }
     }
 
@@ -148,9 +149,13 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
         if (typeof middlewares[0] === 'string') {
             const method = middlewares.shift() as string;
 
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            global._WebsocketServer.middlewares.push(...(middlewares as Array<WebsocketService.WebsocketMiddlewareFn<Attr>>).map(m => ({ [method]: m })));
+            for (const middleware of middlewares) {
+                if (typeof middleware === 'function') {
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    global._WebsocketServer.middlewares.push({ [method]: middleware });
+                }
+            }
         } else if (middlewares.every(m => typeof m === 'function')) {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -158,73 +163,57 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
         }
     }
 
-    /**
-     * 停止服务
-     *
-     * @memberof WebsocketService
-     */
     close() {
         this.server.close();
     }
 
-    /**
-     * 新连接构建成功后的回调
-     *
-     * @param {...Array<WebsocketService.OnlineCallbackFn>} args
-     * @memberof WebsocketServer
-     */
     online(...args: Array<WebsocketService.OnlineCallbackFn>): void {
-        this._online.push(...args);
+        if (Array.isArray(args) && args.length > 0) {
+            for (const fn of args) {
+                if (typeof fn === 'function') {
+                    this._online.push(fn);
+                }
+            }
+        }
     }
 
-    /**
-     * 连接断开后的回调
-     *
-     * @param {...Array<WebsocketService.OfflineCallbackFn<Attr>>} args
-     * @memberof WebsocketServer
-     */
     offline(...args: Array<WebsocketService.OfflineCallbackFn<Attr>>): void {
-        this._offline.push(...args);
+        if (Array.isArray(args) && args.length > 0) {
+            for (const fn of args) {
+                if (typeof fn === 'function') {
+                    this._offline.push(fn);
+                }
+            }
+        }
     }
 
-    /**
-     * middleware或method运行出错时的错误处理
-     * 注意：只处理middleware和method执行抛出的错误
-     * @param {...Array<WebsocketService.ErrorCallbackFn<Attr>>} args
-     * @memberof WebsocketServer
-     */
     error(...args: Array<WebsocketService.ErrorCallbackFn<Attr>>): void {
-        this._error.push(...args);
+        if (Array.isArray(args) && args.length > 0) {
+            for (const fn of args) {
+                if (typeof fn === 'function') {
+                    this._error.push(fn);
+                }
+            }
+        }
     }
 
-    /**
-     * 根据socket的连接id获取socket对象
-     *
-     * @param {string} connectId
-     * @returns
-     * @memberof WebsocketServer
-     */
     getSocket(connectId: string): Socket.Link<Attr> | undefined {
         return global._WebsocketServer.sessionMap[connectId] as Socket.Link<Attr> | undefined;
     }
 
-    /**
-     * 根据socket连接的属性数据获取socket对象
-     *
-     * @param {(attribute: Attr) => boolean} is
-     * @returns
-     * @memberof WebsocketServer
-     */
     getSockets(is: (attribute: Attr) => boolean) {
         const clients: Set<Socket.Link<Attr>> = new Set();
 
-        for (const socket of this.clients) {
-            const attr = socket.attribute;
+        if (typeof is === 'function') {
+            for (const socket of this.clients) {
+                const attr = socket.attribute;
 
-            if (is(attr) === true) {
-                clients.add(socket);
+                if (is(attr) === true) {
+                    clients.add(socket);
+                }
             }
         }
+
         return clients;
     }
 
@@ -255,35 +244,16 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
         return undefined;
     }
 
-    /**
-     * 设置socket连接的属性
-     *
-     * @param {string} connectId
-     * @param {Partial<Attr>} attribute
-     * @memberof WebsocketServer
-     */
     setSocketAttr(connectId: string, attribute: Partial<Attr>) {
         if (global._WebsocketServer.sessionMap[connectId]) {
             global._WebsocketServer.sessionMap[connectId].setAttr(attribute);
         }
     }
 
-    /**
-     * 所有socket连接
-     *
-     * @readonly
-     * @memberof WebsocketServer
-     */
     get clients() {
         return this.server.clients as unknown as Set<Socket.Link<Attr>>;
     }
 
-    /**
-     * 所有定义的method名称
-     *
-     * @readonly
-     * @memberof WebsocketServer
-     */
     get methodList() {
         return Object.keys(global._WebsocketServer.methods);
     }

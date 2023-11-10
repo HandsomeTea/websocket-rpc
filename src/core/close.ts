@@ -14,17 +14,17 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
         }
 
         if (socket.offline.length > 0) {
-            try {
-                for (const fn of socket.offline) {
-                    await fn(socket.attribute, socket.id);
-                }
-            } catch (error) {
-                if (socket.option.logger) {
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    socket.option.logger('close-socket-connection').error(error);
-                }
+            // try {
+            for (const fn of socket.offline) {
+                await fn(socket.attribute, socket.id);
             }
+            // } catch (error) {
+            //     if (socket.option.logger) {
+            //         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            //         // @ts-ignore
+            //         socket.option.logger('close-socket-connection').error(error);
+            //     }
+            // }
         }
     });
 };

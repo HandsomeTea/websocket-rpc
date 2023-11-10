@@ -2,13 +2,13 @@ import { Socket } from '../typings';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const errorFn = async (error: Error, socket: Socket.Link<Record<string, any>>, method?: string) => {
-    try {
-        for (const fn of socket.error) {
-            await fn(error, socket, method);
-        }
-    } catch (error) {
-        //
+    // try {
+    for (const fn of socket.error) {
+        await fn(error, socket, method);
     }
+    // } catch (error) {
+    //     //
+    // }
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,7 +103,7 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
                     typeof middleware[method] === 'function' ?
                         await middleware[method](params, socket, method) : null;
 
-                if (result) {
+                if (typeof result === 'object' && !Array.isArray(result)) {
                     Object.assign(socket.attribute, result);
                 }
             } catch (error) {
