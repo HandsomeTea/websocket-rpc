@@ -101,19 +101,19 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      * 注册一个method
      *
      * @param {string} method method名称
-     * @param {WebsocketService.WebsocketMethodFn<Attr>} cb
+     * @param {WebsocketService.MethodFn<Attr>} cb
      * @memberof WebsocketServer
      */
-    register(method: string, cb: WebsocketService.WebsocketMethodFn<Attr>): void;
+    register(method: string, cb: WebsocketService.MethodFn<Attr>): void;
     /**
      * 注册一个或多个method
      *
-     * @param {Record<string, WebsocketService.WebsocketMethodFn<Attr>>} method method回调函数
+     * @param {Record<string, WebsocketService.MethodFn<Attr>>} method method回调函数
      * @memberof WebsocketServer
      */
-    register(method: Record<string, WebsocketService.WebsocketMethodFn<Attr>>): void;
+    register(method: Record<string, WebsocketService.MethodFn<Attr>>): void;
 
-    register(method: string | Record<string, WebsocketService.WebsocketMethodFn<Attr>>, cb?: WebsocketService.WebsocketMethodFn<Attr>) {
+    register(method: string | Record<string, WebsocketService.MethodFn<Attr>>, cb?: WebsocketService.MethodFn<Attr>) {
         if (typeof method === 'string' && typeof cb === 'function') {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -130,22 +130,22 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
     }
 
     /**
-     * 注册一个或多个适用于所有method的中间件
+     * 注册适用于所有method的一个或多个中间件
      *
-     * @param {...Array<WebsocketService.WebsocketMiddlewareFn<Attr>>} middlewares
+     * @param {...Array<WebsocketService.MiddlewareFn<Attr>>} middlewares
      * @memberof WebsocketServer
      */
-    use(...middlewares: Array<WebsocketService.WebsocketMiddlewareFn<Attr>>): void;
+    use(middleware: WebsocketService.MiddlewareFn<Attr>, ...middlewares: Array<WebsocketService.MiddlewareFn<Attr>>): void;
     /**
-     * 注册一个或多个只适用于某个method的中间件
+     * 注册只适用于某个method的一个或多个中间件
      *
      * @param {string} method method名称
-     * @param {...Array<WebsocketService.WebsocketMiddlewareFn<Attr>>} middlewares
+     * @param {...Array<WebsocketService.MiddlewareFn<Attr>>} middlewares
      * @memberof WebsocketServer
      */
-    use(method: string, ...middlewares: Array<WebsocketService.WebsocketMiddlewareFn<Attr>>): void;
+    use(method: string, ...middlewares: Array<WebsocketService.MiddlewareFn<Attr>>): void;
 
-    use(...middlewares: Array<WebsocketService.WebsocketMiddlewareFn<Attr>> | [string, ...Array<WebsocketService.WebsocketMiddlewareFn<Attr>>]) {
+    use(...middlewares: Array<WebsocketService.MiddlewareFn<Attr>> | [string, ...Array<WebsocketService.MiddlewareFn<Attr>>]) {
         if (typeof middlewares[0] === 'string') {
             const method = middlewares.shift() as string;
 
@@ -159,7 +159,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
         } else if (middlewares.every(m => typeof m === 'function')) {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            global._WebsocketServer.middlewares.push(...middlewares as Array<WebsocketService.WebsocketMiddlewareFn<Attr>>);
+            global._WebsocketServer.middlewares.push(...middlewares as Array<WebsocketService.MiddlewareFn<Attr>>);
         }
     }
 

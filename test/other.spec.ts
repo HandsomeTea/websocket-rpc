@@ -1,4 +1,4 @@
-import { Socket } from '../src';
+import { Link } from '../src';
 import instance from './base';
 
 interface SocketAttr {
@@ -24,7 +24,7 @@ afterAll(() => {
 
 describe('其它', () => {
     it('getSocket', async () => {
-        let ins: null | Socket.Link<SocketAttr> = null;
+        let ins: null | Link<SocketAttr> = null;
         const result: { result: { id: string } } = await new Promise(resolve => {
             server.register('getSocketId', (_params, socket) => {
                 ins = socket;
@@ -38,7 +38,7 @@ describe('其它', () => {
     });
 
     it('getSockets', async () => {
-        let ins: null | Socket.Link<SocketAttr> = null;
+        let ins: null | Link<SocketAttr> = null;
         const result: { result: { id: string } } = await new Promise(resolve => {
             server.use((_params, socket) => {
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment

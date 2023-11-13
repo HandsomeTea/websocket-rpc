@@ -4,7 +4,7 @@ import { Socket, WebsocketService } from './typings';
 declare global {
     var _WebsocketServer: {
         sessionMap: Record<string, Socket.Link<Record<string, any>>>;
-        methods: Record<string, WebsocketService.WebsocketMethodFn<Record<string, any>>>;
-        middlewares: Array<WebsocketService.WebsocketMiddlewareFn<Record<string, any>> | Record<string, WebsocketService.WebsocketMiddlewareFn<Record<string, any>>>>;
+        methods: Record<string, WebsocketService.MethodFn<Record<string, any>>>;
+        middlewares: Array<WebsocketService.MiddlewareFn<Record<string, any>> | Record<string, WebsocketService.MiddlewareFn<Record<string, any>>>>;
     }
 }

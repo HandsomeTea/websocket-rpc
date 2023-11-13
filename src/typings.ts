@@ -179,26 +179,26 @@ export namespace WebsocketService {
 
     type AnyObject = Record<string, any>;
 
-    export type WebsocketMiddlewareFn<Attribute extends AnyObject> = (params: unknown, socket: Socket.Link<Partial<Attribute>>, method: string) => Partial<Attribute> | undefined | Promise<Partial<Attribute> | undefined>
-    export type WebsocketMethodFn<Attribute extends AnyObject> = (params: unknown, socket: Socket.Link<Attribute>) => any | Promise<any>;
+    export type MiddlewareFn<Attribute extends AnyObject> = (params: unknown, socket: Socket.Link<Partial<Attribute>>, method: string) => Partial<Attribute> | void | Promise<Partial<Attribute> | void>
+    export type MethodFn<Attribute extends AnyObject> = (params: unknown, socket: Socket.Link<Attribute>) => any | Promise<any>;
     export type OnlineCallbackFn = (socket: Socket.Link<NonNullable<unknown>>, request: http.IncomingMessage) => void | Promise<void>;
     export type OfflineCallbackFn<Attribute extends AnyObject> = (attribute: Attribute, id: string) => void | Promise<void>;
     export type ErrorCallbackFn<Attribute extends AnyObject> = (error: Error, socket: Socket.Link<Partial<Attribute>>, method?: string) => void | Promise<void>;
 
     interface Use<Attribute extends AnyObject> {
-        /** 注册一个或多个适用于所有method的中间件 */
-        (...middlewares: Array<WebsocketMiddlewareFn<Attribute>>): void;
+        /** 注册适用于所有method的一个或多个中间件 */
+        (middleware: MiddlewareFn<Attribute>, ...middlewares: Array<MiddlewareFn<Attribute>>): void;
 
-        /** 注册一个或多个只适用于某个method的中间件 */
-        (method: string, ...middlewares: Array<WebsocketMiddlewareFn<Attribute>>): void;
+        /** 注册只适用于某个method的一个或多个中间件 */
+        (method: string, ...middlewares: Array<MiddlewareFn<Attribute>>): void;
     }
 
     interface Register<Attribute extends AnyObject> {
         /** 注册一个method */
-        (method: string, cb: WebsocketMethodFn<Attribute>): void;
+        (method: string, cb: MethodFn<Attribute>): void;
 
         /** 注册一个或多个method */
-        (method: Record<string, WebsocketMethodFn<Attribute>>): void;
+        (method: Record<string, MethodFn<Attribute>>): void;
     }
 
     interface GetSocketAttr<Attribute extends AnyObject> {
