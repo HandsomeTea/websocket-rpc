@@ -252,7 +252,7 @@ socket的属性即挂在到当前socket连接上的数据。
 
 ## 属性的设置
 
-属性的设置有两种方式，一种是在中间件函数里返回一个Object(详见中间件部分)，另一种是调用socket对象本身的属性操作函数，如下：
+属性的设置有两种方式，一种是在中间件函数里返回一个Object(详见[中间件](#中间件)部分)，另一种是调用socket对象本身的属性操作函数，如下：
 
 ```typescript
 // 在method中设置
@@ -447,7 +447,7 @@ const socket = server.getSockets((attr:SocketAttr)=>{
 
 # 关于ping
 
-服务器端不建议主动去ping客户端，以此对连接进行保活，这样做会消耗服务器性能，所以系统内置了一个`ping`的method，当客户端发送`ping`的method时，系统会回复一条数据，详见[内置method](#内置method)。当然，你也可以通过其它方式实现ping。
+服务器端不建议主动去ping客户端，以此对连接进行保活，这样做会消耗服务器性能，所以系统内置了一个`ping`的method，当客户端发送`ping`的method时，系统会回复一条数据，详见[内置method](#内置method)。当然，你也可以通过其它方式实现ping来对连接保活。
 
 # 扩展配置
 
