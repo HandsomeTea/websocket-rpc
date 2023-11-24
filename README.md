@@ -244,11 +244,11 @@ const checkPermission: MiddlewareFn<SocketAttr> = () => {
 server.use('login', checkoutLoginToken, checkPermission);
 ```
 
- 
+使用中间件函数的socket参数，也可以在中间件里向客户端主动发送消息。
 
 # socket属性
 
-socket的属性即挂在到当前socket连接上的数据，属性的设置有两种方式，一种为中间件返回一个Object的方式(详见中间件部分)，另一种如下：
+socket的属性即挂在到当前socket连接上的数据，属性的设置有两种方式，一种是在中间件函数里返回一个Object(详见中间件部分)，另一种是调用socket对象本身的属性操作函数，如下：
 
 ```typescript
 // 在method中设置
@@ -277,8 +277,6 @@ server.use((_params, socket, method)=>{
 ```
 
 ## 属性的获取
-
-
 
 获取全部属性
 

@@ -124,7 +124,7 @@ export namespace Socket {
         <K extends keyof T>(attribute: K): T[K] | undefined;
 
         /** 获取某些属性 */
-        <K extends keyof T>(...attribute: Array<K>): Pick<T, Array<K>[number]>;
+        <K extends keyof T>(attribute: K, ...attributes: Array<K>): Pick<T, Array<K>[number]>;
 
         /** 获取socket的全部属性 */
         (): T;
@@ -208,11 +208,11 @@ export namespace WebsocketService {
         /** 获取某个socket连接的全部属性 */
         (connectId: string): Attribute | undefined;
 
-        /** 获取某个socket连接的某些属性 */
-        <K extends keyof Attribute>(connectId: string, ...attribute: Array<K>): Pick<Attribute, Array<K>[number]> | undefined;
-
-        /** 获取某个socket连接指定的属性 */
+        /** 获取某个socket连接的某个属性 */
         <K extends keyof Attribute>(connectId: string, attribute: K): Attribute[K] | undefined;
+
+        /** 获取某个socket连接的某些属性 */
+        <K extends keyof Attribute>(connectId: string, ...attributes: Array<K>): Pick<Attribute, Array<K>[number]> | undefined;
     }
 
     export interface Server<Attribute extends AnyObject> {

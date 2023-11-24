@@ -230,24 +230,25 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      */
     getSocketAttr(connectId: string): Attr | undefined;
     /**
+    * 获取某个socket连接的某个属性
+    *
+    * @template K
+    * @param {string} connectId
+    * @param {K} attribute
+    * @returns {(Attr[K] | undefined)}
+    * @memberof WebsocketServer
+    */
+    getSocketAttr<K extends keyof Attr>(connectId: string, attribute: K): Attr[K] | undefined;
+    /**
      * 获取某个socket连接的某些属性
      *
      * @template K
      * @param {string} connectId
-     * @param {...Array<K>} attribute
+     * @param {...Array<K>} attributes
      * @returns {(Pick<Attr, Array<K>[number]> | undefined)}
      * @memberof WebsocketServer
      */
-    getSocketAttr<K extends keyof Attr>(connectId: string, ...attribute: Array<K>): Pick<Attr, Array<K>[number]> | undefined
-    /**
-     * 获取某个socket连接指定的属性
-     *
-     * @param {string} connectId
-     * @param {keyof Attr} attribute
-     * @returns {*}
-     * @memberof WebsocketServer
-     */
-    getSocketAttr<K extends keyof Attr>(connectId: string, attribute: K): Attr[K] | undefined;
+    getSocketAttr<K extends keyof Attr>(connectId: string, ...attributes: Array<K>): Pick<Attr, Array<K>[number]> | undefined
 
     getSocketAttr<K extends keyof Attr>(connectId: string, ...attribute: Array<K>) {
         if (global._WebsocketServer.sessionMap[connectId]) {
