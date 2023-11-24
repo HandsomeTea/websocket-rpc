@@ -58,7 +58,7 @@ describe('其它', () => {
         expect(clents.has(ins)).toBe(true);
     });
 
-    it('getSocketAttr', async () => {
+    it('getSocketAttr-all', async () => {
         const result: { result: { id: string } } = await new Promise(resolve => {
             server.use(() => {
                 return {
@@ -75,7 +75,7 @@ describe('其它', () => {
         expect(server.getSocketAttr(result.result.id)).toStrictEqual(result.result);
     });
 
-    it('setSocketAttr', async () => {
+    it('setSocketAttr-one', async () => {
         const result: { result: { id: string } } = await new Promise(resolve => {
             server.register('getAttr', (_params, socket) => {
                 server.setSocketAttr(socket.id, { testSetAttr: 'value-123' });
@@ -103,8 +103,8 @@ describe('其它', () => {
         expect(server.getSocketAttr(result.result.id, 'testSetAttr')).toStrictEqual('11');
     });
 
-    it('getAttr', async () => {
-        const result: { result: { id: string, socketSetAttr: number, testSetAttr: string } } = await new Promise(resolve => {
+    it('getAttr-all', async () => {
+        const result: { result: { id: string, socketSetAttr: number, testSetAttr: string, testAttr: string } } = await new Promise(resolve => {
             server.register('socketGetAttr', (_params, socket) => {
                 return socket.getAttr();
             });
@@ -112,11 +112,10 @@ describe('其它', () => {
             client.send(JSON.stringify({ method: 'socketGetAttr', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
         });
 
-        expect(result.result.socketSetAttr).toStrictEqual(11);
-        expect(result.result.testSetAttr).toStrictEqual('11');
+        expect(server.getSocketAttr(result.result.id)).toStrictEqual(result.result);
     });
 
-    it('getAttr', async () => {
+    it('getAttr-one', async () => {
         const result: { result: { id: string } } = await new Promise(resolve => {
             server.register('socketGetAttr', (_params, socket) => {
                 return socket.getAttr('socketSetAttr');
@@ -128,7 +127,7 @@ describe('其它', () => {
         expect(result.result).toStrictEqual(11);
     });
 
-    it('getAttr', async () => {
+    it('getAttr-partial', async () => {
         const result: { result: { id: string } } = await new Promise(resolve => {
             server.register('socketGetAttr', (_params, socket) => {
                 return socket.getAttr('socketSetAttr', 'testSetAttr');
@@ -143,7 +142,7 @@ describe('其它', () => {
         });
     });
 
-    it('getSocketAttr', async () => {
+    it('getSocketAttr-partal', async () => {
         const result: { result: { id: string } } = await new Promise(resolve => {
             server.register('getSocketId', (_params, socket) => {
                 return { id: socket.id };
@@ -156,6 +155,41 @@ describe('其它', () => {
             socketSetAttr: 11,
             testSetAttr: '11'
         });
+    });
+
+    it('getSocketsAttr-partal', async () => {
+        expect(server.getSocketsAttr(attr => {
+            if (attr.testSetAttr === '11') {
+                return true;
+            }
+            return false;
+        }, 'socketSetAttr', 'testSetAttr')).toStrictEqual([{
+            socketSetAttr: 11,
+            testSetAttr: '11'
+        }]);
+    });
+
+    it('getSocketsAttr-one', async () => {
+        expect(server.getSocketsAttr(attr => {
+            if (attr.testSetAttr === '11') {
+                return true;
+            }
+            return false;
+        }, 'socketSetAttr')).toStrictEqual([11]);
+    });
+
+    it('getSocketsAttr-all', async () => {
+        expect(server.getSocketsAttr(attr => {
+            if (attr.testSetAttr === '11') {
+                return true;
+            }
+            return false;
+        })).toStrictEqual([{
+            id: expect.any(String),
+            socketSetAttr: 11,
+            testSetAttr: '11',
+            testAttr: 'test-123'
+        }]);
     });
 
     it('methodList', async () => {

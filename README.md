@@ -248,7 +248,11 @@ server.use('login', checkoutLoginToken, checkPermission);
 
 # socket属性
 
-socket的属性即挂在到当前socket连接上的数据，属性的设置有两种方式，一种是在中间件函数里返回一个Object(详见中间件部分)，另一种是调用socket对象本身的属性操作函数，如下：
+socket的属性即挂在到当前socket连接上的数据。
+
+## 属性的设置
+
+属性的设置有两种方式，一种是在中间件函数里返回一个Object(详见中间件部分)，另一种是调用socket对象本身的属性操作函数，如下：
 
 ```typescript
 // 在method中设置
@@ -314,6 +318,157 @@ const value = socket.getAttr('key1', 'key2', ...);
 
 # 回调
 
-# 获取连接
+## server.online
 
-# 配置
+有客户端连接成功的回调函数，可传入多个，按顺序执行
+
+```typescript
+import { OnlineCallbackFn } from '@coco-sheng/websocket-service';
+
+const online1: OnlineCallbackFn = () => { 
+    // ...
+};
+const online2: OnlineCallbackFn = () => { 
+    // ...
+};
+
+server.online(online1, online2);
+```
+
+## server.offline
+
+有客户端断开连接时的回调函数，可传入多个，按顺序执行
+
+```typescript
+import { OfflineCallbackFn } from '@coco-sheng/websocket-service';
+
+const offline1: OfflineCallbackFn<SocketAttr> = () => { };
+const offline2: OfflineCallbackFn<SocketAttr> = () => { };
+
+server.offline(offline1, offline2);
+```
+
+## server.error
+
+捕获到全局错误时的回调，系统内置了一个全局错误处理逻辑，当捕获到错误时，会发送一条符合`jsonrpc2.0`规范的错误信息到客户端（客户端已下线除外），当配置了log(详情见扩展配置)，该错误信息也会打印到控制台。如果设置`server.error`回调函数，则不会执行系统内置的错误逻辑，但是依然会根据log配置打印错误信息，但是`server.error`设置的**错误回调函数内部的错误并不会再次捕获处理**。
+
+```typescript
+import { ErrorCallbackFn } from '@coco-sheng/websocket-service';
+
+const error1: ErrorCallbackFn<SocketAttr> = () => { };
+const error2: ErrorCallbackFn<SocketAttr> = () => { };
+
+server.error(error1, error2);
+```
+
+# 内置method
+
+系统内置了两个method：`connect`，`ping`
+
+```typescript
+client.on('open',async ()=>{
+    const result1 = await new Promise(resolve => {
+        client.send(JSON.stringify({ method: 'connect', id: 1, params: [], jsonrpc: '2.0' }));
+        client.once('message', data => resolve(JSON.parse(data.toString())));
+    });
+
+    console.log(result1);
+    // {
+    //     jsonrpc: '2.0',
+    //     id: 1,
+    //     method: 'connect',
+    //     result: {
+    //         msg: 'connected',
+    //         session: 'xxxxxxxxxx'
+    //     }
+    // }
+
+    const result2 = await new Promise(resolve => {
+        client.send(JSON.stringify({ method: 'ping', id: 2, params: [], jsonrpc: '2.0' }));
+        client.once('message', data => resolve(JSON.parse(data.toString())));
+    });
+
+    console.log(result2);
+    // {
+    //     jsonrpc: '2.0',
+    //     id: 2,
+    //     method: 'ping',
+    //     result: 'pong'
+    // }
+});
+```
+
+# server
+
+## 获取连接
+
+每一个客户端socket连接都有一个id(这个id通常可以作为socket连接的session标识来使用)，是一个随机生成的字符串，在method和中间件中都可以通过socket获取，以method为例：
+
+```typescript
+server.register('hello', (_params, socket) => {
+    console.log(socket.id);
+});
+```
+
+当你知道某个socket连接的id时，可以通过server直接拿到对应的socket对象：
+
+```typescript
+const sessionId = 'xxxxxxxxx';
+const socket = server.getSocket(sessionId);
+
+
+socket.sendout({
+    method: 'notice',
+    result: 'noticed!'
+});
+```
+
+server中所有的socket连接，可通过`server.clients`来获取，也可以通过自定义条件的方式来获取某些socket连接：
+
+```typescript
+const socket = server.getSockets((attr:SocketAttr)=>{
+    if(attr.role === 'admin'){
+        return true;
+    }
+});
+```
+
+`server.getSockets`接受一个回调函数，该函数的入参为某个socket的所有属性，需要返回一个`Boolean`值来判断某个soeket连接是否为需要获取的socket对象。
+
+## 获取连接属性
+
+
+
+## 设置连接属性
+
+
+
+
+
+# 关于ping
+
+服务器端不建议主动去ping客户端，以此对连接进行保活，这样做会消耗服务器性能，所以系统内置了一个`ping`的method，当客户端发送`ping`的method时，系统会回复一条数据，详见[内置method](#内置method)。当然，你也可以通过其它方式实现ping。
+
+# 扩展配置
+
+`new WebsocketServer(config, options);`
+
+- `[options.log]`：`Boolean | Function`，默认`false`关闭日志打印，当为`true`时，将采用内置的`log4js`日志配置打印日志；如果为一个函数，则需要返回一个`Logger`对象，系统的日志将采用该对象打印。
+
+- `[options.compression]`：`zlib`，默认`undefined`。当为`zlib`时，将对服务器发送到客户端的数据先进行zlib压缩，再发送。
+
+```typescript
+import { WebsocketServer } from '@coco-sheng/websocket-service';
+
+
+const port = 3403;
+
+export default new WebsocketServer<SocketAttr>({ port }, {
+    log: () => console,
+    compression: 'zlib'
+});
+```
+
+# 其它
+
+暂无。

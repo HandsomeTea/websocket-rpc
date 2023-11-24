@@ -20,16 +20,7 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
         } else if (attribute.length === 1 && typeof attribute[0] === 'string') {
             return socket.attribute[attribute[0]];
         } else if (attribute.length > 1) {
-            const object = {};
-
-            for (const attr of attribute) {
-                if (typeof attr === 'string') {
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    object[attr] = socket.attribute[attr];
-                }
-            }
-            return object;
+            return Object.assign({}, ...attribute.map(a => ({ [a]: socket.attribute[a] })));
         }
     };
 };

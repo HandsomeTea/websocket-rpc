@@ -204,6 +204,8 @@ export namespace WebsocketService {
         (method: Record<string, MethodFn<Attribute>>): void;
     }
 
+    export type IsThisSocket<Attr> = (attribute: Attr) => boolean;
+
     interface GetSocketAttr<Attribute extends AnyObject> {
         /** 获取某个socket连接的全部属性 */
         (connectId: string): Attribute | undefined;
@@ -213,6 +215,17 @@ export namespace WebsocketService {
 
         /** 获取某个socket连接的某些属性 */
         <K extends keyof Attribute>(connectId: string, ...attributes: Array<K>): Pick<Attribute, Array<K>[number]> | undefined;
+    }
+
+    interface GetSocketsAttr<Attribute extends AnyObject> {
+        /** 获取某些socket连接的全部属性 */
+        (is: IsThisSocket<Attribute>): Array<Attribute>;
+
+        /** 获取某些socket连接的某个属性 */
+        <K extends keyof Attribute>(is: IsThisSocket<Attribute>, attribute: K): Array<Attribute[K]>;
+
+        /** 获取某些socket连接的某些属性 */
+        <K extends keyof Attribute>(is: IsThisSocket<Attribute>, ...attributes: Array<K>): Array<Pick<Attribute, Array<K>[number]>>;
     }
 
     export interface Server<Attribute extends AnyObject> {
@@ -270,13 +283,15 @@ export namespace WebsocketService {
         /**
          * 根据socket连接的属性数据获取socket对象
          *
-         * @param {(attribute: Attribute) => boolean} is
+         * @param {IsThisSocket<Attribute>} is
          * @returns {Set<Socket.Link<Attribute>>}
          * @memberof Server
          */
-        readonly getSockets: (is: (attribute: Attribute) => boolean) => Set<Socket.Link<Attribute>>;
+        readonly getSockets: (is: IsThisSocket<Attribute>) => Set<Socket.Link<Attribute>>;
 
         readonly getSocketAttr: GetSocketAttr<Attribute>;
+
+        readonly getSocketsAttr: GetSocketsAttr<Attribute>;
 
         /**
          * 设置socket连接的属性

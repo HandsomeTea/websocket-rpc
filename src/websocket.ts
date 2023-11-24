@@ -84,19 +84,36 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
             }
 
             if (this._online.length > 0) {
-                // try {
-                for (const fn of this._online) {
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    await fn(socket, request);
+                try {
+                    for (const fn of this._online) {
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-ignore
+                        await fn(socket, request);
+                    }
+                } catch (error) {
+                    if (socket.option.logger) {
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-ignore
+                        socket.option.logger('connection').error(error);
+                    }
+                    if (socket.error.length > 0) {
+                        for (const fn of socket.error) {
+                            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                            // @ts-ignore
+                            await fn(error as Error, socket);
+                        }
+                    } else {
+                        socket.sendout({
+                            id: new Date().getTime(),
+                            method: 'connection',
+                            error: {
+                                code: -32603,
+                                message: 'Internal error',
+                                data: 'Internal error'
+                            }
+                        });
+                    }
                 }
-                // } catch (error) {
-                //     if (socket.option.logger) {
-                //         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                //         // @ts-ignore
-                //         socket.option.logger('connection').error(error);
-                //     }
-                // }
             }
         });
     }
@@ -205,7 +222,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
         return global._WebsocketServer.sessionMap[connectId] as Socket.Link<Attr> | undefined;
     }
 
-    getSockets(is: (attribute: Attr) => boolean) {
+    getSockets(is: WebsocketService.IsThisSocket<Attr>) {
         const clients: Set<Socket.Link<Attr>> = new Set();
 
         if (typeof is === 'function') {
@@ -257,6 +274,57 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
             return global._WebsocketServer.sessionMap[connectId].getAttr(...attribute);
         }
         return undefined;
+    }
+
+    /**
+     * 获取某些socket连接的全部属性
+     *
+     * @param {WebsocketService.IsThisSocket<Attr>} is
+     * @returns {Array<Attr>}
+     * @memberof WebsocketServer
+     */
+    getSocketsAttr(is: WebsocketService.IsThisSocket<Attr>): Array<Attr>;
+    /**
+     * 获取某些socket连接的某个属性
+     *
+     * @template K
+     * @param {WebsocketService.IsThisSocket<Attr>} is
+     * @param {K} attribute
+     * @returns {Array<Attr[K]>}
+     * @memberof WebsocketServer
+     */
+    getSocketsAttr<K extends keyof Attr>(is: WebsocketService.IsThisSocket<Attr>, attribute: K): Array<Attr[K]>;
+    /**
+     * 获取某些socket连接的某些属性
+     *
+     * @template K
+     * @param {WebsocketService.IsThisSocket<Attr>} is
+     * @param {...Array<K>} attributes
+     * @returns {Array<Pick<Attr, Array<K>[number]>>}
+     * @memberof WebsocketServer
+     */
+    getSocketsAttr<K extends keyof Attr>(is: WebsocketService.IsThisSocket<Attr>, ...attributes: Array<K>): Array<Pick<Attr, Array<K>[number]>>;
+
+    getSocketsAttr<K extends keyof Attr>(is: WebsocketService.IsThisSocket<Attr>, ...attribute: Array<K>) {
+        const result = [];
+
+        if (typeof is === 'function') {
+            for (const socket of this.clients) {
+                const attr = socket.attribute;
+
+                if (is(attr) === true) {
+                    if (attribute.length === 0) {
+                        result.push(attr);
+                    } else if (attribute.length === 1 && typeof attribute[0] === 'string') {
+                        result.push(attr[attribute[0]]);
+                    } else if (attribute.length > 1 && attribute.every(key => typeof key === 'string')) {
+                        result.push(Object.assign({}, ...attribute.map(key => ({ [key]: attr[key] }))));
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 
     setSocketAttr(connectId: string, attribute: Partial<Attr>) {
