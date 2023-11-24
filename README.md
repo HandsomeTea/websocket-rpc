@@ -248,7 +248,7 @@ server.use('login', checkoutLoginToken, checkPermission);
 
 # socket属性
 
-连接的属性即挂在到当前socket连接上的数据，属性的设置有两种方式，一种为中间件返回一个Object的方式(详见中间件部分)，另一种如下：
+socket的属性即挂在到当前socket连接上的数据，属性的设置有两种方式，一种为中间件返回一个Object的方式(详见中间件部分)，另一种如下：
 
 ```typescript
 // 在method中设置
