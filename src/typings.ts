@@ -124,7 +124,7 @@ export namespace Socket {
         <K extends keyof T>(attribute: K): T[K] | undefined;
 
         /** 获取某些属性 */
-        <K extends keyof T>(attribute: K, ...attributes: Array<K>): Pick<T, Array<K>[number]>;
+        <K extends keyof T>(attribute: K, ...attributes: Array<K>): { [S in K]: T[S] };
 
         /** 获取socket的全部属性 */
         (): T;
