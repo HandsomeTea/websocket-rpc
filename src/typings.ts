@@ -121,7 +121,10 @@ export namespace Socket {
 
     interface GetAttr<T extends AnyObject> {
         /** 获取socket的某个属性 */
-        <K extends keyof T>(attribute: K): T[K];
+        <K extends keyof T>(attribute: K): T[K] | undefined;
+
+        /** 获取某些属性 */
+        <K extends keyof T>(...attribute: Array<K>): Pick<T, Array<K>[number]>;
 
         /** 获取socket的全部属性 */
         (): T;
@@ -145,16 +148,16 @@ export namespace Socket {
     }
 
     export interface Link<T extends AnyObject> extends WebSocket {
-        attribute: T
-        id: string
-        option: {
+        readonly attribute: T
+        readonly id: string
+        readonly option: {
             logger?: (module?: string) => Logger
             compression?: 'zlib'
         }
         // eslint-disable-next-line no-use-before-define
-        offline: Array<WebsocketService.OfflineCallbackFn<T>>;
+        readonly offline: Array<WebsocketService.OfflineCallbackFn<T>>;
         // eslint-disable-next-line no-use-before-define
-        error: Array<WebsocketService.ErrorCallbackFn<T>>;
+        readonly error: Array<WebsocketService.ErrorCallbackFn<T>>;
 
         /**
          * 发送符合jsonrpc2.0规范的数据
@@ -162,10 +165,10 @@ export namespace Socket {
          * @param {Omit<MethodResult, 'jsonrpc'>} message
          * @memberof Link
          */
-        sendout(message: Omit<MethodResult, 'jsonrpc'>): void;
+        readonly sendout: (message: Omit<MethodResult, 'jsonrpc'>) => void;
 
-        setAttr: SetAttr<T>;
-        getAttr: GetAttr<T>;
+        readonly setAttr: SetAttr<T>;
+        readonly getAttr: GetAttr<T>;
     }
 }
 
@@ -205,27 +208,30 @@ export namespace WebsocketService {
         /** 获取某个socket连接的全部属性 */
         (connectId: string): Attribute | undefined;
 
+        /** 获取某个socket连接的某些属性 */
+        <K extends keyof Attribute>(connectId: string, ...attribute: Array<K>): Pick<Attribute, Array<K>[number]> | undefined;
+
         /** 获取某个socket连接指定的属性 */
         <K extends keyof Attribute>(connectId: string, attribute: K): Attribute[K] | undefined;
     }
 
     export interface Server<Attribute extends AnyObject> {
-        use: Use<Attribute>;
-        register: Register<Attribute>;
+        readonly use: Use<Attribute>;
+        readonly register: Register<Attribute>;
 
         /**
          * 启动服务
          *
          * @memberof Server
          */
-        start(): void;
+        readonly start: () => void;
 
         /**
          * 停止服务
          *
          * @memberof Server
          */
-        close(): void;
+        readonly close: () => void;
 
         /**
          * 新连接构建成功后的回调
@@ -233,7 +239,7 @@ export namespace WebsocketService {
          * @param {...Array<OnlineCallbackFn>} args
          * @memberof Server
          */
-        online(...args: Array<OnlineCallbackFn>): void;
+        readonly online: (...args: Array<OnlineCallbackFn>) => void;
 
         /**
          * 连接断开后的回调
@@ -241,7 +247,7 @@ export namespace WebsocketService {
          * @param {...Array<OfflineCallbackFn<Attribute>>} args
          * @memberof Server
          */
-        offline(...args: Array<OfflineCallbackFn<Attribute>>): void;
+        readonly offline: (...args: Array<OfflineCallbackFn<Attribute>>) => void;
 
         /**
          * middleware或method运行出错时的错误处理。
@@ -250,7 +256,7 @@ export namespace WebsocketService {
          * @param {...Array<ErrorCallbackFn<Attribute>>} args
          * @memberof Server
          */
-        error(...args: Array<ErrorCallbackFn<Attribute>>): void;
+        readonly error: (...args: Array<ErrorCallbackFn<Attribute>>) => void;
 
         /**
          * 根据socket的连接id获取socket对象
@@ -259,7 +265,7 @@ export namespace WebsocketService {
          * @returns {(Socket.Link<Attribute> | undefined)}
          * @memberof Server
          */
-        getSocket(connectId: string): Socket.Link<Attribute> | undefined;
+        readonly getSocket: (connectId: string) => Socket.Link<Attribute> | undefined;
 
         /**
          * 根据socket连接的属性数据获取socket对象
@@ -268,9 +274,9 @@ export namespace WebsocketService {
          * @returns {Set<Socket.Link<Attribute>>}
          * @memberof Server
          */
-        getSockets(is: (attribute: Attribute) => boolean): Set<Socket.Link<Attribute>>;
+        readonly getSockets: (is: (attribute: Attribute) => boolean) => Set<Socket.Link<Attribute>>;
 
-        getSocketAttr: GetSocketAttr<Attribute>;
+        readonly getSocketAttr: GetSocketAttr<Attribute>;
 
         /**
          * 设置socket连接的属性
@@ -279,7 +285,7 @@ export namespace WebsocketService {
          * @param {Partial<Attribute>} attribute
          * @memberof Server
          */
-        setSocketAttr(connectId: string, attribute: Partial<Attribute>): void;
+        readonly setSocketAttr: (connectId: string, attribute: Partial<Attribute>) => void;
 
         /**
          * 所有socket连接

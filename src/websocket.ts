@@ -47,12 +47,14 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
             }
         });
         this.server.on('connection', async (socket: Socket.Link<Attr>, request: http.IncomingMessage) => {
-            if (this._offline) {
-                socket.offline = this._offline;
-            }
-            if (this._error) {
-                socket.error = this._error;
-            }
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            socket.offline = this._offline;
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            socket.error = this._error;
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             socket.option = {};
             if (this.logger) {
                 socket.option.logger = this.logger;
@@ -62,6 +64,8 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
             }
             Object.freeze(socket.option);
 
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             socket.id = crypto.randomBytes(24).toString('hex').substring(0, 16);
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -226,6 +230,16 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      */
     getSocketAttr(connectId: string): Attr | undefined;
     /**
+     * 获取某个socket连接的某些属性
+     *
+     * @template K
+     * @param {string} connectId
+     * @param {...Array<K>} attribute
+     * @returns {(Pick<Attr, Array<K>[number]> | undefined)}
+     * @memberof WebsocketServer
+     */
+    getSocketAttr<K extends keyof Attr>(connectId: string, ...attribute: Array<K>): Pick<Attr, Array<K>[number]> | undefined
+    /**
      * 获取某个socket连接指定的属性
      *
      * @param {string} connectId
@@ -235,11 +249,11 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      */
     getSocketAttr<K extends keyof Attr>(connectId: string, attribute: K): Attr[K] | undefined;
 
-    getSocketAttr<K extends keyof Attr>(connectId: string, attribute?: K) {
+    getSocketAttr<K extends keyof Attr>(connectId: string, ...attribute: Array<K>) {
         if (global._WebsocketServer.sessionMap[connectId]) {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            return global._WebsocketServer.sessionMap[connectId].getAttr(attribute);
+            return global._WebsocketServer.sessionMap[connectId].getAttr(...attribute);
         }
         return undefined;
     }

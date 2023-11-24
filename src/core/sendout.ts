@@ -3,6 +3,8 @@ import { Socket } from '../typings';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default (socket: Socket.Link<Record<string, any>>): void => {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     socket.sendout = (message: Omit<Socket.MethodResult, 'jsonrpc'>) => {
         if (typeof message.error === 'undefined' && typeof message.result === 'undefined') {
             return;

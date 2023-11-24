@@ -14,11 +14,22 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    socket.getAttr = (attribute) => {
-        if (typeof attribute === 'string') {
-            return socket.attribute[attribute];
-        } else {
+    socket.getAttr = (...attribute) => {
+        if (attribute.length === 0) {
             return socket.attribute;
+        } else if (attribute.length === 1 && typeof attribute[0] === 'string') {
+            return socket.attribute[attribute[0]];
+        } else if (attribute.length > 1) {
+            const object = {};
+
+            for (const attr of attribute) {
+                if (typeof attr === 'string') {
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    object[attr] = socket.attribute[attr];
+                }
+            }
+            return object;
         }
     };
 };

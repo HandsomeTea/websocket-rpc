@@ -128,6 +128,36 @@ describe('其它', () => {
         expect(result.result).toStrictEqual(11);
     });
 
+    it('getAttr', async () => {
+        const result: { result: { id: string } } = await new Promise(resolve => {
+            server.register('socketGetAttr', (_params, socket) => {
+                return socket.getAttr('socketSetAttr', 'testSetAttr');
+            });
+            client.once('message', data => resolve(JSON.parse(data.toString())));
+            client.send(JSON.stringify({ method: 'socketGetAttr', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+        });
+
+        expect(result.result).toStrictEqual({
+            socketSetAttr: 11,
+            testSetAttr: '11'
+        });
+    });
+
+    it('getSocketAttr', async () => {
+        const result: { result: { id: string } } = await new Promise(resolve => {
+            server.register('getSocketId', (_params, socket) => {
+                return { id: socket.id };
+            });
+            client.once('message', data => resolve(JSON.parse(data.toString())));
+            client.send(JSON.stringify({ method: 'getSocketId', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+        });
+
+        expect(server.getSocketAttr(result.result.id, 'socketSetAttr', 'testSetAttr')).toStrictEqual({
+            socketSetAttr: 11,
+            testSetAttr: '11'
+        });
+    });
+
     it('methodList', async () => {
         expect(server.methodList).toStrictEqual(['getSocketId', 'getAttr', 'socketGetAttr']);
     });
