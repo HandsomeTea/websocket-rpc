@@ -1,6 +1,6 @@
 # websocket-service
 
-简单易用的websocket服务器，基于[JSON-RPC 2.0]([(译) JSON-RPC 2.0 规范(中文版) - wiki . leozvc](https://wiki.geekdream.com/Specification/json-rpc_2.0.html))协议。
+简单易用的websocket服务器，基于[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议。
 
 # 快速开始
 
