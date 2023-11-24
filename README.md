@@ -12,6 +12,17 @@ npm install --save @coco-sheng/websocket-service
 
 ## 示例代码
 
+typing.d.ts
+
+```typescript
+interface SocketAttr {
+    userId: string;
+    role: string;
+    type: string
+    token: string;
+}
+```
+
 server.ts
 
 ```typescript
@@ -20,7 +31,7 @@ import { WebsocketServer } from '@coco-sheng/websocket-service';
 
 const port = 3403;
 
-export default new WebsocketServer({ port });
+export default new WebsocketServer<SocketAttr>({ port });
 ```
 
 start.ts
@@ -29,10 +40,9 @@ start.ts
 import server from './server';
 
 server.start();
-
 ```
 
-
+`SocketAttr`是socket连接上的属性，详见[socket属性](#socket属性)部分。
 
 # method
 
@@ -52,6 +62,7 @@ server.register('hello', () => {
 你也可以同时定义多个method
 
 ```typescript
+import { MethodFn } from '@coco-sheng/websocket-service';
 import server from './server';
 
 
@@ -70,7 +81,7 @@ server.register({
 });
 
 
-const testMethod = ()=>{
+const testMethod: MethodFn<SocketAttr> = () => {
     console.log('test');
 };
 
@@ -92,7 +103,7 @@ client.on('open',async ()=>{
         client.send(JSON.stringify({ method: 'hello', id: 1, params: [], jsonrpc: '2.0' }));
         client.once('message', data => resolve(JSON.parse(data.toString())));
     });
-    
+
     console.log(result1);
     // {
     //     jsonrpc: '2.0',
@@ -105,7 +116,7 @@ client.on('open',async ()=>{
         client.send(JSON.stringify({ method: 'hello1', id: 2, params: [], jsonrpc: '2.0' }));
         client.once('message', data => resolve(JSON.parse(data.toString())));
     });
-    
+
     console.log(result2);
     // {
     //     jsonrpc: '2.0',
@@ -118,7 +129,7 @@ client.on('open',async ()=>{
         client.send(JSON.stringify({ method: 'hello2', id: 3, params: [], jsonrpc: '2.0' }));
         client.once('message', data => resolve(JSON.parse(data.toString())));
     });
-    
+
     console.log(result3);
     // {
     //     jsonrpc: '2.0',
@@ -133,7 +144,7 @@ client.on('open',async ()=>{
         client.send(JSON.stringify({ method: 'hello3', id: 4, params: [], jsonrpc: '2.0' }));
         client.once('message', data => resolve(JSON.parse(data.toString())));
     });
-    
+
     console.log(result4);
     // {
     //     jsonrpc: '2.0',
@@ -146,7 +157,7 @@ client.on('open',async ()=>{
         client.send(JSON.stringify({ method: 'testMethod', id: 5, params: [], jsonrpc: '2.0' }));
         client.once('message', data => resolve(JSON.parse(data.toString())));
     });
-    
+
     console.log(result5);
     // {
     //     jsonrpc: '2.0',
@@ -166,7 +177,7 @@ server.register('hello',(_params, socket)=>{
         method: 'test'
         result: 'pending hello'
     });
-    
+
     // 或者
     socket.send(JSON.stringify({
         jsonrpc: '2.0',
@@ -178,10 +189,6 @@ server.register('hello',(_params, socket)=>{
 
 `sendout`和`send`的区别在于`sendout`会把要发送的数据转换为符合`jsonrpc2.0`规范的格式，同时也会根据数据压缩配置将数据进行压缩处理；`send`则需要手动组装`jsonrpc2.0`规范的数据，且不会根据配置压缩数据。
 
-
-
-
-
 # 中间件
 
 中间件是一个在请求到达method之前对请求的数据和业务进行处理的函数。该函数如果返回一个Object，则会将该Object的属性挂载到当前socket连接的属性(后续业务可获取)上；返回其它数据结构则不做任何处理，后续业务逻辑也无法获取该返回值。可以定义针对全部method的一个会多个中间件，也可以为某个method定义一个或多个中间件，中间件的执行顺序为中间件定义的代码逻辑顺序。
@@ -189,20 +196,23 @@ server.register('hello',(_params, socket)=>{
 middleware.ts，定义全局的中间件：
 
 ```typescript
+import { MiddlewareFn } from '@coco-sheng/websocket-service';
+
 server.use(()=>{
     console.log('this is a middleware for all methods');
 });
-const mdw1 = (params, socket, method) =>{
 
-    if(method !== 'login' && !socket.getAttr('userId')){
-        throw Error('you must login to do this!')
+const mdw1: MiddlewareFn<SocketAttr> = (_params, socket, method) => {
+
+    if (method !== 'login' && !socket.getAttr('userId')) {
+        throw Error('you must login to do this!');
     }
 
     console.log('middleware 1 for all methods');
 };
-const mdw2 = () =>{
+const mdw2: MiddlewareFn<SocketAttr> = () =>{
     // ...
-    return { type: '1' }
+    return { type: '1' };
 };
 
 server.use(mdw1, mdw2, ...);
@@ -211,6 +221,8 @@ server.use(mdw1, mdw2, ...);
 定义针对某个method的中间件。
 
 ```typescript
+import { MiddlewareFn } from '@coco-sheng/websocket-service';
+
 server.use('login', () => {
     console.log('to login method');
 
@@ -220,10 +232,10 @@ server.use('login', () => {
 });
 
 
-const checkLoginToken = (params, socket) => {
+const checkLoginToken: MiddlewareFn<SocketAttr> = (params, socket) => {
     // ...
 };
-const checkPermission = () => {
+const checkPermission: MiddlewareFn<SocketAttr> = () => {
     // ...
     throw new Error('you are no permission')
 };
@@ -232,9 +244,9 @@ const checkPermission = () => {
 server.use('login', checkoutLoginToken, checkPermission);
 ```
 
-# 
+ 
 
-# 连接的属性
+# socket属性
 
 连接的属性即挂在到当前socket连接上的数据，属性的设置有两种方式，一种为中间件返回一个Object的方式(详见中间件部分)，另一种如下：
 
@@ -265,6 +277,8 @@ server.use((_params, socket, method)=>{
 ```
 
 ## 属性的获取
+
+
 
 获取全部属性
 
@@ -300,18 +314,8 @@ const value = socket.getAttr('key1', 'key2', ...);
 // }
 ```
 
-
-
-
-
 # 回调
 
-
-
 # 获取连接
-
-
-
-
 
 # 配置
