@@ -7,7 +7,7 @@
 ## 安装
 
 ```
-npm insyall --save @coco-sheng/websocket-service
+npm install --save @coco-sheng/websocket-service
 ```
 
 ## 示例代码
