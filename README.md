@@ -27,8 +27,6 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-
-
 # 快速开始
 
 `websocket-service`是一个简单易用的websocket服务器，基于[ws](https://www.npmjs.com/package/ws)，遵循[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议。
@@ -303,11 +301,11 @@ const checkLoginToken: MiddlewareFn<SocketAttr> = (params, socket) => {
 };
 const checkPermission: MiddlewareFn<SocketAttr> = () => {
     // ...
-    throw new Error('you are no permission')
+    throw new Error('you are no permission');
 };
 
 
-server.use('login', checkoutLoginToken, checkPermission);
+server.use('login', checkLoginToken, checkPermission);
 ```
 
 使用中间件函数的socket参数，也可以在中间件里向客户端主动发送消息。
@@ -325,7 +323,7 @@ socket的属性即挂在到当前socket连接上的数据。
 server.register('hello', (_params, socket) => {
     socket.setAttr('key','value');
     socket.setAttr({
-        user: '....'
+        user: '....',
         role: 'admin'
     });
 });
@@ -335,14 +333,14 @@ server.register('hello', (_params, socket) => {
 server.use((_params, socket, method)=>{
     console.log('this is a middleware for all methods');
 
-    const user = ...;
+    const user = {...};
     if(method === 'login' && user.role === 'admin'){
         socket.setAttr('role', 'admin');
         socket.setAttr({
-            user: '....'
-            type: 'password-login'
-        });
-    }
+            user: '....',
+            type: 'password-login'
+        });
+    }
 });
 ```
 
@@ -401,7 +399,8 @@ const socketId = 'xxxxxxxxx';
 const socket = server.getSocket(socketId);
 
 
-socket.sendout({
+socket?.sendout({
+    id: new Date().getTime(),
     method: 'notice',
     result: 'noticed!'
 });
@@ -412,7 +411,7 @@ server中所有的socket连接，可通过`server.clients`来获取，也可以�
 ```typescript
 const socket = server.getSockets((attr:SocketAttr)=>{
     if(attr.role === 'admin'){
-        return true;
+        return true;
     }
 });
 ```
@@ -541,6 +540,25 @@ const port = 3403;
 export default new WebsocketServer<SocketAttr>({ port }, {
     log: () => console,
     compression: 'zlib'
+});
+```
+
+客户端解压缩示例：
+
+```typescript
+client.on('open',async ()=>{
+    const result = await new Promise(resolve => {
+        client.send(JSON.stringify({ method: 'connect', id: 1, params: [], jsonrpc: '2.0' }));
+        client.once('message', data => resolve(JSON.parse(zlib.inflateSync(data as Buffer).toString())));
+    });
+
+    console.log(result);
+    // {
+    //     jsonrpc: '2.0',
+    //     id: 2,
+    //     method: 'ping',
+    //     result: 'pong'
+    // }
 });
 ```
 

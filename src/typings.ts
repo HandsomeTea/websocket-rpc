@@ -204,7 +204,7 @@ export namespace WebsocketService {
         (method: Record<string, MethodFn<Attribute>>): void;
     }
 
-    export type IsThisSocket<Attr> = (attribute: Attr) => boolean;
+    export type IsThisSocket<Attr> = (attribute: Attr) => boolean | void;
 
     interface GetSocketAttr<Attribute extends AnyObject> {
         /** 获取某个socket连接的全部属性 */
