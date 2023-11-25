@@ -1,5 +1,7 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
+
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
 - [快速开始](#%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)
@@ -25,11 +27,11 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
- 
 
-`websocket-service`是一个简单易用的websocket服务器，基于[ws](https://www.npmjs.com/package/ws)，遵循[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议。
 
 # 快速开始
+
+`websocket-service`是一个简单易用的websocket服务器，基于[ws](https://www.npmjs.com/package/ws)，遵循[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议。
 
 ## 安装
 
