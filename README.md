@@ -305,7 +305,7 @@ const value = socket.getAttr('key');
 获取某些属性
 
 ```typescript
-const value = socket.getAttr('key1', 'key2', ...);
+const values = socket.getAttr('key1', 'key2', ...);
 
 
 // key1,key2,...的属性
@@ -413,8 +413,8 @@ server.register('hello', (_params, socket) => {
 当你知道某个socket连接的id时，可以通过server直接拿到对应的socket对象：
 
 ```typescript
-const sessionId = 'xxxxxxxxx';
-const socket = server.getSocket(sessionId);
+const socketId = 'xxxxxxxxx';
+const socket = server.getSocket(socketId);
 
 
 socket.sendout({
@@ -437,11 +437,59 @@ const socket = server.getSockets((attr:SocketAttr)=>{
 
 ## 获取连接属性
 
+获取单个socket连接的属性，实际调用的是[socket属性](#socket属性)里属性的获取函数。
 
+```typescript
+const socketId = 'xxxxxxx';
+// 获取全部属性
+const attr = server.getSocketAttr(socketId);
+// 获取某个属性的值
+const value = server.getSocketAttr(socketId, 'key1');
+// 获取某些属性的值
+const attr = server.getSocketAttr(socketId, 'key1', 'key2', ...);
+```
+
+如果要根据条件筛选socket并获取连接的属性，可以调用`server.getSocketsAttr`，如下获取某些socket连接的全部属性值：
+
+```typescript
+const attrs = server.getSocketsAttr((attr: SocketAttr) => {
+    if(attr.role === 'admin'){
+        return true;
+    }
+});
+```
+
+同`server.getSocketAttr`一样，你也可以获取部分属性值：
+
+```typescript
+// 获取某一个属性的值
+const values = server.getSocketsAttr((attr: SocketAttr) => {
+    if(attr.role === 'admin'){
+        return true;
+    }
+}, 'key1');
+
+
+// 获取某几个属性的值
+const values = server.getSocketsAttr((attr: SocketAttr) => {
+    if(attr.role === 'admin'){
+        return true;
+    }
+}, 'key1', 'key2', ...);
+```
 
 ## 设置连接属性
 
+你也可以通过`server`设置某个socket连接的属性值：
 
+```typescript
+const socketId = 'xxxxxxx';
+
+server.setSocketAttr(socketId, {
+    key1: '1',
+    key2: '2'
+});
+```
 
 
 
@@ -471,4 +519,8 @@ export default new WebsocketServer<SocketAttr>({ port }, {
 
 # 其它
 
-暂无。
+- 关于性能
+  
+  该工程经过了实际项目的检测，在1核CPU1G内存的设备上，能同时维持2万个客户端连接，qps在20到30(根据method业务逻辑的复杂性而定)
+
+- 暂无其它。
