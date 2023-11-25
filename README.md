@@ -1,6 +1,33 @@
-# websocket-service
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-简单易用的websocket服务器，基于[ws](https://www.npmjs.com/package/ws)，遵循[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议。
+- [快速开始](#%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)
+  - [安装](#%E5%AE%89%E8%A3%85)
+  - [示例代码](#%E7%A4%BA%E4%BE%8B%E4%BB%A3%E7%A0%81)
+- [method](#method)
+  - [内置method](#%E5%86%85%E7%BD%AEmethod)
+- [中间件](#%E4%B8%AD%E9%97%B4%E4%BB%B6)
+- [socket属性](#socket%E5%B1%9E%E6%80%A7)
+  - [属性的设置](#%E5%B1%9E%E6%80%A7%E7%9A%84%E8%AE%BE%E7%BD%AE)
+  - [属性的获取](#%E5%B1%9E%E6%80%A7%E7%9A%84%E8%8E%B7%E5%8F%96)
+- [server](#server)
+  - [获取连接](#%E8%8E%B7%E5%8F%96%E8%BF%9E%E6%8E%A5)
+  - [获取连接属性](#%E8%8E%B7%E5%8F%96%E8%BF%9E%E6%8E%A5%E5%B1%9E%E6%80%A7)
+  - [设置连接属性](#%E8%AE%BE%E7%BD%AE%E8%BF%9E%E6%8E%A5%E5%B1%9E%E6%80%A7)
+- [回调](#%E5%9B%9E%E8%B0%83)
+  - [server.online](#serveronline)
+  - [server.offline](#serveroffline)
+  - [server.error](#servererror)
+- [关于ping](#%E5%85%B3%E4%BA%8Eping)
+- [扩展配置](#%E6%89%A9%E5%B1%95%E9%85%8D%E7%BD%AE)
+- [其它](#%E5%85%B6%E5%AE%83)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+ 
+
+`websocket-service`是一个简单易用的websocket服务器，基于[ws](https://www.npmjs.com/package/ws)，遵循[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议。
 
 # 快速开始
 
@@ -189,6 +216,43 @@ server.register('hello',(_params, socket)=>{
 
 `sendout`和`send`的区别在于`sendout`会把要发送的数据转换为符合`jsonrpc2.0`规范的格式，同时也会根据数据压缩配置将数据进行压缩处理；`send`则需要手动组装`jsonrpc2.0`规范的数据，且不会根据配置压缩数据。
 
+## 内置method
+
+系统内置了两个method：`connect`，`ping`
+
+```typescript
+client.on('open',async ()=>{
+    const result1 = await new Promise(resolve => {
+        client.send(JSON.stringify({ method: 'connect', id: 1, params: [], jsonrpc: '2.0' }));
+        client.once('message', data => resolve(JSON.parse(data.toString())));
+    });
+
+    console.log(result1);
+    // {
+    //     jsonrpc: '2.0',
+    //     id: 1,
+    //     method: 'connect',
+    //     result: {
+    //         msg: 'connected',
+    //         session: 'xxxxxxxxxx'
+    //     }
+    // }
+
+    const result2 = await new Promise(resolve => {
+        client.send(JSON.stringify({ method: 'ping', id: 2, params: [], jsonrpc: '2.0' }));
+        client.once('message', data => resolve(JSON.parse(data.toString())));
+    });
+
+    console.log(result2);
+    // {
+    //     jsonrpc: '2.0',
+    //     id: 2,
+    //     method: 'ping',
+    //     result: 'pong'
+    // }
+});
+```
+
 # 中间件
 
 中间件是一个在请求到达method之前对请求的数据和业务进行处理的函数。该函数如果返回一个Object，则会将该Object的属性挂载到当前socket连接的属性(后续业务可获取)上；返回其它数据结构则不做任何处理，后续业务逻辑也无法获取该返回值。可以定义针对全部method的一个会多个中间件，也可以为某个method定义一个或多个中间件，中间件的执行顺序为中间件定义的代码逻辑顺序。
@@ -316,88 +380,6 @@ const values = socket.getAttr('key1', 'key2', ...);
 // }
 ```
 
-# 回调
-
-## server.online
-
-有客户端连接成功的回调函数，可传入多个，按顺序执行
-
-```typescript
-import { OnlineCallbackFn } from '@coco-sheng/websocket-service';
-
-const online1: OnlineCallbackFn = () => { 
-    // ...
-};
-const online2: OnlineCallbackFn = () => { 
-    // ...
-};
-
-server.online(online1, online2);
-```
-
-## server.offline
-
-有客户端断开连接时的回调函数，可传入多个，按顺序执行
-
-```typescript
-import { OfflineCallbackFn } from '@coco-sheng/websocket-service';
-
-const offline1: OfflineCallbackFn<SocketAttr> = () => { };
-const offline2: OfflineCallbackFn<SocketAttr> = () => { };
-
-server.offline(offline1, offline2);
-```
-
-## server.error
-
-捕获到全局错误时的回调，系统内置了一个全局错误处理逻辑，当捕获到错误时，会发送一条符合`jsonrpc2.0`规范的错误信息到客户端（客户端已下线除外），当配置了log(详情见扩展配置)，该错误信息也会打印到控制台。如果设置`server.error`回调函数，则不会执行系统内置的错误逻辑，但是依然会根据log配置打印错误信息，但是`server.error`设置的**错误回调函数内部的错误并不会再次捕获处理**。
-
-```typescript
-import { ErrorCallbackFn } from '@coco-sheng/websocket-service';
-
-const error1: ErrorCallbackFn<SocketAttr> = () => { };
-const error2: ErrorCallbackFn<SocketAttr> = () => { };
-
-server.error(error1, error2);
-```
-
-# 内置method
-
-系统内置了两个method：`connect`，`ping`
-
-```typescript
-client.on('open',async ()=>{
-    const result1 = await new Promise(resolve => {
-        client.send(JSON.stringify({ method: 'connect', id: 1, params: [], jsonrpc: '2.0' }));
-        client.once('message', data => resolve(JSON.parse(data.toString())));
-    });
-
-    console.log(result1);
-    // {
-    //     jsonrpc: '2.0',
-    //     id: 1,
-    //     method: 'connect',
-    //     result: {
-    //         msg: 'connected',
-    //         session: 'xxxxxxxxxx'
-    //     }
-    // }
-
-    const result2 = await new Promise(resolve => {
-        client.send(JSON.stringify({ method: 'ping', id: 2, params: [], jsonrpc: '2.0' }));
-        client.once('message', data => resolve(JSON.parse(data.toString())));
-    });
-
-    console.log(result2);
-    // {
-    //     jsonrpc: '2.0',
-    //     id: 2,
-    //     method: 'ping',
-    //     result: 'pong'
-    // }
-});
-```
-
 # server
 
 ## 获取连接
@@ -491,7 +473,50 @@ server.setSocketAttr(socketId, {
 });
 ```
 
+# 回调
 
+## server.online
+
+有客户端连接成功的回调函数，可传入多个，按顺序执行
+
+```typescript
+import { OnlineCallbackFn } from '@coco-sheng/websocket-service';
+
+const online1: OnlineCallbackFn = () => { 
+    // ...
+};
+const online2: OnlineCallbackFn = () => { 
+    // ...
+};
+
+server.online(online1, online2);
+```
+
+## server.offline
+
+有客户端断开连接时的回调函数，可传入多个，按顺序执行
+
+```typescript
+import { OfflineCallbackFn } from '@coco-sheng/websocket-service';
+
+const offline1: OfflineCallbackFn<SocketAttr> = () => { };
+const offline2: OfflineCallbackFn<SocketAttr> = () => { };
+
+server.offline(offline1, offline2);
+```
+
+## server.error
+
+捕获到全局错误时的回调，系统内置了一个全局错误处理逻辑，当捕获到错误时，会发送一条符合`jsonrpc2.0`规范的错误信息到客户端（客户端已下线除外），当配置了log(详情见扩展配置)，该错误信息也会打印到控制台。如果设置`server.error`回调函数，则不会执行系统内置的错误逻辑，但是依然会根据log配置打印错误信息，但是`server.error`设置的**错误回调函数内部的错误并不会再次捕获处理**。
+
+```typescript
+import { ErrorCallbackFn } from '@coco-sheng/websocket-service';
+
+const error1: ErrorCallbackFn<SocketAttr> = () => { };
+const error2: ErrorCallbackFn<SocketAttr> = () => { };
+
+server.error(error1, error2);
+```
 
 # 关于ping
 
