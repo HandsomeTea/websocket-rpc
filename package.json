@@ -1,6 +1,6 @@
 {
   "name": "@coco-sheng/websocket-service",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "简单易用的websocket服务器，基于ws，遵循JSON-RPC 2.0协议",
   "main": "dist/index.js",
   "scripts": {
