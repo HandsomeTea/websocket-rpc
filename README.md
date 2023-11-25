@@ -29,12 +29,12 @@
 
 # 快速开始
 
-`websocket-service`是一个简单易用的websocket服务器，基于[ws](https://www.npmjs.com/package/ws)，遵循[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议。
+`websocket-server`是一个简单易用的websocket服务器，基于[ws](https://www.npmjs.com/package/ws)，遵循[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议。
 
 ## 安装
 
 ```
-npm install --save @coco-sheng/websocket-service
+npm install --save @coco-sheng/websocket-server
 ```
 
 ## 示例代码
@@ -53,7 +53,7 @@ interface SocketAttr {
 server.ts
 
 ```typescript
-import { WebsocketServer } from '@coco-sheng/websocket-service';
+import { WebsocketServer } from '@coco-sheng/websocket-server';
 
 
 const port = 3403;
@@ -89,7 +89,7 @@ server.register('hello', () => {
 你也可以同时定义多个method
 
 ```typescript
-import { MethodFn } from '@coco-sheng/websocket-service';
+import { MethodFn } from '@coco-sheng/websocket-server';
 import server from './server';
 
 
@@ -260,7 +260,7 @@ client.on('open',async ()=>{
 middleware.ts，定义全局的中间件：
 
 ```typescript
-import { MiddlewareFn } from '@coco-sheng/websocket-service';
+import { MiddlewareFn } from '@coco-sheng/websocket-server';
 
 server.use(()=>{
     console.log('this is a middleware for all methods');
@@ -285,7 +285,7 @@ server.use(mdw1, mdw2, ...);
 定义针对某个method的中间件。
 
 ```typescript
-import { MiddlewareFn } from '@coco-sheng/websocket-service';
+import { MiddlewareFn } from '@coco-sheng/websocket-server';
 
 server.use('login', () => {
     console.log('to login method');
@@ -481,7 +481,7 @@ server.setSocketAttr(socketId, {
 有客户端连接成功的回调函数，可传入多个，按顺序执行
 
 ```typescript
-import { OnlineCallbackFn } from '@coco-sheng/websocket-service';
+import { OnlineCallbackFn } from '@coco-sheng/websocket-server';
 
 const online1: OnlineCallbackFn = () => { 
     // ...
@@ -498,7 +498,7 @@ server.online(online1, online2);
 有客户端断开连接时的回调函数，可传入多个，按顺序执行
 
 ```typescript
-import { OfflineCallbackFn } from '@coco-sheng/websocket-service';
+import { OfflineCallbackFn } from '@coco-sheng/websocket-server';
 
 const offline1: OfflineCallbackFn<SocketAttr> = () => { };
 const offline2: OfflineCallbackFn<SocketAttr> = () => { };
@@ -511,7 +511,7 @@ server.offline(offline1, offline2);
 捕获到全局错误时的回调，系统内置了一个全局错误处理逻辑，当捕获到错误时，会发送一条符合`jsonrpc2.0`规范的错误信息到客户端（客户端已下线除外），当配置了log(详情见扩展配置)，该错误信息也会打印到控制台。如果设置`server.error`回调函数，则不会执行系统内置的错误逻辑，但是依然会根据log配置打印错误信息，但是`server.error`设置的**错误回调函数内部的错误并不会再次捕获处理**。
 
 ```typescript
-import { ErrorCallbackFn } from '@coco-sheng/websocket-service';
+import { ErrorCallbackFn } from '@coco-sheng/websocket-server';
 
 const error1: ErrorCallbackFn<SocketAttr> = () => { };
 const error2: ErrorCallbackFn<SocketAttr> = () => { };
@@ -532,7 +532,7 @@ server.error(error1, error2);
 - `[options.compression]`：`zlib`，默认`undefined`。当为`zlib`时，将对服务器发送到客户端的数据先进行zlib压缩，再发送。
 
 ```typescript
-import { WebsocketServer } from '@coco-sheng/websocket-service';
+import { WebsocketServer } from '@coco-sheng/websocket-server';
 
 
 const port = 3403;
