@@ -1,8 +1,8 @@
 {
-  "name": "websocket-service",
-  "version": "1.0.0",
-  "description": "服务器级别的websocket服务",
-  "main": "index.js",
+  "name": "@coco-sheng/websocket-service",
+  "version": "1.0.2",
+  "description": "简单易用的websocket服务器，基于ws，遵循JSON-RPC 2.0协议",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "test": "jest",
@@ -11,6 +11,17 @@
     "commit": "./node_modules/cz-customizable/standalone.js",
     "create-config": "ts-jest config:init",
     "prepare-husky": "husky install"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "tag": "beta",
+    "access": "public"
   },
   "repository": {
     "type": "git",
