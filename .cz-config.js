@@ -53,6 +53,7 @@ module.exports = {
         ['test', '测试相关'],
         ['deps', '项目依赖'],
         ['example', '示例'],
+        ['build', '打包发布相关'],
         ['other', '其他'],
         // 如果选择 custom ,后面会让你再输入一个自定义的 scope , 也可以不设置此项， 把后面的 allowCustomScopes 设置为 true
         // ['custom', '自定义'],
