@@ -253,6 +253,8 @@ client.on('open',async ()=>{
 });
 ```
 
+> 注意：要中断method函数的执行，可以直接`return`，或者`throw`一个错误，throw抛出的错误会被系统捕获，并封装为一个符合`JSONRPC-2.0`规范的错误数据返回，你也可以定义全局的[错误捕获回调函数](##server.error)，来自行处理`throw`抛出的错误。
+
 # 中间件
 
 中间件是一个在请求到达method之前对请求的数据和业务进行处理的函数。该函数如果返回一个Object，则会将该Object的属性挂载到当前socket连接的属性(后续业务可获取)上；返回其它数据结构则不做任何处理，后续业务逻辑也无法获取该返回值。可以定义针对全部method的一个会多个中间件，也可以为某个method定义一个或多个中间件，中间件的执行顺序为中间件定义的代码逻辑顺序。
@@ -281,6 +283,8 @@ const mdw2: MiddlewareFn<SocketAttr> = () =>{
 
 server.use(mdw1, mdw2, ...);
 ```
+
+使用`return`结束中间件的执行，只是结束了当前中间件的执行，后续的中间件及method依然会执行，要想在中间件中直接结束整个method的业务逻辑，只能通过`throw`，throw抛出错误的处理逻辑同method，详见[method部分](#method)。
 
 定义针对某个method的中间件。
 
