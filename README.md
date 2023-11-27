@@ -253,7 +253,7 @@ client.on('open',async ()=>{
 });
 ```
 
-> 注意：要中断method函数的执行，可以直接`return`，或者`throw`一个错误，throw抛出的错误会被系统捕获，并封装为一个符合`JSONRPC-2.0`规范的错误数据返回，你也可以定义全局的[错误捕获回调函数](##server.error)，来自行处理`throw`抛出的错误。
+> 注意：要中断method函数的执行，可以直接`return`，或者`throw`一个错误，throw抛出的错误会被系统捕获，并封装为一个符合`JSONRPC-2.0`规范的错误数据返回，你也可以定义全局的[错误捕获回调函数](#servererror)，来自行处理`throw`抛出的错误。
 
 # 中间件
 
