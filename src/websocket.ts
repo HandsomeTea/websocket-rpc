@@ -21,7 +21,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
     private logger?: ((module?: string) => Logger);
     private _online: Array<WebsocketService.OnlineCallbackFn> = [];
     private _offline: Array<WebsocketService.OfflineCallbackFn<Attr>> = [];
-    private _error: Array<WebsocketService.ErrorCallbackFn<Attr>> = [];
+    private _error: Array<WebsocketService.ErrorCallbackFn<Attr, unknown>> = [];
     constructor(configs: WebSocket.ServerOptions, options?: WebsocketService.Options) {
         if (options?.log) {
             if (typeof options.log === 'function') {
@@ -37,7 +37,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
         this.configs = configs;
     }
 
-    start() {
+    start(cb?: () => void) {
         this.server = new WebSocket.Server(this.configs);
         this.server.on('error', (error: Error) => {
             if (this.logger) {
@@ -116,6 +116,10 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
                 }
             }
         });
+
+        if (typeof cb === 'function') {
+            cb();
+        }
     }
 
     /**
@@ -208,10 +212,12 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
         }
     }
 
-    error(...args: Array<WebsocketService.ErrorCallbackFn<Attr>>): void {
+    error<E>(...args: Array<WebsocketService.ErrorCallbackFn<Attr, E>>): void {
         if (Array.isArray(args) && args.length > 0) {
             for (const fn of args) {
                 if (typeof fn === 'function') {
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
                     this._error.push(fn);
                 }
             }

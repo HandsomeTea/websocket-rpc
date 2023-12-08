@@ -144,6 +144,31 @@ describe('method', () => {
         expect(server.methodList).toStrictEqual(['method2', 'method3', 'method4', 'method5', 'method6', 'method7']);
     });
 
+    it('method抛出错误', async () => {
+        const result = await new Promise(resolve => {
+            server.register('method10', () => {
+                throw {
+                    code: 'USER_NOT_FOUND'
+                };
+            });
+            client.send(JSON.stringify({ method: 'method10', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.once('message', data => resolve(JSON.parse(data.toString())));
+        });
+
+        expect(result).toStrictEqual({
+            id: expect.any(Number),
+            jsonrpc: '2.0',
+            method: 'method10',
+            error: {
+                code: -32001,
+                message: 'Method Request failed',
+                data: {
+                    code: 'USER_NOT_FOUND'
+                }
+            }
+        });
+    });
+
     it('method接收参数测试', async () => {
         const testParams = [{ test: 'params-test' }];
         const result = await new Promise(resolve => {

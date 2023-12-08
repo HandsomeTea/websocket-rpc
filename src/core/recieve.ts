@@ -1,7 +1,7 @@
 import { Socket } from '../typings';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const errorFn = async (error: Error, socket: Socket.Link<Record<string, any>>, method?: string) => {
+const errorFn = async <T>(error: T, socket: Socket.Link<Record<string, any>>, method?: string) => {
     // try {
     for (const fn of socket.error) {
         await fn(error, socket, method);
@@ -24,7 +24,7 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
                 socket.option.logger('socket-recieve').error(`Parse error with ${parameter.toString()}`);
             }
             if (socket.error.length > 0) {
-                return await errorFn(error as Error, socket);
+                return await errorFn(error, socket);
             } else {
                 return socket.sendout({
                     id: new Date().getTime(),
@@ -113,7 +113,7 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
                     socket.option.logger(`middleware:${method}`).error(error);
                 }
                 if (socket.error.length > 0) {
-                    return await errorFn(error as Error, socket, method);
+                    return await errorFn(error, socket, method);
                 } else {
                     return socket.sendout({
                         id,
@@ -121,7 +121,7 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
                         error: {
                             code: -32001,
                             message: 'Method Request failed',
-                            data: (error as Error).message
+                            data: error
                         }
                     });
                 }
@@ -144,7 +144,7 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
                 socket.option.logger(`method:${method}`).error(error);
             }
             if (socket.error.length > 0) {
-                return await errorFn(error as Error, socket, method);
+                return await errorFn(error, socket, method);
             } else {
                 return socket.sendout({
                     id,
@@ -152,7 +152,7 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
                     error: {
                         code: -32001,
                         message: 'Method Request failed',
-                        data: (error as Error).message
+                        data: error
                     }
                 });
             }

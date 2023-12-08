@@ -253,7 +253,7 @@ client.on('open',async ()=>{
 });
 ```
 
-> 注意：要中断method函数的执行，可以直接`return`，或者`throw`一个错误，throw抛出的错误会被系统捕获，并封装为一个符合`JSONRPC-2.0`规范的错误数据返回，你也可以定义全局的[错误捕获回调函数](#servererror)，来自行处理`throw`抛出的错误。
+> 注意：要中断method函数的执行，可以直接`return`，或者`throw`(你可以throw任何数据，比如数组、Object、Error对象等)，throw抛出的数据会被系统捕获，并封装为一个符合`JSONRPC-2.0`规范的错误数据返回，你也可以定义全局的[错误捕获回调函数](#servererror)，来自行处理`throw`抛出的数据。
 
 # 中间件
 
@@ -517,8 +517,16 @@ server.offline(offline1, offline2);
 ```typescript
 import { ErrorCallbackFn } from '@coco-sheng/websocket-server';
 
-const error1: ErrorCallbackFn<SocketAttr> = () => { };
-const error2: ErrorCallbackFn<SocketAttr> = () => { };
+// 你的项目内通用的错误数据结构
+interface SystemError {
+    msg: string
+    code: number
+    data: any
+}
+
+
+const error1: ErrorCallbackFn<SocketAttr, SystemError> = () => { };
+const error2: ErrorCallbackFn<SocketAttr, SystemError> = () => { };
 
 server.error(error1, error2);
 ```
@@ -570,6 +578,6 @@ client.on('open',async ()=>{
 
 - 关于性能
   
-  该工程经过了实际项目的检测，在1核CPU1G内存的设备上，能同时维持2万个客户端连接，qps在20到30(根据method业务逻辑的复杂性而定)
+  该工程经过了实际项目的检测，在1核CPU1G内存的设备上，能同时维持最多2万个客户端连接，qps在20到30之间(根据method业务逻辑的复杂性而定)。
 
 - 暂无其它。

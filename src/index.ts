@@ -11,7 +11,7 @@ export type OnlineCallbackFn = WebsocketService.OnlineCallbackFn;
 
 export type OfflineCallbackFn<Attribute extends Record<string, any>> = WebsocketService.OfflineCallbackFn<Attribute>;
 
-export type ErrorCallbackFn<Attribute extends Record<string, any>> = WebsocketService.ErrorCallbackFn<Attribute>;
+export type ErrorCallbackFn<Attribute extends Record<string, any>, E> = WebsocketService.ErrorCallbackFn<Attribute, E>;
 
 export type MethodResult = Socket.MethodResult;
 

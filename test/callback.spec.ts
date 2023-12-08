@@ -65,7 +65,7 @@ describe('事件', () => {
             const server = new WebsocketServer({ port });
 
             server.start();
-            server.error((error, socket) => {
+            server.error<Error>((error, socket) => {
                 socket.send(error.message);
                 server.close();
             });
@@ -92,7 +92,7 @@ describe('事件', () => {
             const server = new WebsocketServer({ port });
 
             server.start();
-            server.error((error, socket) => {
+            server.error<Error>((error, socket) => {
                 socket.send(error.message);
                 server.close();
             });
@@ -120,7 +120,7 @@ describe('事件', () => {
             const server = new WebsocketServer({ port });
 
             server.start();
-            server.error((error, socket) => {
+            server.error<Error>((error, socket) => {
                 socket.send(error.message);
                 server.close();
             });

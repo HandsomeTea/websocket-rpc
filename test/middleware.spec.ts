@@ -61,4 +61,26 @@ describe('middleware', () => {
         });
         expect(server.methodList).toStrictEqual(['method1']);
     });
+
+    it('middleware抛出错误', async () => {
+        server.use(() => {
+            throw ['test', 'error'];
+        });
+        const result = await new Promise(resolve => {
+            client.send(JSON.stringify({ method: 'method1', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.once('message', data => resolve(JSON.parse(data.toString())));
+        });
+
+        expect(result).toStrictEqual({
+            jsonrpc: '2.0',
+            id: expect.any(Number),
+            method: 'method1',
+            error: {
+                code: -32001,
+                message: 'Method Request failed',
+                data: ['test', 'error']
+            }
+        });
+        expect(server.methodList).toStrictEqual(['method1']);
+    });
 });

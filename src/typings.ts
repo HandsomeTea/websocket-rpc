@@ -157,7 +157,7 @@ export namespace Socket {
         // eslint-disable-next-line no-use-before-define
         readonly offline: Array<WebsocketService.OfflineCallbackFn<T>>;
         // eslint-disable-next-line no-use-before-define
-        readonly error: Array<WebsocketService.ErrorCallbackFn<T>>;
+        readonly error: Array<WebsocketService.ErrorCallbackFn<T, unknown>>;
 
         /**
          * 发送符合jsonrpc2.0规范的数据
@@ -186,7 +186,7 @@ export namespace WebsocketService {
     export type MethodFn<Attribute extends AnyObject> = (params: unknown, socket: Socket.Link<Attribute>) => any | Promise<any>;
     export type OnlineCallbackFn = (socket: Socket.Link<NonNullable<unknown>>, request: http.IncomingMessage) => void | Promise<void>;
     export type OfflineCallbackFn<Attribute extends AnyObject> = (attribute: Attribute, id: string) => void | Promise<void>;
-    export type ErrorCallbackFn<Attribute extends AnyObject> = (error: Error, socket: Socket.Link<Partial<Attribute>>, method?: string) => void | Promise<void>;
+    export type ErrorCallbackFn<Attribute extends AnyObject, T> = (error: T, socket: Socket.Link<Partial<Attribute>>, method?: string) => void | Promise<void>;
 
     interface Use<Attribute extends AnyObject> {
         /** 注册适用于所有method的一个或多个中间件 */
@@ -237,7 +237,7 @@ export namespace WebsocketService {
          *
          * @memberof Server
          */
-        readonly start: () => void;
+        readonly start: (cb?: () => void) => void;
 
         /**
          * 停止服务
@@ -265,11 +265,11 @@ export namespace WebsocketService {
         /**
          * middleware或method运行出错时的错误处理。
          * 注意：只处理middleware和method执行抛出的错误
-         *
-         * @param {...Array<ErrorCallbackFn<Attribute>>} args
+         * @template E
+         * @param {...Array<WebsocketService.ErrorCallbackFn<Attr, E>>} args
          * @memberof Server
          */
-        readonly error: (...args: Array<ErrorCallbackFn<Attribute>>) => void;
+        readonly error: <E>(...args: Array<ErrorCallbackFn<Attribute, E>>) => void;
 
         /**
          * 根据socket的连接id获取socket对象
