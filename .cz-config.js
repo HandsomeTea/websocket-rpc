@@ -46,7 +46,7 @@ module.exports = {
         ['middleware', 'middleware'],
         ['callback', '业务回调'],
         ['server', 'websocket核心相关'],
-        ['socket', '客户端连接相关'],
+        ['client', 'websocket客户端相关'],
         ['interface', '接口定义相关'],
         ['log', '日志相关'],
         ['config', '配置相关'],

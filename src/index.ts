@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { WebsocketService, Socket } from './typings';
+import { WebsocketService, Socket, WsClient } from './typings';
 
 export type Options = WebsocketService.Options;
+
+export type ServerOptions = WebsocketService.Options;
 
 export type MiddlewareFn<Attribute extends Record<string, any>> = WebsocketService.MiddlewareFn<Attribute>;
 
@@ -17,4 +19,12 @@ export type MethodResult = Socket.MethodResult;
 
 export type Link<Attribute extends Record<string, any>> = Socket.Link<Attribute>;
 
-export { WebsocketServer } from './websocket';
+export type ClientOptions = WsClient.Options;
+
+export type NoticeCallbackFn = WsClient.NoticeCallbackFn;
+
+export type RequestResult = WsClient.RequestResult;
+
+export { WebsocketServer } from './server';
+
+export { WebsocketClient } from './client';

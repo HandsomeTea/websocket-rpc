@@ -1,5 +1,5 @@
 import WS from 'ws';
-import { WebsocketServer } from '../src';
+import { WebsocketServer } from '../../src';
 
 describe('事件', () => {
 
