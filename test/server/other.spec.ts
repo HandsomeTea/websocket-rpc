@@ -1,4 +1,5 @@
 import { Link } from '../../src';
+import { uuid } from '../../src/lib';
 import instance from './base';
 
 interface SocketAttr {
@@ -22,7 +23,7 @@ afterAll(() => {
     server.close();
 });
 
-describe('其它', () => {
+describe('服务器-其它功能接口', () => {
     it('getSocket', async () => {
         let ins: null | Link<SocketAttr> = null;
         const result: { result: { id: string } } = await new Promise(resolve => {
@@ -31,7 +32,7 @@ describe('其它', () => {
                 return { id: socket.id };
             });
             client.once('message', data => resolve(JSON.parse(data.toString())));
-            client.send(JSON.stringify({ method: 'getSocketId', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ method: 'getSocketId', id: uuid(), params: [], jsonrpc: '2.0' }));
         });
 
         expect(server.getSocket(result.result.id)).toBe(ins);
@@ -47,7 +48,7 @@ describe('其它', () => {
                 return { id: socket.id };
             });
             client.once('message', data => resolve(JSON.parse(data.toString())));
-            client.send(JSON.stringify({ method: 'getSocketId', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ method: 'getSocketId', id: uuid(), params: [], jsonrpc: '2.0' }));
         });
 
         expect(ins).not.toBeNull();
@@ -69,7 +70,7 @@ describe('其它', () => {
                 return socket.attribute;
             });
             client.once('message', data => resolve(JSON.parse(data.toString())));
-            client.send(JSON.stringify({ method: 'getAttr', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ method: 'getAttr', id: uuid(), params: [], jsonrpc: '2.0' }));
         });
 
         expect(server.getSocketAttr(result.result.id)).toStrictEqual(result.result);
@@ -82,7 +83,7 @@ describe('其它', () => {
                 return socket.attribute;
             });
             client.once('message', data => resolve(JSON.parse(data.toString())));
-            client.send(JSON.stringify({ method: 'getAttr', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ method: 'getAttr', id: uuid(), params: [], jsonrpc: '2.0' }));
         });
 
         expect(server.getSocketAttr(result.result.id, 'testSetAttr')).toStrictEqual('value-123');
@@ -96,7 +97,7 @@ describe('其它', () => {
                 return socket.attribute;
             });
             client.once('message', data => resolve(JSON.parse(data.toString())));
-            client.send(JSON.stringify({ method: 'socketGetAttr', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ method: 'socketGetAttr', id: uuid(), params: [], jsonrpc: '2.0' }));
         });
 
         expect(server.getSocketAttr(result.result.id, 'socketSetAttr')).toStrictEqual(11);
@@ -109,7 +110,7 @@ describe('其它', () => {
                 return socket.getAttr();
             });
             client.once('message', data => resolve(JSON.parse(data.toString())));
-            client.send(JSON.stringify({ method: 'socketGetAttr', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ method: 'socketGetAttr', id: uuid(), params: [], jsonrpc: '2.0' }));
         });
 
         expect(server.getSocketAttr(result.result.id)).toStrictEqual(result.result);
@@ -121,7 +122,7 @@ describe('其它', () => {
                 return socket.getAttr('socketSetAttr');
             });
             client.once('message', data => resolve(JSON.parse(data.toString())));
-            client.send(JSON.stringify({ method: 'socketGetAttr', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ method: 'socketGetAttr', id: uuid(), params: [], jsonrpc: '2.0' }));
         });
 
         expect(result.result).toStrictEqual(11);
@@ -133,7 +134,7 @@ describe('其它', () => {
                 return socket.getAttr('socketSetAttr', 'testSetAttr');
             });
             client.once('message', data => resolve(JSON.parse(data.toString())));
-            client.send(JSON.stringify({ method: 'socketGetAttr', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ method: 'socketGetAttr', id: uuid(), params: [], jsonrpc: '2.0' }));
         });
 
         expect(result.result).toStrictEqual({
@@ -148,7 +149,7 @@ describe('其它', () => {
                 return { id: socket.id };
             });
             client.once('message', data => resolve(JSON.parse(data.toString())));
-            client.send(JSON.stringify({ method: 'getSocketId', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ method: 'getSocketId', id: uuid(), params: [], jsonrpc: '2.0' }));
         });
 
         expect(server.getSocketAttr(result.result.id, 'socketSetAttr', 'testSetAttr')).toStrictEqual({

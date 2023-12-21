@@ -5,14 +5,14 @@ import { Socket } from '../typings';
 export default (socket: Socket.Link<Record<string, any>>): void => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    socket.sendout = (message: Omit<Socket.MethodResult, 'jsonrpc'>) => {
+    socket.sendout = (message: Omit<Socket.MethodResponse, 'jsonrpc'>) => {
         if (typeof message.error === 'undefined' && typeof message.result === 'undefined') {
             return;
         }
-        const msg: Socket.MethodResult = {
+        const msg: Socket.MethodResponse = {
             jsonrpc: '2.0',
             id: message.id,
-            method: message.method || ''
+            method: message.method || `method-${message.id}`
         };
 
         if (typeof message.error !== 'undefined') {

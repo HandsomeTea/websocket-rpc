@@ -7,7 +7,7 @@ for (let s = 0; s < 10; s++) {
     client.on('open', () => {
         // eslint-disable-next-line no-console
         console.log(`client ${s} open`);
-        client.send(JSON.stringify({ method: 'login', id: new Date().getTime(), params: { user: `user${s}` }, jsonrpc: '2.0' }));
+        client.send(JSON.stringify({ method: 'login', id: Math.random().toString(36).substring(2), params: { user: `user${s}` }, jsonrpc: '2.0' }));
     });
 
     client.on('close', () => {

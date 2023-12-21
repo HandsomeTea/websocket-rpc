@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { createLogInstance, log } from './logger';
 import setCore from './core';
 import { WebsocketService, Logger, Socket } from './typings';
+import { uuid } from './lib';
 
 global._WebsocketServer = {
     sessionMap: {},
@@ -104,7 +105,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
                         }
                     } else {
                         socket.sendout({
-                            id: new Date().getTime(),
+                            id: uuid(),
                             method: 'connection',
                             error: {
                                 code: -32603,

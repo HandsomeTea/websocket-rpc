@@ -1,10 +1,11 @@
+import { uuid } from '../lib';
 import { Socket } from '../typings';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const errorFn = async <T>(error: T, socket: Socket.Link<Record<string, any>>, method?: string) => {
+const errorFn = async <T>(error: T, socket: Socket.Link<Record<string, any>>, reqData?: Socket.MethodRequest) => {
     // try {
     for (const fn of socket.error) {
-        await fn(error, socket, method);
+        await fn(error, socket, reqData);
     }
     // } catch (error) {
     //     //
@@ -27,7 +28,7 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
                 return await errorFn(error, socket);
             } else {
                 return socket.sendout({
-                    id: new Date().getTime(),
+                    id: uuid(),
                     method: '',
                     error: {
                         code: -32700,
@@ -39,17 +40,17 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
         }
 
         // ====================================== 数据合法性检查 ======================================
-        const { jsonrpc, id, method, params } = data as { jsonrpc: '2.0', method: string, id: string | number, params?: unknown };
+        const { jsonrpc, id, method, params } = data as { jsonrpc: '2.0', method: string, id: string, params?: unknown };
 
         if (!(jsonrpc === '2.0' && method && typeof method === 'string' && id && (typeof id === 'string' || typeof id === 'number'))) {
             if (socket.option.logger) {
                 socket.option.logger('socket-recieve').error(`Invalid params with ${parameter.toString()}`);
             }
             if (socket.error.length > 0) {
-                return await errorFn(new Error('Invalid field: jsonrpc/method/id'), socket, method || '');
+                return await errorFn(new Error('Invalid field: jsonrpc/method/id'), socket, data);
             } else {
                 return socket.sendout({
-                    id: id || new Date().getTime(),
+                    id: `${id}` || uuid(),
                     method: method || '',
                     error: {
                         code: -32602,
@@ -67,12 +68,12 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
         // ====================================== 特殊method处理 ======================================
         if (method === 'ping') {
             return socket.sendout({
-                id,
+                id: `${id}`,
                 method,
                 result: 'pong'
             });
         } else if (method === 'connect') {
-            return socket.sendout({ id, method, result: { msg: 'connected', session: socket.id } });
+            return socket.sendout({ id: `${id}`, method, result: { msg: 'connected', session: socket.id } });
         }
 
         // ====================================== method是否存在 ======================================
@@ -81,10 +82,10 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
                 socket.option.logger(`request:${method}`).error(`Method not found with ${parameter.toString()}`);
             }
             if (socket.error.length > 0) {
-                return await errorFn(new Error('Method not found'), socket, method);
+                return await errorFn(new Error('Method not found'), socket, data);
             } else {
                 return socket.sendout({
-                    id,
+                    id: `${id}`,
                     method,
                     error: {
                         code: -32601,
@@ -113,10 +114,10 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
                     socket.option.logger(`middleware:${method}`).error(error);
                 }
                 if (socket.error.length > 0) {
-                    return await errorFn(error, socket, method);
+                    return await errorFn(error, socket, data);
                 } else {
                     return socket.sendout({
-                        id,
+                        id: `${id}`,
                         method,
                         error: {
                             code: -32001,
@@ -133,7 +134,7 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
             const result = await global._WebsocketServer.methods[method](params, socket);
 
             return socket.sendout({
-                id,
+                id: `${id}`,
                 method,
                 result: result || ''
             });
@@ -144,10 +145,10 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
                 socket.option.logger(`method:${method}`).error(error);
             }
             if (socket.error.length > 0) {
-                return await errorFn(error, socket, method);
+                return await errorFn(error, socket, data);
             } else {
                 return socket.sendout({
-                    id,
+                    id: `${id}`,
                     method,
                     error: {
                         code: -32001,

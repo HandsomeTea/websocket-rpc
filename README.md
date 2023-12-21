@@ -404,7 +404,7 @@ const socket = server.getSocket(socketId);
 
 
 socket?.sendout({
-    id: new Date().getTime(),
+    id: Math.random().toString(36).substring(2),
     method: 'notice',
     result: 'noticed!'
 });

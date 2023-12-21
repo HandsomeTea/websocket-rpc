@@ -1,7 +1,8 @@
 import WS from 'ws';
 import { WebsocketServer } from '../../src';
+import { uuid } from '../../src/lib';
 
-describe('事件', () => {
+describe('服务器-回调事件', () => {
 
     it('online', async () => {
         const result = await new Promise(resolve => {
@@ -11,7 +12,7 @@ describe('事件', () => {
             server.start();
             server.online(socket => {
                 socket.sendout({
-                    id: new Date().getTime(),
+                    id: uuid(),
                     method: 'test-notice',
                     result: 'success'
                 });
@@ -29,7 +30,7 @@ describe('事件', () => {
 
         expect(result).toStrictEqual({
             jsonrpc: '2.0',
-            id: expect.any(Number),
+            id: expect.any(String),
             method: 'test-notice',
             result: 'success'
         });
@@ -75,7 +76,7 @@ describe('事件', () => {
             const client = new WS(`ws://localhost:${port}`);
 
             client.on('open', () => {
-                client.send(JSON.stringify({ method: 'm1', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+                client.send(JSON.stringify({ method: 'm1', id: uuid(), params: [], jsonrpc: '2.0' }));
                 client.once('message', data => {
                     client.close();
                     resolve(data.toString());
@@ -103,7 +104,7 @@ describe('事件', () => {
             const client = new WS(`ws://localhost:${port}`);
 
             client.on('open', () => {
-                client.send(JSON.stringify({ method: 'm1', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+                client.send(JSON.stringify({ method: 'm1', id: uuid(), params: [], jsonrpc: '2.0' }));
                 client.once('message', data => {
                     client.close();
                     resolve(data.toString());
@@ -131,7 +132,7 @@ describe('事件', () => {
             const client = new WS(`ws://localhost:${port}`);
 
             client.on('open', () => {
-                client.send(JSON.stringify({ method: 'm2', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+                client.send(JSON.stringify({ method: 'm2', id: uuid(), params: [], jsonrpc: '2.0' }));
                 client.once('message', data => {
                     client.close();
                     resolve(data.toString());

@@ -15,13 +15,13 @@ export type OfflineCallbackFn<Attribute extends Record<string, any>> = Websocket
 
 export type ErrorCallbackFn<Attribute extends Record<string, any>, E> = WebsocketService.ErrorCallbackFn<Attribute, E>;
 
-export type MethodResult = Socket.MethodResult;
+export type MethodResponse = Socket.MethodResponse;
 
 export type Link<Attribute extends Record<string, any>> = Socket.Link<Attribute>;
 
 export type ClientOptions = WsClient.Options;
 
-export type NoticeCallbackFn = WsClient.NoticeCallbackFn;
+export type ListenCallbackFn = WsClient.ListenCallbackFn;
 
 export type RequestResult = WsClient.RequestResult;
 

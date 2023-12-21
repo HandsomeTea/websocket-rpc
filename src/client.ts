@@ -1,14 +1,14 @@
 import WebSocket from 'ws';
 import { ClientRequestArgs } from 'http';
 import { WsClient, Socket } from './typings';
+import { uuid } from './lib';
 
 export class WebsocketClient implements WsClient.Client {
     private webSocket: WebSocket;
     private addr: string | URL;
     private configs: WebSocket.ClientOptions | ClientRequestArgs;
     private options: WsClient.Options = { timeout: 10 };
-    private noticeFn: Array<Record<string, WsClient.NoticeCallbackFn> | WsClient.NoticeCallbackFn> = [];
-    private record: Record<string, { result: Socket.MethodResult['result'], error: Socket.MethodResult['error'] }> = {};
+    private record: Record<string, { result: Socket.MethodResponse['result'], error: Socket.MethodResponse['error'] }> = {};
 
     constructor(address: string | URL, configs?: WebSocket.ClientOptions | ClientRequestArgs, options?: WsClient.Options) {
         this.addr = address;
@@ -22,7 +22,7 @@ export class WebsocketClient implements WsClient.Client {
         }
     }
 
-    private getRecordKey(method: string, id: number) {
+    private getRecordKey(method: string, id: string) {
         return `${method}-${id}`;
     }
 
@@ -32,7 +32,7 @@ export class WebsocketClient implements WsClient.Client {
         await new Promise((resolve, reject) => {
             this.webSocket = new WebSocket(this.addr, this.configs);
             this.webSocket.on('message', data => {
-                const res = JSON.parse(data.toString());
+                const res = JSON.parse(data.toString()) as Socket.MethodResponse;
                 const cacheId = self.getRecordKey(res.method, res.id);
 
                 if (self.record[cacheId]) {
@@ -42,12 +42,8 @@ export class WebsocketClient implements WsClient.Client {
                         self.record[cacheId].result = res.result;
                     }
                 } else {
-                    for (const fn of self.noticeFn) {
-                        if (typeof fn === 'function') {
-                            fn(res.error || null, res.result);
-                        } else if (typeof fn === 'object' && typeof fn[res.method] === 'function') {
-                            fn[res.method](res.error || null, res.result);
-                        }
+                    if (res.method) {
+                        self.webSocket.emit(res.method, res.error, res.result);
                     }
                 }
             });
@@ -60,7 +56,7 @@ export class WebsocketClient implements WsClient.Client {
         if (this.status !== WebSocket.OPEN || !method) {
             return null;
         }
-        const id = new Date().getTime();
+        const id = uuid();
         const cacheId = this.getRecordKey(method, id);
         const self = this;
         let result = null;
@@ -74,14 +70,11 @@ export class WebsocketClient implements WsClient.Client {
                         const _self = this;
 
                         this.timer = setTimeout(() => {
-                            _self.clearTimer();
-                            reject({
-                                error: {
-                                    code: -32001,
-                                    message: 'Time out',
-                                    data: 'Time out'
-                                }
-                            });
+                            _self.error = {
+                                code: -32001,
+                                message: 'Time out',
+                                data: 'Time out'
+                            };
                         }, self.options.timeout * 1000) as unknown as number;
 
                         self.webSocket.send(JSON.stringify({
@@ -100,12 +93,12 @@ export class WebsocketClient implements WsClient.Client {
                         delete self.record[cacheId];
                     }
 
-                    set result(data: Socket.MethodResult['result']) {
+                    set result(data: Socket.MethodResponse['result']) {
                         this.clearTimer();
                         resolve({ result: data });
                     }
 
-                    set error(error: Socket.MethodResult['error']) {
+                    set error(error: Socket.MethodResponse['error']) {
                         this.clearTimer();
                         reject({ error });
                     }
@@ -122,40 +115,16 @@ export class WebsocketClient implements WsClient.Client {
         return await this.request('ping');
     }
 
-    /**
-     * 为某个method设置一个或多个监听事件
-     *
-     * @param {string} method
-     * @param {...Array<WsClient.NoticeCallbackFn>} args
-     * @memberof WebsocketClient
-     */
-    onNotice(method: string, ...args: Array<WsClient.NoticeCallbackFn>): void;
-    /**
-     * 为所有method设置一个或多个监听事件
-     *
-     * @param {WsClient.NoticeCallbackFn} method
-     * @param {...Array<WsClient.NoticeCallbackFn>} args
-     * @memberof WebsocketClient
-     */
-    onNotice(method: WsClient.NoticeCallbackFn, ...args: Array<WsClient.NoticeCallbackFn>): void;
-    onNotice(method: string | WsClient.NoticeCallbackFn, ...args: Array<WsClient.NoticeCallbackFn>) {
-        if (typeof method === 'string') {
-            for (const callback of args) {
-                if (typeof callback === 'function') {
-                    this.noticeFn.push({ [method]: callback });
-                }
-            }
-        } else if (typeof method === 'function') {
-            this.noticeFn.push(method);
-
-            if (args.length > 0) {
-                for (const callback of args) {
-                    if (typeof callback === 'function') {
-                        this.noticeFn.push(callback);
-                    }
-                }
-            }
+    listening(method: string, callback: WsClient.ListenCallbackFn, once?: boolean) {
+        if (Boolean(once) === true) {
+            this.webSocket.once(method, callback);
+        } else {
+            this.webSocket.on(method, callback);
         }
+    }
+
+    get removeListening() {
+        return this.webSocket.removeListener;
     }
 
     get CONNECTING() {

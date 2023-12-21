@@ -1,3 +1,4 @@
+import { uuid } from '../../src/lib';
 import instance from './base';
 
 const { server, client } = instance(3304);
@@ -20,7 +21,7 @@ afterAll(() => {
     server.close();
 });
 
-describe('middleware', () => {
+describe('服务器-middleware', () => {
 
     it('通过method名称设置middleware', async () => {
         server.use('method1', () => {
@@ -29,13 +30,13 @@ describe('middleware', () => {
             };
         });
         const result = await new Promise(resolve => {
-            client.send(JSON.stringify({ method: 'method1', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ method: 'method1', id: uuid(), params: [], jsonrpc: '2.0' }));
             client.once('message', data => resolve(JSON.parse(data.toString())));
         });
 
         expect(result).toStrictEqual({
             jsonrpc: '2.0',
-            id: expect.any(Number),
+            id: expect.any(String),
             method: 'method1',
             result: { result: 'success', status: 'method1-success' }
         });
@@ -49,13 +50,13 @@ describe('middleware', () => {
             };
         });
         const result = await new Promise(resolve => {
-            client.send(JSON.stringify({ method: 'method1', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ method: 'method1', id: uuid(), params: [], jsonrpc: '2.0' }));
             client.once('message', data => resolve(JSON.parse(data.toString())));
         });
 
         expect(result).toStrictEqual({
             jsonrpc: '2.0',
-            id: expect.any(Number),
+            id: expect.any(String),
             method: 'method1',
             result: { result: 'success', status: 'method1-success-global-middleware' }
         });
@@ -67,13 +68,13 @@ describe('middleware', () => {
             throw ['test', 'error'];
         });
         const result = await new Promise(resolve => {
-            client.send(JSON.stringify({ method: 'method1', id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ method: 'method1', id: uuid(), params: [], jsonrpc: '2.0' }));
             client.once('message', data => resolve(JSON.parse(data.toString())));
         });
 
         expect(result).toStrictEqual({
             jsonrpc: '2.0',
-            id: expect.any(Number),
+            id: expect.any(String),
             method: 'method1',
             error: {
                 code: -32001,

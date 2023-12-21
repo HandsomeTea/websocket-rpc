@@ -33,14 +33,23 @@ export namespace Socket {
         (): T;
     }
 
-    export interface MethodResult {
+    export interface MethodRequest {
         jsonrpc: '2.0'
-        id: string | number
+        /** 一般为随机字符串，uuid为佳 */
+        id: string
+        method: string
+        params?: unknown
+    }
+
+    export interface MethodResponse {
+        jsonrpc: '2.0'
+        /** 一般为随机字符串，uuid为佳 */
+        id: string
         /**
          * 非jsonrpc2.0标准字段。
          * 用于标记结果所属的method时，可取请求数据的method值；也可自定义取值，标记服务器自定义推送信息
          */
-        method?: string
+        method: string
         result?: unknown
         error?: {
             /** 应为-32768至-32000之间的数字 */
@@ -67,10 +76,10 @@ export namespace Socket {
         /**
          * 发送符合jsonrpc2.0规范的数据
          *
-         * @param {Omit<MethodResult, 'jsonrpc'>} message
+         * @param {Omit<MethodResponse, 'jsonrpc'>} message
          * @memberof Link
          */
-        readonly sendout: (message: Omit<MethodResult, 'jsonrpc'>) => void;
+        readonly sendout: (message: Omit<MethodResponse, 'jsonrpc'>) => void;
 
         readonly setAttr: SetAttr<T>;
         readonly getAttr: GetAttr<T>;
@@ -91,7 +100,7 @@ export namespace WebsocketService {
     export type MethodFn<Attribute extends AnyObject> = (params: unknown, socket: Socket.Link<Attribute>) => any | Promise<any>;
     export type OnlineCallbackFn = (socket: Socket.Link<NonNullable<unknown>>, request: http.IncomingMessage) => void | Promise<void>;
     export type OfflineCallbackFn<Attribute extends AnyObject> = (attribute: Attribute, id: string) => void | Promise<void>;
-    export type ErrorCallbackFn<Attribute extends AnyObject, T> = (error: T, socket: Socket.Link<Partial<Attribute>>, method?: string) => void | Promise<void>;
+    export type ErrorCallbackFn<Attribute extends AnyObject, T> = (error: T, socket: Socket.Link<Partial<Attribute>>, reqData?: Socket.MethodRequest) => void | Promise<void>;
 
     interface Use<Attribute extends AnyObject> {
         /** 注册适用于所有method的一个或多个中间件 */
@@ -235,15 +244,8 @@ export namespace WsClient {
         timeout: number;
     }
 
-    export type NoticeCallbackFn = (error: Socket.MethodResult['error'] | null, result: Socket.MethodResult['result']) => void;
-    export type RequestResult = { error?: Socket.MethodResult['error'], result?: Socket.MethodResult['result'] };
-
-    interface OnNotice {
-        /** 为某个method设置一个或多个监听事件 */
-        (method: string, ...args: Array<NoticeCallbackFn>): void;
-        /** 为所有method设置一个或多个监听事件 */
-        (...args: Array<NoticeCallbackFn>): void;
-    }
+    export type ListenCallbackFn = (error: Socket.MethodResponse['error'] | null, result: Socket.MethodResponse['result']) => void;
+    export type RequestResult = { error?: Socket.MethodResponse['error'], result?: Socket.MethodResponse['result'] };
 
     export interface Client {
         /** 连接状态：连接还没有打开. */
@@ -282,7 +284,16 @@ export namespace WsClient {
          */
         readonly ping: () => Promise<RequestResult>;
 
-        readonly onNotice: OnNotice;
+        // readonly onNotice: OnNotice;
+
+        /**
+         * 为某个method设置一个监听事件
+         *
+         * @memberof Client
+         */
+        readonly listening: (method: string, callback: ListenCallbackFn, once?: boolean) => void;
+
+        readonly removeListening: (method: string, callback: () => void) => void;
 
         /** 关闭当前连接 */
         readonly close: () => void;

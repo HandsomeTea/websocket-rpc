@@ -1,3 +1,4 @@
+import { uuid } from '../../src/lib';
 import instance from './base';
 
 const { server, client } = instance(3305);
@@ -14,13 +15,13 @@ afterAll(() => {
     server.close();
 });
 
-describe('参数测试', () => {
+describe('服务器-参数测试', () => {
 
     test('参数正确', async () => {
         server.register('method1', () => {
             return 'test1';
         });
-        const reqId = new Date().getTime();
+        const reqId = uuid();
         const result = await new Promise(resolve => {
             client.send(JSON.stringify({ method: 'method1', id: reqId, params: [], jsonrpc: '2.0' }));
             client.once('message', data => resolve(JSON.parse(data.toString())));
@@ -43,8 +44,8 @@ describe('参数测试', () => {
 
         expect(result).toStrictEqual({
             jsonrpc: '2.0',
-            id: expect.any(Number),
-            method: '',
+            id: expect.any(String),
+            method: expect.any(String),
             error: {
                 code: -32700,
                 message: 'Parse error',
@@ -61,7 +62,7 @@ describe('参数测试', () => {
 
         expect(result).toStrictEqual({
             jsonrpc: '2.0',
-            id: expect.any(Number),
+            id: expect.any(String),
             method: 'method1',
             error: {
                 code: -32602,
@@ -73,14 +74,14 @@ describe('参数测试', () => {
 
     test('缺少method', async () => {
         const result = await new Promise(resolve => {
-            client.send(JSON.stringify({ id: new Date().getTime(), params: [], jsonrpc: '2.0' }));
+            client.send(JSON.stringify({ id: uuid(), params: [], jsonrpc: '2.0' }));
             client.once('message', data => resolve(JSON.parse(data.toString())));
         });
 
         expect(result).toStrictEqual({
             jsonrpc: '2.0',
-            id: expect.any(Number),
-            method: '',
+            id: expect.any(String),
+            method: expect.any(String),
             error: {
                 code: -32602,
                 message: 'Invalid params',
@@ -91,13 +92,13 @@ describe('参数测试', () => {
 
     test('缺少jsonrpc', async () => {
         const result = await new Promise(resolve => {
-            client.send(JSON.stringify({ method: 'mm', id: new Date().getTime(), params: [] }));
+            client.send(JSON.stringify({ method: 'mm', id: uuid(), params: [] }));
             client.once('message', data => resolve(JSON.parse(data.toString())));
         });
 
         expect(result).toStrictEqual({
             jsonrpc: '2.0',
-            id: expect.any(Number),
+            id: expect.any(String),
             method: 'mm',
             error: {
                 code: -32602,
@@ -109,13 +110,13 @@ describe('参数测试', () => {
 
     test('jsonrpc取值不合法', async () => {
         const result = await new Promise(resolve => {
-            client.send(JSON.stringify({ method: 'mm', id: new Date().getTime(), params: [], jsonrpc: '2.1' }));
+            client.send(JSON.stringify({ method: 'mm', id: uuid(), params: [], jsonrpc: '2.1' }));
             client.once('message', data => resolve(JSON.parse(data.toString())));
         });
 
         expect(result).toStrictEqual({
             jsonrpc: '2.0',
-            id: expect.any(Number),
+            id: expect.any(String),
             method: 'mm',
             error: {
                 code: -32602,
@@ -127,14 +128,14 @@ describe('参数测试', () => {
 
     test('参数缺失多个', async () => {
         const result = await new Promise(resolve => {
-            client.send(JSON.stringify({ id: new Date().getTime(), params: [] }));
+            client.send(JSON.stringify({ id: uuid(), params: [] }));
             client.once('message', data => resolve(JSON.parse(data.toString())));
         });
 
         expect(result).toStrictEqual({
             jsonrpc: '2.0',
-            id: expect.any(Number),
-            method: '',
+            id: expect.any(String),
+            method: expect.any(String),
             error: {
                 code: -32602,
                 message: 'Invalid params',

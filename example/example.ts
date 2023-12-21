@@ -37,7 +37,7 @@ server.use(() => {
 client.on('open', () => {
     const data = {
         jsonrpc: '2.0',
-        id: new Date().getTime(),
+        id: Math.random().toString(36).substring(2),
         method: 'hello',
         params: {
             des: 'connection is open!'
