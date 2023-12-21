@@ -1,3 +1,13 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [说明](#%E8%AF%B4%E6%98%8E)
+- [方案](#%E6%96%B9%E6%A1%88)
+  - [服务器实例保活](#%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E4%BE%8B%E4%BF%9D%E6%B4%BB)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 `@coco-sheng/websocket-server`服务器并不关心是否为多实例部署，多实例部署所出现的业务问题需要在业务层面解决，本文档将给出多实例部署在业务层面的解决方案。
 
 # 说明

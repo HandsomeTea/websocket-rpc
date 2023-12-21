@@ -1,77 +1,180 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
-
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
+- [这是什么？](#%E8%BF%99%E6%98%AF%E4%BB%80%E4%B9%88)
+  - [为什么要做](#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%81%9A)
 - [快速开始](#%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)
   - [安装](#%E5%AE%89%E8%A3%85)
   - [示例代码](#%E7%A4%BA%E4%BE%8B%E4%BB%A3%E7%A0%81)
-- [method](#method)
-  - [内置method](#%E5%86%85%E7%BD%AEmethod)
-- [中间件](#%E4%B8%AD%E9%97%B4%E4%BB%B6)
-- [socket属性](#socket%E5%B1%9E%E6%80%A7)
-  - [属性的设置](#%E5%B1%9E%E6%80%A7%E7%9A%84%E8%AE%BE%E7%BD%AE)
-  - [属性的获取](#%E5%B1%9E%E6%80%A7%E7%9A%84%E8%8E%B7%E5%8F%96)
-- [server](#server)
-  - [获取连接](#%E8%8E%B7%E5%8F%96%E8%BF%9E%E6%8E%A5)
-  - [获取连接属性](#%E8%8E%B7%E5%8F%96%E8%BF%9E%E6%8E%A5%E5%B1%9E%E6%80%A7)
-  - [设置连接属性](#%E8%AE%BE%E7%BD%AE%E8%BF%9E%E6%8E%A5%E5%B1%9E%E6%80%A7)
-- [回调](#%E5%9B%9E%E8%B0%83)
-  - [server.online](#serveronline)
-  - [server.offline](#serveroffline)
-  - [server.error](#servererror)
+- [服务端](#%E6%9C%8D%E5%8A%A1%E7%AB%AF)
+  - [method](#method)
+    - [内置method](#%E5%86%85%E7%BD%AEmethod)
+  - [中间件](#%E4%B8%AD%E9%97%B4%E4%BB%B6)
+  - [socket属性](#socket%E5%B1%9E%E6%80%A7)
+    - [属性的设置](#%E5%B1%9E%E6%80%A7%E7%9A%84%E8%AE%BE%E7%BD%AE)
+    - [属性的获取](#%E5%B1%9E%E6%80%A7%E7%9A%84%E8%8E%B7%E5%8F%96)
+  - [server对象](#server%E5%AF%B9%E8%B1%A1)
+    - [获取连接](#%E8%8E%B7%E5%8F%96%E8%BF%9E%E6%8E%A5)
+    - [获取连接属性](#%E8%8E%B7%E5%8F%96%E8%BF%9E%E6%8E%A5%E5%B1%9E%E6%80%A7)
+    - [设置连接属性](#%E8%AE%BE%E7%BD%AE%E8%BF%9E%E6%8E%A5%E5%B1%9E%E6%80%A7)
+  - [回调](#%E5%9B%9E%E8%B0%83)
+    - [server.online](#serveronline)
+    - [server.offline](#serveroffline)
+    - [server.error](#servererror)
+  - [扩展配置](#%E6%89%A9%E5%B1%95%E9%85%8D%E7%BD%AE)
+- [客户端](#%E5%AE%A2%E6%88%B7%E7%AB%AF)
 - [关于ping](#%E5%85%B3%E4%BA%8Eping)
-- [扩展配置](#%E6%89%A9%E5%B1%95%E9%85%8D%E7%BD%AE)
 - [其它](#%E5%85%B6%E5%AE%83)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# 快速开始
+# 这是什么？
 
-`websocket-server`是一个简单易用的websocket服务器，基于[ws](https://www.npmjs.com/package/ws)，遵循[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议。
+这是一个基于[ws](https://www.npmjs.com/package/ws)，遵循[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议的websocket应用框架。
+
+## 为什么要做
+
+在传统的websocket使用中，服务器端我们可能会这么做：
+
+```typescript
+// ...
+
+const websocketServer = ...;
+
+websocketServer.on('connection',socket => {
+    socket.on('message',data=>{
+        if(data.xxx === 'xxx'){ // 业务标识判断
+            // 具体业务逻辑
+        }
+        // ...
+    });
+
+    socket.on(...)
+
+    // ...
+});
+
+// ...
+```
+
+这种做法，出现了nodejs开发中极力避免的层层嵌套问题，同时需要对服务器接收到的数据做大量的业务标识判断，开发者需要分出一部分精力来把业务数据分流到对应的业务处理逻辑中，同时对websocket各个时间节点(上线、下线、登录、session等)进行小心维护。
+
+而在客户端我们可能会这么做：
+
+```typescript
+// ...
+
+const client = ...;
+
+client.on('open',() =>{
+    // ...
+};
+
+client.on('message', data => {
+    // ...       
+});
+
+
+client.emit('xxx', () => {
+    // ...
+});
+
+
+client.on('xxx', () => {
+    // ...
+});
+
+// ...
+```
+
+出现回调嵌套问题的同时，客户端会出现大量对请求响应数据的监听，影响性能和交互体验，也出现了大量的代码冗余，非常不方便开发。
+
+我们希望的服务器端类似于：
+
+```typescript
+const websocketServer = ...;
+
+
+websocketServer.set('某个业务标识', (params, socket) => {
+    console.log(params);
+    // params 是该业务的请求参数
+    socket.send(...);
+});
+
+
+websocketServer.start();
+```
+
+没有太多的业务判断，直接可以将精力放到对业务的处理上。同时，我们对客户端的期望如下：
+
+```typescript
+const client = ...;
+
+
+const result = client.request('某个业务标识', [业务参数]);
+
+
+console.log(result);
+// result 是该业务请求的结果
+```
+
+不用对业务请求的结果做甄别，不用担心接收到的数据不是该业务的结果，也不用写大量的冗余监听。这就是`@coco-sheng/websocket`想要做的。
+
+`@coco-sheng/websocket`经过了实际项目的检测，在1核CPU1G内存的设备上部署服务器端，能同时维持最多2万个客户端连接，qps在20到30之间(根据业务逻辑的复杂性而定)。
+
+# 快速开始
 
 ## 安装
 
-```
-npm install --save @coco-sheng/websocket-server
+```shell
+npm install --save @coco-sheng/websocket
 ```
 
 ## 示例代码
 
-typing.d.ts
+服务端：
 
 ```typescript
+import { WebsocketServer } from '@coco-sheng/websocket';
+
 interface SocketAttr {
     userId: string;
     role: string;
     type: string
     token: string;
 }
-```
-
-server.ts
-
-```typescript
-import { WebsocketServer } from '@coco-sheng/websocket-server';
-
 
 const port = 3403;
+const server = new WebsocketServer<SocketAttr>({ port });
 
-export default new WebsocketServer<SocketAttr>({ port });
-```
-
-start.ts
-
-```typescript
-import server from './server';
+server.register('hello', () => {
+    return 'hello world!';
+});
 
 server.start();
 ```
 
-`SocketAttr`是socket连接上的属性，详见[socket属性](#socket属性)部分。
+`SocketAttr`是socket连接上的属性，详见[socket属性](#socket%E5%B1%9E%E6%80%A7)部分。
 
-# method
+客户端：
+
+```typescript
+import { WebsocketClient } from '@coco-sheng/websocket';
+
+const client = new WebsocketClient('ws://localhost:3403');
+
+await client.open();
+const result = await client.request('hello');
+
+
+console.log(result);
+// hello world!
+```
+
+# 服务端
+
+## method
 
 定义method(类似于定义一个api)
 
@@ -216,7 +319,7 @@ server.register('hello',(_params, socket)=>{
 
 `sendout`和`send`的区别在于`sendout`会把要发送的数据转换为符合`jsonrpc2.0`规范的格式，同时也会根据数据压缩配置将数据进行压缩处理；`send`则需要手动组装`jsonrpc2.0`规范的数据，且不会根据配置压缩数据。
 
-## 内置method
+### 内置method
 
 系统内置了两个method：`connect`，`ping`
 
@@ -255,7 +358,7 @@ client.on('open',async ()=>{
 
 > 注意：要中断method函数的执行，可以直接`return`，或者`throw`(你可以throw任何数据，比如数组、Object、Error对象等)，throw抛出的数据会被系统捕获，并封装为一个符合`JSONRPC-2.0`规范的错误数据返回，你也可以定义全局的[错误捕获回调函数](#servererror)，来自行处理`throw`抛出的数据。
 
-# 中间件
+## 中间件
 
 中间件是一个在请求到达method之前对请求的数据和业务进行处理的函数。该函数如果返回一个Object，则会将该Object的属性挂载到当前socket连接的属性(后续业务可获取)上；返回其它数据结构则不做任何处理，后续业务逻辑也无法获取该返回值。可以定义针对全部method的一个或多个中间件，也可以为某个method定义一个或多个中间件，中间件的执行顺序为中间件定义的代码逻辑顺序。
 
@@ -314,11 +417,11 @@ server.use('login', checkLoginToken, checkPermission);
 
 使用中间件函数的socket参数，也可以在中间件里向客户端主动发送消息。
 
-# socket属性
+## socket属性
 
 socket的属性即挂在到当前socket连接上的数据。
 
-## 属性的设置
+### 属性的设置
 
 属性的设置有两种方式，一种是在中间件函数里返回一个Object(详见[中间件](#中间件)部分)，另一种是调用socket对象本身的属性操作函数，如下：
 
@@ -348,7 +451,7 @@ server.use((_params, socket, method)=>{
 });
 ```
 
-## 属性的获取
+### 属性的获取
 
 获取全部属性
 
@@ -384,9 +487,9 @@ const values = socket.getAttr('key1', 'key2', ...);
 // }
 ```
 
-# server
+## server对象
 
-## 获取连接
+### 获取连接
 
 每一个客户端socket连接都有一个id(这个id通常可以作为socket连接的session标识来使用)，是一个随机生成的字符串，在method和中间件中都可以通过socket获取，以method为例：
 
@@ -422,7 +525,7 @@ const socket = server.getSockets((attr:SocketAttr)=>{
 
 `server.getSockets`接受一个回调函数，该函数的入参为某个socket的所有属性，需要返回一个`Boolean`值来判断某个soeket连接是否为需要获取的socket对象。
 
-## 获取连接属性
+### 获取连接属性
 
 获取单个socket连接的属性，实际调用的是[socket属性](#socket属性)里属性的获取函数。
 
@@ -465,7 +568,7 @@ const values = server.getSocketsAttr((attr: SocketAttr) => {
 }, 'key1', 'key2', ...);
 ```
 
-## 设置连接属性
+### 设置连接属性
 
 你也可以通过`server`设置某个socket连接的属性值：
 
@@ -478,9 +581,9 @@ server.setSocketAttr(socketId, {
 });
 ```
 
-# 回调
+## 回调
 
-## server.online
+### server.online
 
 有客户端连接成功的回调函数，可传入多个，按顺序执行
 
@@ -497,7 +600,7 @@ const online2: OnlineCallbackFn = () => {
 server.online(online1, online2);
 ```
 
-## server.offline
+### server.offline
 
 有客户端断开连接时的回调函数，可传入多个，按顺序执行
 
@@ -510,7 +613,7 @@ const offline2: OfflineCallbackFn<SocketAttr> = () => { };
 server.offline(offline1, offline2);
 ```
 
-## server.error
+### server.error
 
 捕获到全局错误时的回调，系统内置了一个全局错误处理逻辑，当捕获到错误时，会发送一条符合`jsonrpc2.0`规范的错误信息到客户端（客户端已下线除外），当配置了log(详情见扩展配置)，该错误信息也会打印到控制台。如果设置`server.error`回调函数，则不会执行系统内置的错误逻辑，但是依然会根据log配置打印错误信息，但是`server.error`设置的**错误回调函数内部的错误并不会再次捕获处理**。
 
@@ -531,11 +634,7 @@ const error2: ErrorCallbackFn<SocketAttr, SystemError> = () => { };
 server.error(error1, error2);
 ```
 
-# 关于ping
-
-服务器端不建议主动去ping客户端，以此对连接进行保活，这样做会消耗服务器性能，所以系统内置了一个`ping`的method，当客户端发送`ping`的method时，系统会回复一条数据，详见[内置method](#内置method)。当然，你也可以通过其它方式实现ping来对连接保活。
-
-# 扩展配置
+## 扩展配置
 
 `new WebsocketServer(config, options);`
 
@@ -574,12 +673,14 @@ client.on('open',async ()=>{
 });
 ```
 
+# 客户端
+
+# 关于ping
+
+服务器端不建议主动去ping客户端以此对连接进行保活，这样做会消耗服务器性能，所以系统内置了一个`ping`的method，当客户端发送`ping`的method时，系统会回复一条数据，详见[内置method](#%E5%86%85%E7%BD%AEmethod)。当然，你也可以通过其它方式实现ping来对连接保活。
+
 # 其它
 
-- 关于性能
-  
-  该工程经过了实际项目的检测，在1核CPU1G内存的设备上，能同时维持最多2万个客户端连接，qps在20到30之间(根据method业务逻辑的复杂性而定)。
-
-- 关于多实例部署的支持，详见[多实例管理方案]().
+- 关于服务器端多实例部署的解决方案，详见[多实例管理方案]().
 
 - 暂无其它。
