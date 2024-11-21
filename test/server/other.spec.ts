@@ -3,13 +3,13 @@ import { uuid } from '../../src/lib';
 import instance from './base';
 
 interface SocketAttr {
-    id: string
-    testAttr: string
-    testSetAttr: string
-    socketSetAttr: number
+	id: string
+	testAttr: string
+	testSetAttr: string
+	socketSetAttr: number
 }
 
-const { server, client } = instance<SocketAttr>(3306);
+const { server, client } = instance<SocketAttr>(3326);
 
 beforeAll(async () => {
     await new Promise(resolve => {

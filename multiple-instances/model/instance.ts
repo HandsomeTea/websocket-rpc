@@ -13,7 +13,7 @@ export default new class Instance {
     constructor() {
         const schema = new mongoose.Schema({
             _id: { type: String, required: true, trim: true } // 你也可以使用mongodb默认生成的_id，只不过在当前业务场景下，instanceId便可以当做_id
-        }, { timestamps: { _id: false, versionKey: false, createdAt: true, updatedAt: true } });
+        }, { timestamps: { versionKey: false, createdAt: true, updatedAt: true } });
         const collectionName = 'instances';
 
         this.server = mongoose.connection.model<InstanceModel>(collectionName, schema, collectionName);

@@ -2,7 +2,7 @@ import crypto from 'crypto';
 
 export const instanceId = () => {
     if (!process.env.INSTANCEID) {
-        process.env.INSTANCEID = crypto.randomBytes(24).toString('hex').substring(0, 17);
+        process.env.INSTANCEID = crypto.randomBytes(24).toString('hex').substring(0, 24);
     }
 
     return process.env.INSTANCEID;

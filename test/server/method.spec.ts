@@ -1,7 +1,7 @@
 import { uuid } from '../../src/lib';
 import instance from './base';
 
-const { server, client } = instance(3303);
+const { server, client } = instance(3323);
 
 beforeAll(async () => {
     await new Promise(resolve => {
