@@ -31,7 +31,7 @@
 
 # 这是什么？
 
-这是一个基于[ws](https://www.npmjs.com/package/ws)，遵循[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议的websocket应用框架。
+这是一个基于[ws](https://www.npmjs.com/package/ws)，遵循[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议的websocket应用框架,灵感来源于实际项目中使用websocket实现rpc的需求，且可用性经过了实际项目的检测，性能表现良好。
 
 ## 为什么要做
 
@@ -72,7 +72,7 @@ client.on('open',() =>{
 };
 
 client.on('message', data => {
-    // ...       
+    // ...
 });
 
 
@@ -90,36 +90,7 @@ client.on('xxx', () => {
 
 出现回调嵌套问题的同时，客户端会出现大量对请求响应数据的监听，影响性能和交互体验，也出现了大量的代码冗余，非常不方便开发。
 
-我们希望的服务器端类似于：
-
-```typescript
-const websocketServer = ...;
-
-
-websocketServer.set('某个业务标识', (params, socket) => {
-    console.log(params);
-    // params 是该业务的请求参数
-    socket.send(...);
-});
-
-
-websocketServer.start();
-```
-
-没有太多的业务判断，直接可以将精力放到对业务的处理上。同时，我们对客户端的期望如下：
-
-```typescript
-const client = ...;
-
-
-const result = client.request('某个业务标识', [业务参数]);
-
-
-console.log(result);
-// result 是该业务请求的结果
-```
-
-不用对业务请求的结果做甄别，不用担心接收到的数据不是该业务的结果，也不用写大量的冗余监听。这就是`@coco-sheng/websocket`想要做的。
+我们希望的服务器端没有太多针对请求的甄别判断来区分具体处理的业务，直接可以将精力聚焦到对业务的处理上。同时，我们对客户端不用对业务请求的结果做甄别，不用担心接收到的数据不是该业务的结果，也不用写大量的冗余监听。这就是`@coco-sheng/websocket`想要做的,除此之外，我们还针对服务器端上线、下线、基本错误、日志等情况做了处理，同时给出多实例部署的解决方案。当然你也可以从服务端/客户端能方便的获取到连接实例，根据自己的业务需求发送其它非JSON-RPC 2.0规范的数据。
 
 `@coco-sheng/websocket`经过了实际项目的检测，在1核CPU1G内存的设备上部署服务器端，能同时维持最多2万个客户端连接，qps在20到30之间(根据业务逻辑的复杂性而定)。
 
@@ -460,7 +431,7 @@ const attr = socket.getAttr();
 
 // 全部属性
 // {
-//     ...   
+//     ...
 // }
 ```
 
@@ -483,7 +454,7 @@ const values = socket.getAttr('key1', 'key2', ...);
 // {
 //     key1: ...,
 //     key2: ...,
-//     ...   
+//     ...
 // }
 ```
 
@@ -590,10 +561,10 @@ server.setSocketAttr(socketId, {
 ```typescript
 import { OnlineCallbackFn } from '@coco-sheng/websocket-server';
 
-const online1: OnlineCallbackFn = () => { 
+const online1: OnlineCallbackFn = () => {
     // ...
 };
-const online2: OnlineCallbackFn = () => { 
+const online2: OnlineCallbackFn = () => {
     // ...
 };
 
@@ -681,6 +652,6 @@ client.on('open',async ()=>{
 
 # 其它
 
-- 关于服务器端多实例部署的解决方案，详见[多实例管理方案]().
+- 关于服务器端多实例部署的解决方案，详见[多实例管理方案](https://github.com/HandsomeTea/websocket/tree/develop/multiple-instances).
 
 - 暂无其它。

@@ -9,6 +9,7 @@ export class WebsocketClient implements WsClient.Client {
 	private configs: WebSocket.ClientOptions | ClientRequestArgs;
 	private options: WsClient.Options = { timeout: 10 };
 	private record: Record<string, { result: Socket.MethodResponse['result'], error: Socket.MethodResponse['error'] }> = {};
+	private _close: Array<() => void> = [];
 
 	constructor(address: string | URL, configs?: WebSocket.ClientOptions | ClientRequestArgs, options?: WsClient.Options) {
 		this.addr = address;
@@ -48,6 +49,11 @@ export class WebsocketClient implements WsClient.Client {
 				}
 			});
 			this.webSocket.on('open', resolve);
+			this.webSocket.on('close', async () => {
+				for (const fn of self._close) {
+					await fn();
+				}
+			});
 			this.webSocket.on('error', reject);
 		});
 	}
@@ -118,6 +124,16 @@ export class WebsocketClient implements WsClient.Client {
 
 	async ping(): Promise<WsClient.RequestResult> {
 		return await this.request('ping');
+	}
+
+	offline(...args: Array<() => void>): void {
+		if (Array.isArray(args) && args.length > 0) {
+			for (const fn of args) {
+				if (typeof fn === 'function') {
+					this._close.push(fn);
+				}
+			}
+		}
 	}
 
 	listening(method: string, callback: WsClient.ListenCallbackFn, once?: boolean) {
