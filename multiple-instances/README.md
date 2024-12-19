@@ -4,11 +4,11 @@
 
 - [说明](#%E8%AF%B4%E6%98%8E)
 - [方案](#%E6%96%B9%E6%A1%88)
-  - [服务器实例保活](#%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%AE%9E%E4%BE%8B%E4%BF%9D%E6%B4%BB)
+- [示例说明](#%E7%A4%BA%E4%BE%8B%E8%AF%B4%E6%98%8E)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-`@coco-sheng/websocket-server`服务器并不关心是否为多实例部署，多实例部署所出现的业务问题需要在业务层面解决，本文档将给出多实例部署在业务层面的解决方案。
+`@coco-sheng/websocket-rpc`服务器并不关心是否为多实例部署，多实例部署所出现的业务问题需要在业务层面解决，本文档将给出多实例部署在业务层面的解决方案。
 
 # 说明
 
@@ -34,14 +34,13 @@
 
 - 连接断开时清除该连接的数据(session信息)。
 
-## 服务器实例保活
-
-当每个服务器实例启动时，应生成一个唯一的实例id，如：# 
-
-```typescript
-import crypto from 'crypto';
-
-process.env.INSTANCEID = crypto.randomBytes(24).toString('hex').substring(0, 17);
-```
-
-
+# 示例说明
+示例代码在`multiple-instances`文件夹下，内容如下：
+- `model`文件夹内容：数据库model文件示例，以mongodb为例。
+  - `instance.ts`：服务器实例保活信息。
+  - `session.ts`：客户端连接信息。
+- `service`文件夹内容：服务器多实例相关业务处理示例。
+  - `instanceService.ts`：服务器实例保活处理，已启动服务器的检测和已下线服务器的清理。
+  - `sessionService.ts`：客户端连接信息处理，记录客户端连接在哪个服务器实例，及客户端连接信息(可根据业务情况而定)。
+- `client.ts`：模拟多个客户端连接到服务器。
+- `server.ts`：使用nodejs的`cluster`模块模拟多个服务器运行实例。

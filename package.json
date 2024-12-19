@@ -1,6 +1,6 @@
 {
-	"name": "@coco-sheng/websocket",
-	"version": "1.0.3-beta.1",
+	"name": "@coco-sheng/websocket-rpc",
+	"version": "1.1.0",
 	"description": "简单易用的websocket，基于ws，遵循JSON-RPC 2.0协议",
 	"main": "dist/index.js",
 	"scripts": {

@@ -282,6 +282,13 @@ export namespace WsClient {
 		 */
 		readonly ping: () => Promise<RequestResult>;
 
+		/**
+		 * 注册一个/多个客户端离线时的回调函数
+		 * @param args
+		 * @returns
+		 */
+		readonly offline: (...args: Array<() => void>) => void;
+
 		// readonly onNotice: OnNotice;
 
 		/**

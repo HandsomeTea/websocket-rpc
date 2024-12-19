@@ -90,7 +90,7 @@ client.on('xxx', () => {
 
 出现回调嵌套问题的同时，客户端会出现大量对请求响应数据的监听，影响性能和交互体验，也出现了大量的代码冗余，非常不方便开发。
 
-我们希望的服务器端没有太多针对请求的甄别判断来区分具体处理的业务，直接可以将精力聚焦到对业务的处理上。同时，我们对客户端不用对业务请求的结果做甄别，不用担心接收到的数据不是该业务的结果，也不用写大量的冗余监听。这就是`@coco-sheng/websocket`想要做的,除此之外，我们还针对服务器端上线、下线、基本错误、日志等情况做了处理，同时给出多实例部署的解决方案。当然你也可以从服务端/客户端能方便的获取到连接实例，根据自己的业务需求发送其它非JSON-RPC 2.0规范的数据。
+我们希望的服务器端没有太多针对请求的甄别判断来区分具体处理的业务，直接可以将精力聚焦到对业务的处理上。同时，我们对客户端不用对业务请求的结果做甄别，不用担心接收到的数据不是该业务的结果，也不用写大量的冗余监听。这就是`@coco-sheng/websocket`想要做的，除此之外，我们还针对服务器端上线、下线、基本错误、日志等情况做了处理，同时给出多实例部署的解决方案。当然你也可以从服务端/客户端能方便的获取到连接实例，根据自己的业务需求发送其它非JSON-RPC 2.0规范的数据。
 
 `@coco-sheng/websocket`经过了实际项目的检测，在1核CPU1G内存的设备上部署服务器端，能同时维持最多2万个客户端连接，qps在20到30之间(根据业务逻辑的复杂性而定)。
 
@@ -163,7 +163,7 @@ server.register('hello', () => {
 你也可以同时定义多个method
 
 ```typescript
-import { MethodFn } from '@coco-sheng/websocket-server';
+import { MethodFn } from '@coco-sheng/websocket-rpc';
 import server from './server';
 
 
@@ -336,7 +336,7 @@ client.on('open',async ()=>{
 middleware.ts，定义全局的中间件：
 
 ```typescript
-import { MiddlewareFn } from '@coco-sheng/websocket-server';
+import { MiddlewareFn } from '@coco-sheng/websocket-rpc';
 
 server.use(()=>{
     console.log('this is a middleware for all methods');
@@ -363,7 +363,7 @@ server.use(mdw1, mdw2, ...);
 定义针对某个method的中间件。
 
 ```typescript
-import { MiddlewareFn } from '@coco-sheng/websocket-server';
+import { MiddlewareFn } from '@coco-sheng/websocket-rpc';
 
 server.use('login', () => {
     console.log('to login method');
@@ -559,7 +559,7 @@ server.setSocketAttr(socketId, {
 有客户端连接成功的回调函数，可传入多个，按顺序执行
 
 ```typescript
-import { OnlineCallbackFn } from '@coco-sheng/websocket-server';
+import { OnlineCallbackFn } from '@coco-sheng/websocket-rpc';
 
 const online1: OnlineCallbackFn = () => {
     // ...
@@ -576,7 +576,7 @@ server.online(online1, online2);
 有客户端断开连接时的回调函数，可传入多个，按顺序执行
 
 ```typescript
-import { OfflineCallbackFn } from '@coco-sheng/websocket-server';
+import { OfflineCallbackFn } from '@coco-sheng/websocket-rpc';
 
 const offline1: OfflineCallbackFn<SocketAttr> = () => { };
 const offline2: OfflineCallbackFn<SocketAttr> = () => { };
@@ -589,7 +589,7 @@ server.offline(offline1, offline2);
 捕获到全局错误时的回调，系统内置了一个全局错误处理逻辑，当捕获到错误时，会发送一条符合`jsonrpc2.0`规范的错误信息到客户端（客户端已下线除外），当配置了log(详情见扩展配置)，该错误信息也会打印到控制台。如果设置`server.error`回调函数，则不会执行系统内置的错误逻辑，但是依然会根据log配置打印错误信息，但是`server.error`设置的**错误回调函数内部的错误并不会再次捕获处理**。
 
 ```typescript
-import { ErrorCallbackFn } from '@coco-sheng/websocket-server';
+import { ErrorCallbackFn } from '@coco-sheng/websocket-rpc';
 
 // 你的项目内通用的错误数据结构
 interface SystemError {
@@ -614,7 +614,7 @@ server.error(error1, error2);
 - `[options.compression]`：`zlib`，默认`undefined`。当为`zlib`时，将对服务器发送到客户端的数据先进行zlib压缩，再发送。
 
 ```typescript
-import { WebsocketServer } from '@coco-sheng/websocket-server';
+import { WebsocketServer } from '@coco-sheng/websocket-rpc';
 
 
 const port = 3403;
