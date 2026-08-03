@@ -1,35 +1,39 @@
-import { Socket } from '../typings';
+import type { Socket, AnyObject } from '../typings.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default (socket: Socket.Link<Record<string, any>>): void => {
+export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
     socket.on('close', async () => {
         const { id } = socket;
-
-        if (global._WebsocketServer.sessionMap[id]) {
-            delete global._WebsocketServer.sessionMap[id];
-        }
 
         if (socket.option.logger) {
             socket.option.logger('close-socket-connection').warn(`socket:${id} is closed.`);
         }
 
-        if (socket.offline.length > 0) {
+        const offlineFns = global._WebsocketServer[serverId]?.offlineCallbacks || [];
+
+        if (offlineFns.length > 0) {
             try {
-                for (const fn of socket.offline) {
+                for (const fn of offlineFns) {
                     await fn(socket.attribute, socket.id);
                 }
             } catch (error) {
                 if (socket.option.logger) {
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    socket.option.logger('close-socket-connection').error(error);
+                    const e = error as Error;
+
+                    socket.option.logger('close-socket-connection').error(e.stack || e.message);
                 }
-                if (socket.error.length > 0) {
-                    for (const fn of socket.error) {
+                const errorFns = global._WebsocketServer[serverId]?.errorCallbacks || [];
+
+                if (errorFns.length > 0) {
+                    for (const fn of errorFns) {
+                        // @ts-ignore
                         await fn(error as Error, socket);
                     }
                 }
             }
+        }
+
+        if (global._sessionMap[id]) {
+            delete global._sessionMap[id];
         }
     });
 };

@@ -1,15 +1,14 @@
-import err from './error';
-import close from './close';
-import sendout from './sendout';
-import recieve from './recieve';
-import attr from './attr';
-import { Socket } from '../typings';
+import err from './error.js';
+import close from './close.js';
+import sendout from './sendout.js';
+import recieve from './receive.js';
+import attr from './attr.js';
+import type { Socket, AnyObject } from '../typings.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default (socket: Socket.Link<Record<string, any>>): void => {
+export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
     err(socket);
     sendout(socket);
     attr(socket);
-    close(socket);
-    recieve(socket);
+    close(socket, serverId);
+    recieve(socket, serverId);
 };

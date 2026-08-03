@@ -24,6 +24,13 @@
     - [server.error](#servererror)
   - [扩展配置](#%E6%89%A9%E5%B1%95%E9%85%8D%E7%BD%AE)
 - [客户端](#%E5%AE%A2%E6%88%B7%E7%AB%AF)
+  - [基本用法](#%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95)
+  - [API](#api)
+    - [`new WebsocketClient(address, configs?, options?)`](#new-websocketclientaddress-configs-options)
+    - [`client.request(method, params?)`](#clientrequestmethod-params)
+    - [`client.listening(method, callback, once?)`](#clientlisteningmethod-callback-once)
+    - [`client.offline(...callbacks)`](#clientofflinecallbacks)
+    - [`client.client`](#clientclient)
 - [关于ping](#%E5%85%B3%E4%BA%8Eping)
 - [其它](#%E5%85%B6%E5%AE%83)
 
@@ -90,16 +97,16 @@ client.on('xxx', () => {
 
 出现回调嵌套问题的同时，客户端会出现大量对请求响应数据的监听，影响性能和交互体验，也出现了大量的代码冗余，非常不方便开发。
 
-我们希望的服务器端没有太多针对请求的甄别判断来区分具体处理的业务，直接可以将精力聚焦到对业务的处理上。同时，我们对客户端不用对业务请求的结果做甄别，不用担心接收到的数据不是该业务的结果，也不用写大量的冗余监听。这就是`@coco-sheng/websocket`想要做的，除此之外，我们还针对服务器端上线、下线、基本错误、日志等情况做了处理，同时给出多实例部署的解决方案。当然你也可以从服务端/客户端能方便的获取到连接实例，根据自己的业务需求发送其它非JSON-RPC 2.0规范的数据。
+我们希望的服务器端没有太多针对请求的甄别判断来区分具体处理的业务，直接可以将精力聚焦到对业务的处理上。同时，我们对客户端不用对业务请求的结果做甄别，不用担心接收到的数据不是该业务的结果，也不用写大量的冗余监听。这就是`@coco-sheng/websocket-rpc`想要做的，除此之外，我们还针对服务器端上线、下线、基本错误、日志等情况做了处理，同时给出多实例部署的解决方案。当然你也可以从服务端/客户端能方便的获取到连接实例，根据自己的业务需求发送其它非JSON-RPC 2.0规范的数据。
 
-`@coco-sheng/websocket`经过了实际项目的检测，在1核CPU1G内存的设备上部署服务器端，能同时维持最多2万个客户端连接，qps在20到30之间(根据业务逻辑的复杂性而定)。
+`@coco-sheng/websocket-rpc`经过了实际项目的检测，在1核CPU1G内存的设备上部署服务器端，能同时维持最多2万个客户端连接，qps在20到30之间(根据业务逻辑的复杂性而定)。
 
 # 快速开始
 
 ## 安装
 
 ```shell
-npm install --save @coco-sheng/websocket
+npm install --save @coco-sheng/websocket-rpc
 ```
 
 ## 示例代码
@@ -107,7 +114,7 @@ npm install --save @coco-sheng/websocket
 服务端：
 
 ```typescript
-import { WebsocketServer } from '@coco-sheng/websocket';
+import { WebsocketServer } from '@coco-sheng/websocket-rpc';
 
 interface SocketAttr {
     userId: string;
@@ -131,7 +138,7 @@ server.start();
 客户端：
 
 ```typescript
-import { WebsocketClient } from '@coco-sheng/websocket';
+import { WebsocketClient } from '@coco-sheng/websocket-rpc';
 
 const client = new WebsocketClient('ws://localhost:3403');
 
@@ -193,80 +200,31 @@ server.register({ testMethod });
 client.ts
 
 ```typescript
-import Websocket from 'ws';
+import { WebsocketClient } from '@coco-sheng/websocket-rpc';
 
-const port = 3403;
-const client = new Websocket(`ws://localhost:${port}`);
+const client = new WebsocketClient('ws://localhost:3403');
 
+await client.open();
 
-client.on('open',async ()=>{
-    const result1 = await new Promise(resolve => {
-        client.send(JSON.stringify({ method: 'hello', id: 1, params: [], jsonrpc: '2.0' }));
-        client.once('message', data => resolve(JSON.parse(data.toString())));
-    });
+const result1 = await client.request('hello');
+console.log(result1);
+// { result: 'hello world!' }
 
-    console.log(result1);
-    // {
-    //     jsonrpc: '2.0',
-    //     id: 1,
-    //     method: 'hello',
-    //     result: 'hello world!'
-    // }
+const result2 = await client.request('hello1');
+console.log(result2);
+// { result: 'hello world1!' }
 
-    const result2 = await new Promise(resolve => {
-        client.send(JSON.stringify({ method: 'hello1', id: 2, params: [], jsonrpc: '2.0' }));
-        client.once('message', data => resolve(JSON.parse(data.toString())));
-    });
+const result3 = await client.request('hello2');
+console.log(result3);
+// { result: { result: 'hello world2!' } }
 
-    console.log(result2);
-    // {
-    //     jsonrpc: '2.0',
-    //     id: 2,
-    //     method: 'hello1',
-    //     result: 'hello world1!'
-    // }
+const result4 = await client.request('hello3');
+console.log(result4);
+// { result: '' }
 
-    const result3 = await new Promise(resolve => {
-        client.send(JSON.stringify({ method: 'hello2', id: 3, params: [], jsonrpc: '2.0' }));
-        client.once('message', data => resolve(JSON.parse(data.toString())));
-    });
-
-    console.log(result3);
-    // {
-    //     jsonrpc: '2.0',
-    //     id: 3,
-    //     method: 'hello2',
-    //     result: {
-    //         result: 'hello world2!'
-    //     }
-    // }
-
-    const result4 = await new Promise(resolve => {
-        client.send(JSON.stringify({ method: 'hello3', id: 4, params: [], jsonrpc: '2.0' }));
-        client.once('message', data => resolve(JSON.parse(data.toString())));
-    });
-
-    console.log(result4);
-    // {
-    //     jsonrpc: '2.0',
-    //     id: 4,
-    //     method: 'hello3',
-    //     result: ''
-    // }
-
-    const result5 = await new Promise(resolve => {
-        client.send(JSON.stringify({ method: 'testMethod', id: 5, params: [], jsonrpc: '2.0' }));
-        client.once('message', data => resolve(JSON.parse(data.toString())));
-    });
-
-    console.log(result5);
-    // {
-    //     jsonrpc: '2.0',
-    //     id: 5,
-    //     method: 'testMethod',
-    //     result: ''
-    // }
-});
+const result5 = await client.request('testMethod');
+console.log(result5);
+// { result: '' }
 ```
 
 主动向客户端发送消息
@@ -275,7 +233,7 @@ client.on('open',async ()=>{
 server.register('hello',(_params, socket)=>{
     // _params 为method的请求参数
     socket.sendout({
-        method: 'test'
+        method: 'test',
         result: 'pending hello'
     });
 
@@ -295,36 +253,21 @@ server.register('hello',(_params, socket)=>{
 系统内置了两个method：`connect`，`ping`
 
 ```typescript
-client.on('open',async ()=>{
-    const result1 = await new Promise(resolve => {
-        client.send(JSON.stringify({ method: 'connect', id: 1, params: [], jsonrpc: '2.0' }));
-        client.once('message', data => resolve(JSON.parse(data.toString())));
-    });
+const client = new WebsocketClient('ws://localhost:3403');
+await client.open();
 
-    console.log(result1);
-    // {
-    //     jsonrpc: '2.0',
-    //     id: 1,
-    //     method: 'connect',
-    //     result: {
-    //         msg: 'connected',
-    //         session: 'xxxxxxxxxx'
-    //     }
-    // }
+const result1 = await client.request('connect');
+console.log(result1);
+// {
+//     result: {
+//         msg: 'connected',
+//         session: 'xxxxxxxxxx'
+//     }
+// }
 
-    const result2 = await new Promise(resolve => {
-        client.send(JSON.stringify({ method: 'ping', id: 2, params: [], jsonrpc: '2.0' }));
-        client.once('message', data => resolve(JSON.parse(data.toString())));
-    });
-
-    console.log(result2);
-    // {
-    //     jsonrpc: '2.0',
-    //     id: 2,
-    //     method: 'ping',
-    //     result: 'pong'
-    // }
-});
+const result2 = await client.ping();
+console.log(result2);
+// { result: 'pong' }
 ```
 
 > 注意：要中断method函数的执行，可以直接`return`，或者`throw`(你可以throw任何数据，比如数组、Object、Error对象等)，throw抛出的数据会被系统捕获，并封装为一个符合`JSONRPC-2.0`规范的错误数据返回，你也可以定义全局的[错误捕获回调函数](#servererror)，来自行处理`throw`抛出的数据。
@@ -561,10 +504,10 @@ server.setSocketAttr(socketId, {
 ```typescript
 import { OnlineCallbackFn } from '@coco-sheng/websocket-rpc';
 
-const online1: OnlineCallbackFn = () => {
+const online1: OnlineCallbackFn<SocketAttr> = () => {
     // ...
 };
-const online2: OnlineCallbackFn = () => {
+const online2: OnlineCallbackFn<SocketAttr> = () => {
     // ...
 };
 
@@ -628,23 +571,72 @@ export default new WebsocketServer<SocketAttr>({ port }, {
 客户端解压缩示例：
 
 ```typescript
-client.on('open',async ()=>{
-    const result = await new Promise(resolve => {
-        client.send(JSON.stringify({ method: 'connect', id: 1, params: [], jsonrpc: '2.0' }));
-        client.once('message', data => resolve(JSON.parse(zlib.inflateSync(data as Buffer).toString())));
-    });
-
-    console.log(result);
-    // {
-    //     jsonrpc: '2.0',
-    //     id: 2,
-    //     method: 'ping',
-    //     result: 'pong'
-    // }
+// 使用 WebsocketClient 时，解压由 ws 库自动处理
+// 如果使用裸 WebSocket，需要手动解压：
+const ws = new WebSocket('ws://localhost:3403');
+ws.on('message', data => {
+    const decompressed = JSON.parse(zlib.inflateSync(data as Buffer).toString());
+    console.log(decompressed);
 });
 ```
 
 # 客户端
+
+## 基本用法
+
+```typescript
+import { WebsocketClient } from '@coco-sheng/websocket-rpc';
+
+const client = new WebsocketClient('ws://localhost:3403');
+
+// 打开连接
+await client.open();
+
+// 发送请求
+const result = await client.request('hello', { name: 'world' });
+console.log(result.result);
+
+// ping
+await client.ping();
+
+// 监听服务端主动推送
+client.listening('notice', (error, data) => {
+    if (error) return;
+    console.log(data);
+});
+
+// 注册离线回调
+client.offline(() => {
+    console.log('连接已断开');
+});
+
+// 关闭连接
+client.close();
+```
+
+## API
+
+### `new WebsocketClient(address, configs?, options?)`
+
+- `address`: WebSocket 服务地址
+- `configs`: 可选的 WebSocket 配置
+- `options.timeout`: 请求超时时间（秒），默认 10
+
+### `client.request(method, params?)`
+
+发送一个 RPC 请求，返回 `Promise<{ result?, error? }>`。
+
+### `client.listening(method, callback, once?)`
+
+监听服务端通过 `socket.sendout()` 主动推送的消息。
+
+### `client.offline(...callbacks)`
+
+注册连接断开时的回调函数。
+
+### `client.client`
+
+获取原始 WebSocket 实例。
 
 # 关于ping
 
@@ -652,6 +644,6 @@ client.on('open',async ()=>{
 
 # 其它
 
-- 关于服务器端多实例部署的解决方案，详见[多实例管理方案](https://github.com/HandsomeTea/websocket/tree/develop/multiple-instances).
+- 关于服务器端多实例部署的解决方案，详见[多实例管理方案](https://github.com/HandsomeTea/websocket-rpc/tree/develop/multiple-instances).
 
 - 暂无其它。

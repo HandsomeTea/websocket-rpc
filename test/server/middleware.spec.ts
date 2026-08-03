@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import instance from './base';
 
 const { server, client } = instance(3324);

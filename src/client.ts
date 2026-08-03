@@ -1,13 +1,15 @@
 import WebSocket from 'ws';
-import { ClientRequestArgs } from 'http';
-import { WsClient, Socket } from './typings';
-import { uuid } from './lib';
+import { type ClientRequestArgs } from 'http';
+import type { WsClient, Socket } from './typings.js';
+import { uuid } from './lib.js';
+
+const DEFAULT_TIMEOUT = 10;
 
 export class WebsocketClient implements WsClient.Client {
-	private webSocket: WebSocket;
+	private webSocket!: WebSocket;
 	private addr: string | URL;
-	private configs: WebSocket.ClientOptions | ClientRequestArgs;
-	private options: WsClient.Options = { timeout: 10 };
+	private configs!: WebSocket.ClientOptions | ClientRequestArgs;
+	private options: WsClient.Options = { timeout: DEFAULT_TIMEOUT };
 	private record: Record<string, { result: Socket.MethodResponse['result'], error: Socket.MethodResponse['error'] }> = {};
 	private _close: Array<() => void> = [];
 
@@ -18,39 +20,37 @@ export class WebsocketClient implements WsClient.Client {
 		}
 		if (options) {
 			if (options.timeout) {
-				this.options.timeout = options.timeout;
+				this.options.timeout = options.timeout || DEFAULT_TIMEOUT;
 			}
 		}
 	}
 
-	private getRecordKey(method: string, id: string) {
+	private getRecordKey(method: string, id: string | number) {
 		return `${method}-${id}`;
 	}
 
 	async open() {
-		const self = this;
-
 		await new Promise((resolve, reject) => {
 			this.webSocket = new WebSocket(this.addr, this.configs);
 			this.webSocket.on('message', data => {
 				const res = JSON.parse(data.toString()) as Socket.MethodResponse;
-				const cacheId = self.getRecordKey(res.method, res.id);
+				const cacheId = this.getRecordKey(res.method, res.id);
 
-				if (self.record[cacheId]) {
+				if (this.record[cacheId]) {
 					if (res.error) {
-						self.record[cacheId].error = res.error;
+						this.record[cacheId].error = res.error;
 					} else {
-						self.record[cacheId].result = res.result;
+						this.record[cacheId].result = res.result;
 					}
 				} else {
 					if (res.method) {
-						self.webSocket.emit(res.method, res.error, res.result);
+						this.webSocket.emit(res.method, res.error, res.result);
 					}
 				}
 			});
 			this.webSocket.on('open', resolve);
 			this.webSocket.on('close', async () => {
-				for (const fn of self._close) {
+				for (const fn of this._close) {
 					await fn();
 				}
 			});
@@ -63,21 +63,31 @@ export class WebsocketClient implements WsClient.Client {
 		return this.webSocket;
 	}
 
-	async request(method: string, params?: unknown): Promise<WsClient.RequestResult> {
-		if (this.status !== WebSocket.OPEN || !method) {
-			return null;
+	/**
+	 *
+	 * @param method
+	 * @param params
+	 * @param option 可选项
+	 * @param option.timeout 可选项，超时时间，单位秒
+	 * @returns
+	 */
+	async request(method: string, params?: unknown, option?: { timeout: number }): Promise<WsClient.RequestResult> {
+		if (this.status !== WebSocket.OPEN) {
+			throw new Error('WebSocket is not open!');
+		}
+		if (!method) {
+			throw new Error('method name is required!');
 		}
 		const id = uuid();
 		const cacheId = this.getRecordKey(method, id);
 		const self = this;
-		let result = null;
+		const { timeout } = option || {};
 
 		try {
-			result = await new Promise((resolve, reject) => {
+			return await new Promise((resolve, reject) => {
 				this.record[cacheId] = new class Cache {
-					private timer: number;
+					private timer: number | null;
 					constructor() {
-						// eslint-disable-next-line consistent-this, @typescript-eslint/no-this-alias
 						const _self = this;
 
 						this.timer = setTimeout(() => {
@@ -86,7 +96,7 @@ export class WebsocketClient implements WsClient.Client {
 								message: 'Time out',
 								data: 'Time out'
 							};
-						}, self.options.timeout * 1000) as unknown as number;
+						}, (timeout || self.options.timeout || DEFAULT_TIMEOUT) * 1000) as unknown as number;
 
 						self.webSocket.send(JSON.stringify({
 							jsonrpc: '2.0',
@@ -116,10 +126,8 @@ export class WebsocketClient implements WsClient.Client {
 				};
 			});
 		} catch (e) {
-			result = e;
+			return e as WsClient.RequestResult;
 		}
-
-		return result;
 	}
 
 	async ping(): Promise<WsClient.RequestResult> {

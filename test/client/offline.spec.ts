@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import instance from './base';
 
 const { server, client } = instance(3403);
@@ -9,6 +10,7 @@ beforeAll(async () => {
 
 afterAll(() => {
 	client.close();
+	server.close();
 });
 
 

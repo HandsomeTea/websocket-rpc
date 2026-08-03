@@ -1,17 +1,15 @@
-/* eslint-disable no-console */
-
 // simple example import
 import './simple-server/simple-server';
 import server from './simple-server/websocket';
+import { fileURLToPath } from 'url';
 
-
-console.log(`示例代码所在: ${__filename} \n`);
+console.log(`示例代码所在: ${fileURLToPath(import.meta.url)} \n`);
 
 // http example import
 // import './http-server/http-server';
 // import server from './http-server/websocket';
 
-// express exampme import
+// express example import
 // import './express-server/express-server';
 // import server from './express-server/websocket';
 
@@ -50,6 +48,8 @@ const test = async () => {
 
 	console.log('client method hello收到结果', await client.request('hello', { des: 'method hello data' }));
 	console.log('client method hello2收到结果', await client.request('hello2', { des: 'method hello2 data' }));
+	client.close();
+	server.close();
 };
 
 test();

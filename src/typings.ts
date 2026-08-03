@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import WebSocket from 'ws';
-import http from 'http';
+import type WebSocket from 'ws';
+import type http from 'http';
 export interface Logger {
 	trace(message: string): void;
 	debug(message: string): void;
@@ -9,10 +8,11 @@ export interface Logger {
 	error(message: string): void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
-export namespace Socket {
+export interface AnyObject {
+	[key: string]: string | number | boolean;
+}
 
-	type AnyObject = Record<string, any>;
+export declare namespace Socket {
 
 	interface SetAttr<T extends AnyObject> {
 		/** 为socket设置key为attribute属性，值为value */
@@ -36,7 +36,7 @@ export namespace Socket {
 	export interface MethodRequest {
 		jsonrpc: '2.0'
 		/** 一般为随机字符串，uuid为佳 */
-		id: string
+		id?: string | number
 		method: string
 		params?: unknown
 	}
@@ -44,7 +44,7 @@ export namespace Socket {
 	export interface MethodResponse {
 		jsonrpc: '2.0'
 		/** 一般为随机字符串，uuid为佳 */
-		id: string
+		id: string | number
 		/**
 		 * 非jsonrpc2.0标准字段。
 		 * 用于标记结果所属的method时，可取请求数据的method值；也可自定义取值，标记服务器自定义推送信息
@@ -66,10 +66,12 @@ export namespace Socket {
 		readonly id: string
 		readonly option: {
 			logger?: (module?: string) => Logger
-			compression?: 'zlib'
+			compression?: WebsocketService.Options['compression']
+			RPCSerializer: {
+				serialize: (data: unknown) => string
+				deserialize: (data: string) => unknown
+			}
 		}
-		readonly offline: Array<WebsocketService.OfflineCallbackFn<T>>;
-		readonly error: Array<WebsocketService.ErrorCallbackFn<T, unknown>>;
 
 		/**
 		 * 发送符合jsonrpc2.0规范的数据
@@ -84,39 +86,59 @@ export namespace Socket {
 	}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
-export namespace WebsocketService {
+
+export declare namespace WebsocketService {
 
 	export interface Options {
 		log?: boolean | ((module?: string) => Logger)
 		compression?: 'zlib'
+		RPCSerializer?: {
+			/** 序列化方法，默认为JSON.stringify */
+			serialize?: (data: unknown) => string
+			/** 反序列化方法，默认为JSON.parse */
+			deserialize?: (data: string) => unknown
+		}
 	}
 
-	type AnyObject = Record<string, any>;
-
+	/** 中间件阶段Attribute可能未完全获取到 */
+	// @ts-ignore
+	// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
 	export type MiddlewareFn<Attribute extends AnyObject> = (params: unknown, socket: Socket.Link<Partial<Attribute>>, method: string) => Partial<Attribute> | void | Promise<Partial<Attribute> | void>
-	export type MethodFn<Attribute extends AnyObject> = (params: unknown, socket: Socket.Link<Attribute>) => any | Promise<any>;
-	export type OnlineCallbackFn = (socket: Socket.Link<NonNullable<unknown>>, request: http.IncomingMessage) => void | Promise<void>;
+	export type MethodFn<Attribute extends AnyObject> = (params: unknown, socket: Socket.Link<Attribute>) => unknown | Promise<unknown>;
+	export type NoticeFn<Attribute extends AnyObject> = (params: unknown, attribute: Attribute, notice: string) => void | Promise<void>;
+	/** online阶段Attribute几乎未获取到 */
+	// @ts-ignore
+	export type OnlineCallbackFn<Attribute extends AnyObject> = (socket: Socket.Link<Partial<Attribute>>, request: http.IncomingMessage) => void | Promise<void>;
 	export type OfflineCallbackFn<Attribute extends AnyObject> = (attribute: Attribute, id: string) => void | Promise<void>;
-	export type ErrorCallbackFn<Attribute extends AnyObject, T> = (error: T, socket: Socket.Link<Partial<Attribute>>, reqData?: Socket.MethodRequest) => void | Promise<void>;
+	/** 中间件阶段可能触发错误回调，Attribute可能未完全获取到 */
+	// @ts-ignore
+	export type ErrorCallbackFn<Attribute extends AnyObject, E> = (error: E, socket: Socket.Link<Partial<Attribute>>, reqData?: Socket.MethodRequest) => void | Promise<void>;
 
-	interface Use<Attribute extends AnyObject> {
+	interface Use<Attribute extends AnyObject, M extends string = string> {
 		/** 注册适用于所有method的一个或多个中间件 */
 		(middleware: MiddlewareFn<Attribute>, ...middlewares: Array<MiddlewareFn<Attribute>>): void;
 
 		/** 注册只适用于某个method的一个或多个中间件 */
-		(method: string, ...middlewares: Array<MiddlewareFn<Attribute>>): void;
+		(method: M, ...middlewares: Array<MiddlewareFn<Attribute>>): void;
 	}
 
-	interface Register<Attribute extends AnyObject> {
+	interface Register<Attribute extends AnyObject, M extends string = string> {
 		/** 注册一个method */
-		(method: string, cb: MethodFn<Attribute>): void;
+		(method: M, cb: MethodFn<Attribute>): void;
 
 		/** 注册一个或多个method */
-		(method: Record<string, MethodFn<Attribute>>): void;
+		(method: Record<M, MethodFn<Attribute>>): void;
 	}
 
-	export type IsThisSocket<Attr> = (attribute: Attr) => boolean | void;
+	interface OnNotice<Attribute extends AnyObject> {
+		/** 注册一个或多个针对所有notice消息的监听事件 */
+		(noticeHandler: NoticeFn<Attribute>, ...noticeHandlers: Array<NoticeFn<Attribute>>): void;
+
+		/** 注册一个或多个只适用于某个notice消息的监听事件 */
+		<N extends string = string>(notice: N, ...noticeHandlers: Array<NoticeFn<Attribute>>): void;
+	}
+
+	export type IsThisSocket<Attr> = (attribute: Attr) => boolean | undefined;
 
 	interface GetSocketAttr<Attribute extends AnyObject> {
 		/** 获取某个socket连接的全部属性 */
@@ -140,9 +162,10 @@ export namespace WebsocketService {
 		<K extends keyof Attribute>(is: IsThisSocket<Attribute>, ...attributes: Array<K>): Array<Pick<Attribute, Array<K>[number]>>;
 	}
 
-	export interface Server<Attribute extends AnyObject> {
-		readonly use: Use<Attribute>;
-		readonly register: Register<Attribute>;
+	export interface Server<Attribute extends AnyObject, M extends string = string> {
+		readonly use: Use<Attribute, M>;
+		readonly register: Register<Attribute, M>;
+		readonly onNotice: OnNotice<Attribute>;
 
 		/**
 		 * 启动服务
@@ -161,10 +184,10 @@ export namespace WebsocketService {
 		/**
 		 * 新连接构建成功后的回调
 		 *
-		 * @param {...Array<OnlineCallbackFn>} args
+		 * @param {...Array<OnlineCallbackFn<Attribute>>} args
 		 * @memberof Server
 		 */
-		readonly online: (...args: Array<OnlineCallbackFn>) => void;
+		readonly online: (...args: Array<OnlineCallbackFn<Attribute>>) => void;
 
 		/**
 		 * 连接断开后的回调
@@ -178,7 +201,7 @@ export namespace WebsocketService {
 		 * middleware或method运行出错时的错误处理。
 		 * 注意：只处理middleware和method执行抛出的错误
 		 * @template E
-		 * @param {...Array<WebsocketService.ErrorCallbackFn<Attr, E>>} args
+		 * @param {...Array<WebsocketService.ErrorCallbackFn<Attribute, E>>} args
 		 * @memberof Server
 		 */
 		readonly error: <E>(...args: Array<ErrorCallbackFn<Attribute, E>>) => void;
@@ -232,14 +255,14 @@ export namespace WebsocketService {
 	}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
-export namespace WsClient {
+
+export declare namespace WsClient {
 
 	export interface Options {
 		/**
 		 * 接收method返回超时时间，单位为秒，默认10秒
 		 */
-		timeout: number;
+		timeout?: number;
 	}
 
 	export type ListenCallbackFn = (error: Socket.MethodResponse['error'] | null, result: Socket.MethodResponse['result']) => void;
@@ -272,7 +295,7 @@ export namespace WsClient {
 		 * @returns {Promise<RequestResult>}
 		 * @memberof Client
 		 */
-		readonly request: (method: string, params?: any) => Promise<RequestResult>;
+		readonly request: (method: string, params?: unknown) => Promise<RequestResult>;
 
 		/**
 		 * ping
@@ -284,8 +307,9 @@ export namespace WsClient {
 
 		/**
 		 * 注册一个/多个客户端离线时的回调函数
+		 *
 		 * @param args
-		 * @returns
+		 * @returns {void}
 		 */
 		readonly offline: (...args: Array<() => void>) => void;
 
@@ -300,7 +324,11 @@ export namespace WsClient {
 
 		readonly removeListening: (method: string, callback: () => void) => void;
 
-		/** 关闭当前连接 */
+		/**
+		 * 关闭当前连接
+		 *
+		 * @returns {void}
+		 */
 		readonly close: () => void;
 	}
 }

@@ -1,8 +1,7 @@
-import { Socket } from '../typings';
+import type { Socket, AnyObject } from '../typings.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default (socket: Socket.Link<Record<string, any>>): void => {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+export default (socket: Socket.Link<AnyObject>): void => {
+
     // @ts-ignore
     socket.setAttr = (attribute, value) => {
         if (typeof attribute === 'string' && typeof value !== 'undefined') {
@@ -12,7 +11,6 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
         }
     };
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     socket.getAttr = (...attribute) => {
         if (attribute.length === 0) {

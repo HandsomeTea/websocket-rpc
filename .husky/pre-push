@@ -1,1 +1,2 @@
-npm run build
+# /bin/bash
+pnpm build

@@ -1,9 +1,8 @@
 import zlib from 'zlib';
-import { Socket } from '../typings';
+import type { Socket, AnyObject } from '../typings.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default (socket: Socket.Link<Record<string, any>>): void => {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+export default (socket: Socket.Link<AnyObject>): void => {
+
     // @ts-ignore
     socket.sendout = (message: Omit<Socket.MethodResponse, 'jsonrpc'>) => {
         if (typeof message.error === 'undefined' && typeof message.result === 'undefined') {
@@ -22,14 +21,14 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
                 data: message.error.data || ''
             };
         } else {
-            msg.result = message.result || '';
+            msg.result = message.result;
         }
-        const sendJson = JSON.stringify(msg);
+        const sendJson = socket.option.RPCSerializer.serialize(msg);
         const logger = socket.option.logger;
 
         if (socket.option.compression === 'zlib') {
             if (logger) {
-                const logJson = JSON.stringify(msg, null, '   ');
+                const logJson = socket.option.RPCSerializer.serialize(msg);
 
                 logger(message.method ? `compressed-response:${message.method}` : 'compressed-response').trace(logJson);
             }
@@ -37,7 +36,7 @@ export default (socket: Socket.Link<Record<string, any>>): void => {
             return socket.send(zlib.deflateSync(sendJson));
         }
         if (logger) {
-            const logJson = JSON.stringify(msg, null, '   ');
+            const logJson = socket.option.RPCSerializer.serialize(msg);
 
             logger(message.method ? `response:${message.method}` : 'response').trace(logJson);
         }

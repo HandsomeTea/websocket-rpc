@@ -1,11 +1,8 @@
+import mongoose from 'mongoose';
 import { instanceSetting } from '../lib';
 import { Instances, Sessions } from '../model';
 
 export default new class InstanceService {
-    constructor() {
-        //
-    }
-
     async healthCheck() {
         /**当前instance保活维护 */
         await Instances.upsertInstance();
@@ -13,10 +10,21 @@ export default new class InstanceService {
 
         /** 删除无效的instance, 及无效instance下的session */
         setInterval(async () => {
-            await Instances.deleteUnusedInstance();
-            const aliveInstanceIds = await Instances.getAliveInstance();
+            const session = await mongoose.startSession();
 
-            await Sessions.deleteUnusedSession(aliveInstanceIds);
+            session.startTransaction();
+            try {
+                await Instances.deleteUnusedInstance(session);
+                const aliveInstanceIds = await Instances.getAliveInstance(session);
+
+                await Sessions.deleteUnusedSession(aliveInstanceIds, session);
+                await session.commitTransaction();
+            } catch (err) {
+                console.log(err);
+                await session.abortTransaction();
+            } finally {
+                await session.endSession();
+            }
         }, instanceSetting.CleanInstanceInterval * 1000);
     }
 

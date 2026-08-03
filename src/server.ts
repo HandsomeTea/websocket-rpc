@@ -1,28 +1,26 @@
-import WebSocket from 'ws';
+import WebSocket, { WebSocketServer, type Server } from 'ws';
 import http from 'http';
 import crypto from 'crypto';
-import { createLogInstance, log } from './logger';
-import setCore from './core';
-import { WebsocketService, Logger, Socket } from './typings';
-import { uuid } from './lib';
+import { createLogInstance, log } from './logger.js';
+import setCore from './core/index.js';
+import type { WebsocketService, Logger, Socket, AnyObject } from './typings.js';
+import { uuid } from './lib.js';
 
-global._WebsocketServer = {
-    sessionMap: {},
-    methods: {},
-    middlewares: []
-};
+global._WebsocketServer = {};
+global._sessionMap = {};
 
-Object.freeze(global._WebsocketServer);
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export class WebsocketServer<Attr extends Record<string, any>> implements WebsocketService.Server<Attr> {
-    private options: WebsocketService.Options = {};
+export class WebsocketServer<Attr extends AnyObject, M extends string = string> implements WebsocketService.Server<Attr, M> {
+    private options: Socket.Link<Attr>['option'] = {
+        RPCSerializer: {
+            serialize: JSON.stringify,
+            deserialize: JSON.parse
+        }
+    };
     private configs: WebSocket.ServerOptions = {};
-    private server: WebSocket.Server;
+    private server!: Server;
+    private serverId: string = crypto.randomBytes(16).toString('hex');
     private logger?: ((module?: string) => Logger);
-    private _online: Array<WebsocketService.OnlineCallbackFn> = [];
-    private _offline: Array<WebsocketService.OfflineCallbackFn<Attr>> = [];
-    private _error: Array<WebsocketService.ErrorCallbackFn<Attr, unknown>> = [];
+
     constructor(configs: WebSocket.ServerOptions, options?: WebsocketService.Options) {
         if (options?.log) {
             if (typeof options.log === 'function') {
@@ -35,28 +33,39 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
         if (options?.compression) {
             this.options.compression = options.compression;
         }
+        if (options?.RPCSerializer?.deserialize && typeof options.RPCSerializer.deserialize === 'function') {
+            this.options.RPCSerializer.deserialize = options.RPCSerializer.deserialize;
+        }
+        if (options?.RPCSerializer?.serialize && typeof options.RPCSerializer.serialize === 'function') {
+            this.options.RPCSerializer.serialize = options.RPCSerializer.serialize;
+        }
         this.configs = configs;
+        global._WebsocketServer[this.serverId] = {
+            methods: {},
+            middlewares: [],
+            noticeHandlers: [],
+            onlineCallbacks: [],
+            offlineCallbacks: [],
+            errorCallbacks: [],
+            requestIds: {}
+        };
+
+        Object.freeze(global._WebsocketServer[this.serverId]);
     }
 
     start(cb?: () => void) {
-        this.server = new WebSocket.Server(this.configs);
+        this.server = new WebSocketServer(this.configs);
         this.server.on('error', (error: Error) => {
             if (this.logger) {
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                this.logger('startup').error(error);
+                this.logger('startup').error(error.stack || error.message);
             }
         });
         this.server.on('connection', async (socket: Socket.Link<Attr>, request: http.IncomingMessage) => {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
             // @ts-ignore
-            socket.offline = this._offline;
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            socket.error = this._error;
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            socket.option = {};
+            socket.option = {
+                RPCSerializer: this.options.RPCSerializer
+            };
             if (this.logger) {
                 socket.option.logger = this.logger;
             }
@@ -65,41 +74,42 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
             }
             Object.freeze(socket.option);
 
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
             // @ts-ignore
             socket.id = crypto.randomBytes(24).toString('hex').substring(0, 16);
-
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            global._WebsocketServer.sessionMap[socket.id] = socket;
+            global._sessionMap[socket.id] = socket;
 
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
             // @ts-ignore
             socket.attribute = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
             // @ts-ignore
-            setCore(socket);
+            setCore(socket, this.serverId);
 
             if (socket.option.logger) {
                 socket.option.logger('connection').debug(`socket:${socket.id} is connected!`);
             }
 
-            if (this._online.length > 0) {
+            const onlineFns = global._WebsocketServer[this.serverId]?.onlineCallbacks || [];
+
+            if (onlineFns.length > 0) {
                 try {
-                    for (const fn of this._online) {
-                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    for (const fn of onlineFns) {
                         // @ts-ignore
                         await fn(socket, request);
                     }
                 } catch (error) {
                     if (socket.option.logger) {
-                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                        // @ts-ignore
-                        socket.option.logger('connection').error(error);
+                        const e = error as Error;
+
+                        socket.option.logger('connection').error(e.stack || e.message);
                     }
-                    if (socket.error.length > 0) {
-                        for (const fn of socket.error) {
-                            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    const errorFns = global._WebsocketServer[this.serverId]?.errorCallbacks || [];
+
+                    if (errorFns.length > 0) {
+                        for (const fn of errorFns) {
+
                             // @ts-ignore
                             await fn(error as Error, socket);
                         }
@@ -126,30 +136,28 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
     /**
      * 注册一个method
      *
-     * @param {string} method method名称
+     * @param {M} method method名称
      * @param {WebsocketService.MethodFn<Attr>} cb
      * @memberof WebsocketServer
      */
-    register(method: string, cb: WebsocketService.MethodFn<Attr>): void;
+    register(method: M, cb: WebsocketService.MethodFn<Attr>): void;
     /**
      * 注册一个或多个method
      *
-     * @param {Record<string, WebsocketService.MethodFn<Attr>>} method method回调函数
+     * @param {Record<M, WebsocketService.MethodFn<Attr>>} method method回调函数
      * @memberof WebsocketServer
      */
-    register(method: Record<string, WebsocketService.MethodFn<Attr>>): void;
+    register(method: Record<M, WebsocketService.MethodFn<Attr>>): void;
 
-    register(method: string | Record<string, WebsocketService.MethodFn<Attr>>, cb?: WebsocketService.MethodFn<Attr>) {
+    register(method: M | Record<M, WebsocketService.MethodFn<Attr>>, cb?: WebsocketService.MethodFn<Attr>) {
         if (typeof method === 'string' && typeof cb === 'function') {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            global._WebsocketServer.methods[method] = cb;
-        } else if (typeof method === 'object' && !Array.isArray(method)) {
+            global._WebsocketServer[this.serverId].methods[method] = cb;
+        } else if (method && typeof method === 'object' && !Array.isArray(method)) {
             for (const key in method) {
                 if (key && typeof method[key] === 'function') {
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
-                    global._WebsocketServer.methods[key] = method[key];
+                    global._WebsocketServer[this.serverId].methods[key] = method[key];
                 }
             }
         }
@@ -165,27 +173,62 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
     /**
      * 注册只适用于某个method的一个或多个中间件
      *
-     * @param {string} method method名称
+     * @param {M} method method名称
      * @param {...Array<WebsocketService.MiddlewareFn<Attr>>} middlewares
      * @memberof WebsocketServer
      */
-    use(method: string, ...middlewares: Array<WebsocketService.MiddlewareFn<Attr>>): void;
+    use(method: M, ...middlewares: Array<WebsocketService.MiddlewareFn<Attr>>): void;
 
-    use(...middlewares: Array<WebsocketService.MiddlewareFn<Attr>> | [string, ...Array<WebsocketService.MiddlewareFn<Attr>>]) {
+    use(...middlewares: Array<WebsocketService.MiddlewareFn<Attr>> | [M, ...Array<WebsocketService.MiddlewareFn<Attr>>]) {
         if (typeof middlewares[0] === 'string') {
             const method = middlewares.shift() as string;
 
             for (const middleware of middlewares) {
                 if (typeof middleware === 'function') {
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    global._WebsocketServer.middlewares.push({ [method]: middleware });
+                    global._WebsocketServer[this.serverId]?.middlewares.push({
+                        type: 'scoped',
+                        method,
+                        // @ts-ignore
+                        fn: middleware
+                    });
                 }
             }
         } else if (middlewares.every(m => typeof m === 'function')) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            global._WebsocketServer.middlewares.push(...middlewares as Array<WebsocketService.MiddlewareFn<Attr>>);
+            global._WebsocketServer[this.serverId].middlewares.push(...(middlewares as Array<WebsocketService.MiddlewareFn<Attr>>).map(m => ({ type: 'global', fn: m })));
+        }
+    }
+
+    /**
+     * 注册一个或多个针对所有notice消息的监听事件
+     * @param noticeHandler
+     * @param noticeHandlers
+     */
+    onNotice(noticeHandler: WebsocketService.NoticeFn<Attr>, ...noticeHandlers: Array<WebsocketService.NoticeFn<Attr>>): void;
+    /**
+     * 注册一个或多个只适用于某个notice消息的监听事件
+     * @param notice 消息事件名称，取消息中的method值
+     * @param noticeHandlers
+     */
+    onNotice<N extends string = string>(notice: N, ...noticeHandlers: Array<WebsocketService.NoticeFn<Attr>>): void;
+
+    onNotice(...noticeHandlers: Array<WebsocketService.NoticeFn<Attr>> | [string, ...Array<WebsocketService.NoticeFn<Attr>>]) {
+        if (typeof noticeHandlers[0] === 'string') {
+            const notice = noticeHandlers.shift() as string;
+
+            for (const noticeHandler of noticeHandlers) {
+                if (typeof noticeHandler === 'function') {
+                    global._WebsocketServer[this.serverId]?.noticeHandlers.push({
+                        type: 'scoped',
+                        notice,
+                        // @ts-ignore
+                        fn: noticeHandler
+                    });
+                }
+            }
+        } else if (noticeHandlers.every(n => typeof n === 'function')) {
+            // @ts-ignore
+            global._WebsocketServer[this.serverId].noticeHandlers.push(...(noticeHandlers as Array<WebsocketService.NoticeFn<Attr>>).map(n => ({ type: 'global', fn: n })));
         }
     }
 
@@ -193,11 +236,12 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
         this.server.close();
     }
 
-    online(...args: Array<WebsocketService.OnlineCallbackFn>): void {
+    online(...args: Array<WebsocketService.OnlineCallbackFn<Attr>>): void {
         if (Array.isArray(args) && args.length > 0) {
             for (const fn of args) {
                 if (typeof fn === 'function') {
-                    this._online.push(fn);
+                    // @ts-ignore
+                    global._WebsocketServer[this.serverId]?.onlineCallbacks.push(fn);
                 }
             }
         }
@@ -207,7 +251,8 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
         if (Array.isArray(args) && args.length > 0) {
             for (const fn of args) {
                 if (typeof fn === 'function') {
-                    this._offline.push(fn);
+                    // @ts-ignore
+                    global._WebsocketServer[this.serverId]?.offlineCallbacks.push(fn);
                 }
             }
         }
@@ -217,16 +262,15 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
         if (Array.isArray(args) && args.length > 0) {
             for (const fn of args) {
                 if (typeof fn === 'function') {
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
-                    this._error.push(fn);
+                    global._WebsocketServer[this.serverId]?.errorCallbacks.push(fn);
                 }
             }
         }
     }
 
     getSocket(connectId: string): Socket.Link<Attr> | undefined {
-        return global._WebsocketServer.sessionMap[connectId] as Socket.Link<Attr> | undefined;
+        return global._sessionMap[connectId] as Socket.Link<Attr> | undefined;
     }
 
     getSockets(is: WebsocketService.IsThisSocket<Attr>) {
@@ -252,6 +296,7 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
      * @returns {(Attr | undefined)}
      * @memberof WebsocketServer
      */
+    // @ts-ignore
     getSocketAttr(connectId: string): Attr | undefined;
     /**
     * 获取某个socket连接的某个属性
@@ -275,10 +320,10 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
     getSocketAttr<K extends keyof Attr>(connectId: string, ...attributes: Array<K>): Pick<Attr, Array<K>[number]> | undefined
 
     getSocketAttr<K extends keyof Attr>(connectId: string, ...attribute: Array<K>) {
-        if (global._WebsocketServer.sessionMap[connectId]) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        if (global._sessionMap[connectId]) {
+
             // @ts-ignore
-            return global._WebsocketServer.sessionMap[connectId].getAttr(...attribute);
+            return global._sessionMap[connectId].getAttr(...attribute);
         }
         return undefined;
     }
@@ -335,16 +380,16 @@ export class WebsocketServer<Attr extends Record<string, any>> implements Websoc
     }
 
     setSocketAttr(connectId: string, attribute: Partial<Attr>) {
-        if (global._WebsocketServer.sessionMap[connectId]) {
-            global._WebsocketServer.sessionMap[connectId].setAttr(attribute);
+        if (global._sessionMap[connectId]) {
+            global._sessionMap[connectId].setAttr(attribute);
         }
     }
 
     get clients() {
-        return this.server.clients as unknown as Set<Socket.Link<Attr>>;
+        return this.server.clients as Set<Socket.Link<Attr>>;
     }
 
     get methodList() {
-        return Object.keys(global._WebsocketServer.methods);
+        return Object.keys(global._WebsocketServer[this.serverId]?.methods || {});
     }
 }

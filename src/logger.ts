@@ -1,4 +1,4 @@
-import log4js, { Configuration } from 'log4js';
+import log4js, { type Configuration } from 'log4js';
 
 /**
  * 定义日志配置

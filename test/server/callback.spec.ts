@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import WS from 'ws';
 import { WebsocketServer } from '../../src';
 import { uuid } from '../../src/lib';
@@ -21,10 +22,8 @@ describe('服务器-回调事件', () => {
 
             client.once('message', data => {
                 server.close();
-                resolve(JSON.parse(data.toString()));
-            });
-            client.once('open', () => {
                 client.close();
+                resolve(JSON.parse(data.toString()));
             });
         });
 

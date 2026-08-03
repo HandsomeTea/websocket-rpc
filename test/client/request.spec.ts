@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import instance from './base';
 
 const { server, client } = instance(3401);
@@ -49,7 +50,7 @@ describe('客户端-request', () => {
                 }, 4000);
             });
         });
-        const result = await client.request('method3');
+        const result = await client.request('method3', undefined, { timeout: 3 });
 
         expect(result.error?.data).toEqual('Time out');
     });

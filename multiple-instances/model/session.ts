@@ -27,8 +27,8 @@ export default new class Session {
     /**
      * 删除已经宕机的instance下的session
      */
-    async deleteUnusedSession(aliveInstances: Array<string>) {
-        await this.server.deleteMany({ instanceId: { $nin: aliveInstances } });
+    async deleteUnusedSession(aliveInstances: Array<string>, session?: mongoose.mongo.ClientSession) {
+        await this.server.deleteMany({ instanceId: { $nin: aliveInstances } }, { session });
     }
 
     /** 添加session，一般为用户登录成功之后添加(视业务场景而定) */

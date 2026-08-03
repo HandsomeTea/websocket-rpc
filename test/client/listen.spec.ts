@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { uuid } from '../../src/lib';
 import instance from './base';
 
@@ -33,9 +34,9 @@ describe('客户端-listening', () => {
 			});
 		});
 
-		await client.request('method1');
+		await client.request('method1', undefined, { timeout: 5 });
 		expect(await result).toBe(str);
-	});
+	}, 6000);
 
 	it('错误结果监听', async () => {
 		const error = {

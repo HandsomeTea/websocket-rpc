@@ -1,0 +1,13 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "composite": true,
+        "noEmit": true
+    },
+    "include": [
+        "eslint.config.js",
+        "pnpm-lock.yaml",
+        "package.json",
+        "**/*.ts"
+    ]
+}

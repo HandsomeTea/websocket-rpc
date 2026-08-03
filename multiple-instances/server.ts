@@ -11,7 +11,6 @@ const start = async () => {
         instanceService.healthCheck();
 
         if (cluster.isWorker) {
-            // eslint-disable-next-line no-console
             console.log(`server ${process.pid} start`);
         }
     });
@@ -45,7 +44,6 @@ if (cluster.isPrimary) {
     }
 
     cluster.on('exit', (worker) => {
-        // eslint-disable-next-line no-console
         console.log(`server ${worker.process.pid} died, attention!`);
     });
 } else {

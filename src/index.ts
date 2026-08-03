@@ -1,23 +1,24 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { WebsocketService, Socket, WsClient } from './typings';
+import type { WebsocketService, Socket, WsClient, AnyObject } from './typings.js';
 
-export type Options = WebsocketService.Options;
+export type Attribute = AnyObject;
 
 export type ServerOptions = WebsocketService.Options;
 
-export type MiddlewareFn<Attribute extends Record<string, any>> = WebsocketService.MiddlewareFn<Attribute>;
+export type MiddlewareFn<Attribute extends AnyObject> = WebsocketService.MiddlewareFn<Attribute>;
 
-export type MethodFn<Attribute extends Record<string, any>> = WebsocketService.MethodFn<Attribute>;
+export type MethodFn<Attribute extends AnyObject> = WebsocketService.MethodFn<Attribute>;
 
-export type OnlineCallbackFn = WebsocketService.OnlineCallbackFn;
+export type NoticeFn<Attribute extends AnyObject> = WebsocketService.NoticeFn<Attribute>;
 
-export type OfflineCallbackFn<Attribute extends Record<string, any>> = WebsocketService.OfflineCallbackFn<Attribute>;
+export type OnlineCallbackFn<Attribute extends AnyObject> = WebsocketService.OnlineCallbackFn<Attribute>;
 
-export type ErrorCallbackFn<Attribute extends Record<string, any>, E> = WebsocketService.ErrorCallbackFn<Attribute, E>;
+export type OfflineCallbackFn<Attribute extends AnyObject> = WebsocketService.OfflineCallbackFn<Attribute>;
+
+export type ErrorCallbackFn<Attribute extends AnyObject, E> = WebsocketService.ErrorCallbackFn<Attribute, E>;
 
 export type MethodResponse = Socket.MethodResponse;
 
-export type Link<Attribute extends Record<string, any>> = Socket.Link<Attribute>;
+export type Link<Attribute extends AnyObject> = Socket.Link<Attribute>;
 
 export type ClientOptions = WsClient.Options;
 
@@ -25,6 +26,6 @@ export type ListenCallbackFn = WsClient.ListenCallbackFn;
 
 export type RequestResult = WsClient.RequestResult;
 
-export { WebsocketServer } from './server';
+export { WebsocketServer } from './server.js';
 
-export { WebsocketClient } from './client';
+export { WebsocketClient } from './client.js';

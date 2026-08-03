@@ -1,7 +1,8 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Link } from '../../src';
 import instance from './base';
 
-interface SocketAttr {
+type SocketAttr = {
 	id: string
 	testAttr: string
 	testSetAttr: string
@@ -40,7 +41,7 @@ describe('服务器-其它功能接口', () => {
 		let ins: null | Link<SocketAttr> = null;
 
 		server.use((_params, socket) => {
-			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
 			// @ts-ignore
 			ins = socket;
 			return { id: socket.id };
@@ -50,7 +51,7 @@ describe('服务器-其它功能接口', () => {
 		expect(ins).not.toBeNull();
 		const clents = server.getSockets(attr => attr.id === (result.result as { id: string }).id);
 
-		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
 		// @ts-ignore
 		expect(clents.has(ins)).toBe(true);
 	});

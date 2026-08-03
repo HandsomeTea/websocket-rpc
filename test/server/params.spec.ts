@@ -1,3 +1,4 @@
+import { describe, expect, beforeAll, afterAll, test } from 'vitest';
 import { uuid } from '../../src/lib';
 import instance from './base';
 

@@ -1,7 +1,6 @@
-import { Socket } from '../typings';
+import type { Socket, AnyObject } from '../typings.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default (socket: Socket.Link<Record<string, any>>): void => {
+export default (socket: Socket.Link<AnyObject>): void => {
     socket.on('error', err => {
         if (socket.option.logger) {
             socket.option.logger('socket-error').error(err.message);

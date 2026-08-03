@@ -21,15 +21,15 @@ export default new class Instance {
 
     async upsertInstance() {
         // 注意数据库时区和后端服务器时区是否相同
-        return await this.server.updateOne({ _id: instanceId() }, { $set: { createdAt: new Date() } }, { upsert: true });
+        return await this.server.updateOne({ _id: instanceId() }, { $set: { updatedAt: new Date() } }, { upsert: true });
     }
 
-    async deleteUnusedInstance() {
-        return await this.server.deleteMany({ updatedAt: { $lt: new Date(new Date().getTime() - instanceSetting.CleanInstanceInterval * 1000 - 2 * 1000) } });
+    async deleteUnusedInstance(session?: mongoose.mongo.ClientSession) {
+        return await this.server.deleteMany({ updatedAt: { $lt: new Date(new Date().getTime() - instanceSetting.CleanInstanceInterval * 1000 - 2 * 1000) } }, { session });
     }
 
-    async getAliveInstance() {
-        const list = await this.server.find({ updatedAt: { $gte: new Date(new Date().getTime() - instanceSetting.CleanInstanceInterval * 1000 - 2 * 1000) } });
+    async getAliveInstance(session?: mongoose.mongo.ClientSession) {
+        const list = await this.server.find({ updatedAt: { $gte: new Date(new Date().getTime() - instanceSetting.CleanInstanceInterval * 1000 - 2 * 1000) } }, undefined, { session });
 
         return list.map(a => a._id);
     }

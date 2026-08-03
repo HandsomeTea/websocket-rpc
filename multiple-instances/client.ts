@@ -8,12 +8,10 @@ const test = async () => {
 
 		await client.open();
 
-		// eslint-disable-next-line no-console
 		console.log(`client ${s} open`);
 		await client.request('login', { user: `user${s}` });
 
 		client.offline(() => {
-			// eslint-disable-next-line no-console
 			console.log(`client ${s} closed, attention!`);
 		});
 

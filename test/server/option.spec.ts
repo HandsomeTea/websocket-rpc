@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import WS from 'ws';
 import { WebsocketServer } from '../../src';
 import zlib from 'zlib';

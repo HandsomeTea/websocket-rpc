@@ -1,7 +1,7 @@
 import { WebsocketServer } from '../../src';
 import { port } from '../port';
 
-interface SocketData {
+type SocketData = {
     userId: string;
     role: string;
     token: string;

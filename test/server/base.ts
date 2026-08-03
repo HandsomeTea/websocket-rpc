@@ -1,8 +1,6 @@
-/* istanbul ignore file */
-import { WebsocketServer, WebsocketClient } from '../../src';
+import { WebsocketServer, WebsocketClient, Attribute } from '../../src';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default <Attr extends Record<string, any>>(port: number) => {
+export default <Attr extends Attribute>(port: number) => {
 	const server = new WebsocketServer<Attr>({ port });
 	const client = new WebsocketClient(`ws://localhost:${port}`);
 
