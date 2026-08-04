@@ -2,12 +2,12 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [这是什么？](#%E8%BF%99%E6%98%AF%E4%BB%80%E4%B9%88)
-  - [为什么要做](#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%81%9A)
 - [快速开始](#%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)
   - [安装](#%E5%AE%89%E8%A3%85)
   - [示例代码](#%E7%A4%BA%E4%BE%8B%E4%BB%A3%E7%A0%81)
-- [服务端](#%E6%9C%8D%E5%8A%A1%E7%AB%AF)
+- [这是什么？](#%E8%BF%99%E6%98%AF%E4%BB%80%E4%B9%88)
+  - [为什么要做](#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%81%9A)
+- [Server](#server)
   - [method](#method)
     - [内置method](#%E5%86%85%E7%BD%AEmethod)
   - [中间件](#%E4%B8%AD%E9%97%B4%E4%BB%B6)
@@ -23,7 +23,7 @@
     - [server.offline](#serveroffline)
     - [server.error](#servererror)
   - [扩展配置](#%E6%89%A9%E5%B1%95%E9%85%8D%E7%BD%AE)
-- [客户端](#%E5%AE%A2%E6%88%B7%E7%AB%AF)
+- [Client](#client)
   - [基本用法](#%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95)
   - [发送请求](#%E5%8F%91%E9%80%81%E8%AF%B7%E6%B1%82)
     - [基本请求](#%E5%9F%BA%E6%9C%AC%E8%AF%B7%E6%B1%82)
@@ -41,6 +41,56 @@
 - [其它](#%E5%85%B6%E5%AE%83)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+# 快速开始
+
+## 安装
+
+```shell
+npm install --save @coco-sheng/websocket-rpc
+```
+
+## 示例代码
+
+服务端：
+
+```typescript
+import { WebsocketServer } from '@coco-sheng/websocket-rpc';
+
+interface SocketAttr {
+    userId: string;
+    role: string;
+    type: string
+    token: string;
+}
+
+const port = 3403;
+const server = new WebsocketServer<SocketAttr>({ port });
+
+server.register('hello', () => {
+    return 'hello world!';
+});
+
+server.start();
+```
+
+`SocketAttr`是socket连接上的属性，详见[socket属性](#socket%E5%B1%9E%E6%80%A7)部分。
+
+客户端：
+
+```typescript
+import { WebsocketClient } from '@coco-sheng/websocket-rpc';
+
+const client = new WebsocketClient('ws://localhost:3403');
+
+await client.open();
+const result = await client.request('hello');
+
+
+console.log(result);
+// hello world!
+```
+
 
 # 这是什么？
 
@@ -107,56 +157,8 @@ client.on('xxx', () => {
 
 `@coco-sheng/websocket-rpc`经过了实际项目的检测，在1核CPU1G内存的设备上部署服务器端，能同时维持最多2万个客户端连接，qps在20到30之间(根据业务逻辑的复杂性而定)。
 
-# 快速开始
 
-## 安装
-
-```shell
-npm install --save @coco-sheng/websocket-rpc
-```
-
-## 示例代码
-
-服务端：
-
-```typescript
-import { WebsocketServer } from '@coco-sheng/websocket-rpc';
-
-interface SocketAttr {
-    userId: string;
-    role: string;
-    type: string
-    token: string;
-}
-
-const port = 3403;
-const server = new WebsocketServer<SocketAttr>({ port });
-
-server.register('hello', () => {
-    return 'hello world!';
-});
-
-server.start();
-```
-
-`SocketAttr`是socket连接上的属性，详见[socket属性](#socket%E5%B1%9E%E6%80%A7)部分。
-
-客户端：
-
-```typescript
-import { WebsocketClient } from '@coco-sheng/websocket-rpc';
-
-const client = new WebsocketClient('ws://localhost:3403');
-
-await client.open();
-const result = await client.request('hello');
-
-
-console.log(result);
-// hello world!
-```
-
-# 服务端
+# Server
 
 ## method
 
@@ -589,7 +591,7 @@ ws.on('message', data => {
 });
 ```
 
-# 客户端
+# Client
 
 ## 基本用法
 
