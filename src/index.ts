@@ -2,6 +2,8 @@ import type { WebsocketService, Socket, WsClient, AnyObject } from './typings.js
 
 export type Attribute = AnyObject;
 
+export type RPCError = WebsocketService.RPCError;
+
 export type ServerOptions = WebsocketService.Options;
 
 export type MiddlewareFn<Attribute extends AnyObject> = WebsocketService.MiddlewareFn<Attribute>;

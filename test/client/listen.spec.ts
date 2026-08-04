@@ -34,7 +34,7 @@ describe('客户端-listening', () => {
 			});
 		});
 
-		await client.request('method1', undefined, { timeout: 5 });
+		client.request('method1', undefined, { timeout: 5 });
 		expect(await result).toBe(str);
 	}, 6000);
 

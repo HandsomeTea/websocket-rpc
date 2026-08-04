@@ -1,10 +1,14 @@
 import zlib from 'zlib';
+import WebSocket from 'ws';
 import type { Socket, AnyObject } from '../typings.js';
 
 export default (socket: Socket.Link<AnyObject>): void => {
 
     // @ts-ignore
     socket.sendout = (message: Omit<Socket.MethodResponse, 'jsonrpc'>) => {
+        if (socket.readyState !== WebSocket.OPEN) {
+            return;
+        }
         if (typeof message.error === 'undefined' && typeof message.result === 'undefined') {
             return;
         }

@@ -5,7 +5,7 @@ import { uuid } from './lib.js';
 
 const DEFAULT_TIMEOUT = 10;
 
-export class WebsocketClient implements WsClient.Client {
+export class WebsocketClient<M extends string = string> implements WsClient.Client<M> {
 	private webSocket!: WebSocket;
 	private addr: string | URL;
 	private configs!: WebSocket.ClientOptions | ClientRequestArgs;
@@ -53,6 +53,17 @@ export class WebsocketClient implements WsClient.Client {
 				for (const fn of this._close) {
 					await fn();
 				}
+
+				const pending = Object.values(this.record);
+
+				this.record = {};
+				for (const cache of pending) {
+					cache.error = {
+						code: -32002,
+						message: 'Connection closed',
+						data: 'Connection closed'
+					};
+				}
 			});
 			this.webSocket.on('error', reject);
 		});
@@ -71,7 +82,7 @@ export class WebsocketClient implements WsClient.Client {
 	 * @param option.timeout 可选项，超时时间，单位秒
 	 * @returns
 	 */
-	async request(method: string, params?: unknown, option?: { timeout: number }): Promise<WsClient.RequestResult> {
+	async request(method: M, params?: unknown, option?: { timeout: number }): Promise<WsClient.RequestResult> {
 		if (this.status !== WebSocket.OPEN) {
 			throw new Error('WebSocket is not open!');
 		}
@@ -131,7 +142,11 @@ export class WebsocketClient implements WsClient.Client {
 	}
 
 	async ping(): Promise<WsClient.RequestResult> {
-		return await this.request('ping');
+		return await this.request('ping' as M);
+	}
+
+	async isConnected(): Promise<WsClient.RequestResult> {
+		return await this.request('connect' as M);
 	}
 
 	offline(...args: Array<() => void>): void {

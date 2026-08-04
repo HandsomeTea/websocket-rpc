@@ -183,9 +183,9 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                 const errorStr = `Invalid field[jsonrpc]: ${jsonrpc}`;
 
                 if (getErrorFns(serverId).length > 0) {
-                    return await executeErrorFns(new Error(errorStr), socket, serverId, data);
+                    await executeErrorFns(new Error(errorStr), socket, serverId, data);
                 } else {
-                    return socket.sendout({
+                    socket.sendout({
                         id: id || uuid(),
                         method: method || '',
                         error: {
@@ -195,6 +195,7 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                         }
                     });
                 }
+                continue;
             }
 
             if (!(method && typeof method === 'string')) {
@@ -204,9 +205,9 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                 const errorStr = `Invalid field[method]: ${socket.option.RPCSerializer.serialize(method)}`;
 
                 if (getErrorFns(serverId).length > 0) {
-                    return await executeErrorFns(new Error(errorStr), socket, serverId, data);
+                    await executeErrorFns(new Error(errorStr), socket, serverId, data);
                 } else {
-                    return socket.sendout({
+                    socket.sendout({
                         id: id || uuid(),
                         method: method || '',
                         error: {
@@ -216,6 +217,7 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                         }
                     });
                 }
+                continue;
             }
 
             if (!(
@@ -243,7 +245,6 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                         }
                     }
                 }
-
                 continue;
             }
 

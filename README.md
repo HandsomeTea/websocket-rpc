@@ -25,12 +25,18 @@
   - [扩展配置](#%E6%89%A9%E5%B1%95%E9%85%8D%E7%BD%AE)
 - [客户端](#%E5%AE%A2%E6%88%B7%E7%AB%AF)
   - [基本用法](#%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95)
-  - [API](#api)
-    - [`new WebsocketClient(address, configs?, options?)`](#new-websocketclientaddress-configs-options)
-    - [`client.request(method, params?)`](#clientrequestmethod-params)
-    - [`client.listening(method, callback, once?)`](#clientlisteningmethod-callback-once)
-    - [`client.offline(...callbacks)`](#clientofflinecallbacks)
-    - [`client.client`](#clientclient)
+  - [发送请求](#%E5%8F%91%E9%80%81%E8%AF%B7%E6%B1%82)
+    - [基本请求](#%E5%9F%BA%E6%9C%AC%E8%AF%B7%E6%B1%82)
+    - [单次请求自定义超时](#%E5%8D%95%E6%AC%A1%E8%AF%B7%E6%B1%82%E8%87%AA%E5%AE%9A%E4%B9%89%E8%B6%85%E6%97%B6)
+    - [带类型约束的方法名](#%E5%B8%A6%E7%B1%BB%E5%9E%8B%E7%BA%A6%E6%9D%9F%E7%9A%84%E6%96%B9%E6%B3%95%E5%90%8D)
+  - [监听服务端主动推送](#%E7%9B%91%E5%90%AC%E6%9C%8D%E5%8A%A1%E7%AB%AF%E4%B8%BB%E5%8A%A8%E6%8E%A8%E9%80%81)
+    - [基本监听](#%E5%9F%BA%E6%9C%AC%E7%9B%91%E5%90%AC)
+    - [一次性监听](#%E4%B8%80%E6%AC%A1%E6%80%A7%E7%9B%91%E5%90%AC)
+    - [取消监听](#%E5%8F%96%E6%B6%88%E7%9B%91%E5%90%AC)
+  - [连接状态](#%E8%BF%9E%E6%8E%A5%E7%8A%B6%E6%80%81)
+  - [离线处理](#%E7%A6%BB%E7%BA%BF%E5%A4%84%E7%90%86)
+  - [获取原始 WebSocket 实例](#%E8%8E%B7%E5%8F%96%E5%8E%9F%E5%A7%8B-websocket-%E5%AE%9E%E4%BE%8B)
+  - [客户端 API 参考](#%E5%AE%A2%E6%88%B7%E7%AB%AF-api-%E5%8F%82%E8%80%83)
 - [关于ping](#%E5%85%B3%E4%BA%8Eping)
 - [其它](#%E5%85%B6%E5%AE%83)
 
@@ -38,7 +44,7 @@
 
 # 这是什么？
 
-这是一个基于[ws](https://www.npmjs.com/package/ws)，遵循[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议的websocket应用框架,灵感来源于实际项目中使用websocket实现rpc的需求，且可用性经过了实际项目的检测，性能表现良好。
+这是一个基于[ws](https://www.npmjs.com/package/ws)，遵循[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议的websocket应用框架,灵感来源于实际项目中使用websocket实现rpc的需求，且可用性经过了实际项目的检测，性能表现良好，该项目专注RPC设计，无业务逻辑入侵，做纯粹的websocket RPC。
 
 ## 为什么要做
 
@@ -189,6 +195,7 @@ server.register({
 });
 
 
+// 使用变量定义
 const testMethod: MethodFn<SocketAttr> = () => {
     console.log('test');
 };
@@ -256,7 +263,7 @@ server.register('hello',(_params, socket)=>{
 const client = new WebsocketClient('ws://localhost:3403');
 await client.open();
 
-const result1 = await client.request('connect');
+const result1 = await client.isConnected();
 console.log(result1);
 // {
 //     result: {
@@ -393,7 +400,7 @@ const value = socket.getAttr('key');
 const values = socket.getAttr('key1', 'key2', ...);
 
 
-// key1,key2,...的属性
+// key1, key2, ...的属性
 // {
 //     key1: ...,
 //     key2: ...,
@@ -416,12 +423,14 @@ server.register('hello', (_params, socket) => {
 当你知道某个socket连接的id时，可以通过server直接拿到对应的socket对象：
 
 ```typescript
+import crypto from 'crypto';
+
 const socketId = 'xxxxxxxxx';
 const socket = server.getSocket(socketId);
 
 
 socket?.sendout({
-    id: Math.random().toString(36).substring(2),
+    id: crypto.randomUUID(),
     method: 'notice',
     result: 'noticed!'
 });
@@ -595,48 +604,162 @@ await client.open();
 // 发送请求
 const result = await client.request('hello', { name: 'world' });
 console.log(result.result);
-
-// ping
-await client.ping();
-
-// 监听服务端主动推送
-client.listening('notice', (error, data) => {
-    if (error) return;
-    console.log(data);
-});
-
-// 注册离线回调
-client.offline(() => {
-    console.log('连接已断开');
-});
+// hello world!
 
 // 关闭连接
 client.close();
 ```
 
-## API
+## 发送请求
 
-### `new WebsocketClient(address, configs?, options?)`
+### 基本请求
 
-- `address`: WebSocket 服务地址
-- `configs`: 可选的 WebSocket 配置
-- `options.timeout`: 请求超时时间（秒），默认 10
+```typescript
+const result = await client.request('hello', { page: 1, size: 10 });
 
-### `client.request(method, params?)`
+if (result.error) {
+    console.error('请求失败:', result.error.message);
+} else {
+    console.log('请求成功:', result.result);
+}
+```
 
-发送一个 RPC 请求，返回 `Promise<{ result?, error? }>`。
+### 单次请求自定义超时
 
-### `client.listening(method, callback, once?)`
+```typescript
+// 第三个参数可以覆盖默认超时时间（单位：秒）
+const result = await client.request('slow-task', params, { timeout: 30 });
+```
 
-监听服务端通过 `socket.sendout()` 主动推送的消息。
+### 带类型约束的方法名
 
-### `client.offline(...callbacks)`
+和 `WebsocketServer` 一样，`WebsocketClient` 也支持 `<M>` 泛型约束方法名：
 
-注册连接断开时的回调函数。
+```typescript
+type MyMethods = 'login' | 'logout' | 'getUserInfo';
 
-### `client.client`
+const client = new WebsocketClient<MyMethods>('ws://localhost:3403');
+await client.open();
 
-获取原始 WebSocket 实例。
+// ✅ 有类型提示
+const result = await client.request('login', { user: 'admin' });
+
+// ❌ 编译报错：'deleteUser' 不在 MyMethods 中
+// const result = await client.request('deleteUser');
+```
+
+## 监听服务端主动推送
+
+### 基本监听
+
+服务端可以通过 `socket.sendout()` 向客户端主动推送消息。客户端使用 `listening` 来监听：
+
+服务端：
+
+```typescript
+server.register('subscribe', (_params, socket) => {
+    // 每隔 5 秒推送一次
+    const timer = setInterval(() => {
+        socket.sendout({
+            id: crypto.randomUUID(),
+            method: 'price_update',
+            result: { symbol: 'BTC', price: 42000 + Math.random() * 1000 }
+        });
+    }, 5000);
+
+    // 连接断开时清除定时器
+    socket.on('close', () => clearInterval(timer));
+});
+```
+
+客户端：
+
+```typescript
+client.listening('price_update', (error, data) => {
+    if (error) {
+        console.error('推送错误:', error);
+        return;
+    }
+    console.log('收到价格更新:', data);
+});
+
+await client.request('subscribe');
+```
+
+### 一次性监听
+
+第三个参数 `once: true` 表示只监听一次：
+
+```typescript
+client.listening('first_blood', (error, data) => {
+    console.log('首杀奖励:', data);
+}, true);
+```
+
+### 取消监听
+
+```typescript
+const handler = (error, data) => { /* ... */ };
+
+client.listening('some_event', handler);
+
+// 取消监听
+client.removeListening('some_event', handler);
+```
+
+## 连接状态
+
+```typescript
+// 状态常量
+client.CONNECTING  // 0
+client.OPEN        // 1
+client.CLOSING     // 2
+client.CLOSED      // 3
+
+// 当前状态
+console.log(client.status);  // 1
+```
+
+## 离线处理
+
+```typescript
+// 注册离线回调
+client.offline(() => {
+    console.log('连接已断开，执行清理逻辑');
+});
+
+client.offline(async () => {
+    // 也可以在离线时做异步操作
+    await cleanupResources();
+});
+```
+
+## 获取原始 WebSocket 实例
+
+如果需要发送非 JSON-RPC 格式的数据，可以直接操作原始 WebSocket：
+
+```typescript
+// 获取底层 WebSocket 实例
+const ws = client.client;
+
+ws.send('raw binary data');
+ws.ping();
+```
+
+## 客户端 API 参考
+
+| 方法 | 说明 |
+|------|------|
+| `new WebsocketClient<M>(address, configs?, options?)` | 创建客户端，`M` 可选约束方法名 |
+| `client.open()` | 打开 WebSocket 连接 |
+| `client.request(method, params?, option?)` | 发送 RPC 请求，`option.timeout` 可选覆盖超时 |
+| `client.ping()` | 发送 ping，返回 `{ result: 'pong' }` |
+| `client.listening(method, callback, once?)` | 监听服务端主动推送 |
+| `client.removeListening(method, callback)` | 取消监听 |
+| `client.offline(...callbacks)` | 注册断连回调 |
+| `client.close()` | 关闭连接 |
+| `client.status` | 当前连接状态 |
+| `client.client` | 获取原始 WebSocket 实例 |
 
 # 关于ping
 

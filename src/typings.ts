@@ -51,12 +51,7 @@ export declare namespace Socket {
 		 */
 		method: string
 		result?: unknown
-		error?: {
-			/** 应为-32768至-32000之间的数字 */
-			code: number
-			message: string
-			data?: unknown
-		}
+		error?: WebsocketService.RPCError
 	}
 
 	export interface Link<T extends AnyObject> extends WebSocket {
@@ -98,6 +93,13 @@ export declare namespace WebsocketService {
 			/** 反序列化方法，默认为JSON.parse */
 			deserialize?: (data: string) => unknown
 		}
+	}
+
+	export interface RPCError {
+		/** 应为-32768至-32000之间的数字 */
+		code: number
+		message: string
+		data?: unknown
 	}
 
 	/** 中间件阶段Attribute可能未完全获取到 */
@@ -268,7 +270,7 @@ export declare namespace WsClient {
 	export type ListenCallbackFn = (error: Socket.MethodResponse['error'] | null, result: Socket.MethodResponse['result']) => void;
 	export type RequestResult = { error?: Socket.MethodResponse['error'], result?: Socket.MethodResponse['result'] };
 
-	export interface Client {
+	export interface Client<M extends string = string> {
 		/** 连接状态：连接还没有打开. */
 		readonly CONNECTING: number;
 		/** 连接状态：连接已准备就绪. */
@@ -290,12 +292,12 @@ export declare namespace WsClient {
 		/**
 		 * 发送一个method请求
 		 *
-		 * @param {string} method
+		 * @param {M} method method名称
 		 * @param {*} [params]
 		 * @returns {Promise<RequestResult>}
 		 * @memberof Client
 		 */
-		readonly request: (method: string, params?: unknown) => Promise<RequestResult>;
+		readonly request: (method: M, params?: unknown) => Promise<RequestResult>;
 
 		/**
 		 * ping
@@ -304,6 +306,13 @@ export declare namespace WsClient {
 		 * @memberof Client
 		 */
 		readonly ping: () => Promise<RequestResult>;
+
+		/**
+		 * 检查当前连接是否已经打开
+		 *
+		 * @memberof Client
+		 */
+		readonly isConnected: () => Promise<RequestResult>;
 
 		/**
 		 * 注册一个/多个客户端离线时的回调函数
