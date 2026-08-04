@@ -1,7 +1,7 @@
 {
 	"name": "@coco-sheng/websocket-rpc",
 	"version": "1.2.0",
-	"description": "简单易用的websocket，基于ws，遵循JSON-RPC 2.0协议",
+	"description": "简单易用的websocket-rpc服务，基于ws，遵循JSON-RPC 2.0协议",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
