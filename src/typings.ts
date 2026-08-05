@@ -100,6 +100,7 @@ export declare namespace WebsocketService {
 		code: number
 		message: string
 		data?: unknown
+		stack?: string
 	}
 
 	/** 中间件阶段Attribute可能未完全获取到 */

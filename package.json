@@ -14,6 +14,8 @@
 		"prepublishOnly": "npm run build",
 		"test": "vitest run",
 		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage",
+		"test:benchmark": "tsx ./bench.ts",
 		"example": "tsx ./example/example.ts",
 		"instance-server": "tsx ./multiple-instances/server.ts",
 		"instance-client": "tsx ./multiple-instances/client.ts",
@@ -54,6 +56,7 @@
 	"devDependencies": {
 		"@types/node": "^24.13.3",
 		"@types/ws": "^8.18.1",
+		"@vitest/coverage-v8": "^4.1.10",
 		"cz-customizable": "^7.5.4",
 		"doctoc": "^2.5.0",
 		"eslint": "^10.8.0",

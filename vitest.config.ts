@@ -5,6 +5,16 @@ export default defineConfig({
         globals: true,
         environment: 'node',
         include: ['test/**/*.spec.ts'],
+        coverage: {
+            thresholds: {
+                statements: 80,
+                branches: 65,
+                functions: 85,
+                lines: 80,
+            },
+            include: ['src/**/*.ts'],
+            exclude: ['src/typings.ts', 'src/global.ts', 'src/index.ts'],
+        }
     },
     resolve: {
         extensions: ['.ts', '.js', '.json'],

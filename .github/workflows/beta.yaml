@@ -1,18 +1,56 @@
 name: Publish Package to npmjs
 on:
     push:
-        branches: beta
+        branches: [beta]
 jobs:
+    test:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                node-version: ["24.15.x"]
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 9
+            - run: pnpm install
+            - run: pnpm lint
+            - run: pnpm test:coverage
+
+    benchmark:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                node-version: ["24.15.x"]
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 9
+            - run: pnpm install
+            - run: pnpm lint
+            - run: pnpm test:benchmark
+
     build:
+        needs: test
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
-            - uses: actions/setup-node@v3
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
               with:
                   node-version: "24.15.x"
                   registry-url: "https://registry.npmjs.org"
-            - run: npm install
-            - run: npm run build
-            - run: npm publish --tag beta --access public
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 9
+            - run: pnpm install
+            - run: pnpm build
+            - run: pnpm publish --tag beta --access public
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

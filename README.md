@@ -39,6 +39,7 @@
   - [客户端 API 参考](#%E5%AE%A2%E6%88%B7%E7%AB%AF-api-%E5%8F%82%E8%80%83)
 - [关于ping](#%E5%85%B3%E4%BA%8Eping)
 - [其它](#%E5%85%B6%E5%AE%83)
+  - [多实例相关](#%E5%A4%9A%E5%AE%9E%E4%BE%8B%E7%9B%B8%E5%85%B3)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -768,6 +769,8 @@ ws.ping();
 服务器端不建议主动去ping客户端以此对连接进行保活，这样做会消耗服务器性能，所以系统内置了一个`ping`的method，当客户端发送`ping`的method时，系统会回复一条数据，详见[内置method](#%E5%86%85%E7%BD%AEmethod)。当然，你也可以通过其它方式实现ping来对连接保活。
 
 # 其它
+
+## 多实例相关
 
 - 关于服务器端多实例部署的解决方案，详见[多实例管理方案](https://github.com/HandsomeTea/websocket-rpc/tree/develop/multiple-instances).
 

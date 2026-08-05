@@ -2,17 +2,16 @@ import WebSocket, { WebSocketServer, type Server } from 'ws';
 import http from 'http';
 import crypto from 'crypto';
 import { createLogInstance, log } from './logger.js';
+import { _serverStore, _sessionMap } from './global.js';
 import setCore from './core/index.js';
 import type { WebsocketService, Logger, Socket, AnyObject } from './typings.js';
 import { uuid } from './lib.js';
 
-global._WebsocketServer = {};
-global._sessionMap = {};
 
 export class WebsocketServer<Attr extends AnyObject, M extends string = string> implements WebsocketService.Server<Attr, M> {
     private options: Socket.Link<Attr>['option'] = {
         RPCSerializer: {
-            serialize: JSON.stringify,
+            serialize: (data) => JSON.stringify(data, null, '   '),
             deserialize: JSON.parse
         }
     };
@@ -40,7 +39,7 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
             this.options.RPCSerializer.serialize = options.RPCSerializer.serialize;
         }
         this.configs = configs;
-        global._WebsocketServer[this.serverId] = {
+        _serverStore[this.serverId] = {
             methods: {},
             middlewares: [],
             noticeHandlers: [],
@@ -50,7 +49,7 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
             requestIds: {}
         };
 
-        Object.freeze(global._WebsocketServer[this.serverId]);
+        Object.freeze(_serverStore[this.serverId]);
     }
 
     start(cb?: () => void) {
@@ -78,7 +77,7 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
             // @ts-ignore
             socket.id = crypto.randomBytes(24).toString('hex').substring(0, 16);
             // @ts-ignore
-            global._sessionMap[socket.id] = socket;
+            _sessionMap[socket.id] = socket;
 
 
             // @ts-ignore
@@ -91,7 +90,7 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
                 socket.option.logger('connection').debug(`socket:${socket.id} is connected!`);
             }
 
-            const onlineFns = global._WebsocketServer[this.serverId]?.onlineCallbacks || [];
+            const onlineFns = _serverStore[this.serverId]?.onlineCallbacks || [];
 
             if (onlineFns.length > 0) {
                 try {
@@ -105,7 +104,7 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
 
                         socket.option.logger('connection').error(e.stack || e.message);
                     }
-                    const errorFns = global._WebsocketServer[this.serverId]?.errorCallbacks || [];
+                    const errorFns = _serverStore[this.serverId]?.errorCallbacks || [];
 
                     if (errorFns.length > 0) {
                         for (const fn of errorFns) {
@@ -152,12 +151,12 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
     register(method: M | Record<M, WebsocketService.MethodFn<Attr>>, cb?: WebsocketService.MethodFn<Attr>) {
         if (typeof method === 'string' && typeof cb === 'function') {
             // @ts-ignore
-            global._WebsocketServer[this.serverId].methods[method] = cb;
+            _serverStore[this.serverId].methods[method] = cb;
         } else if (method && typeof method === 'object' && !Array.isArray(method)) {
             for (const key in method) {
                 if (key && typeof method[key] === 'function') {
                     // @ts-ignore
-                    global._WebsocketServer[this.serverId].methods[key] = method[key];
+                    _serverStore[this.serverId].methods[key] = method[key];
                 }
             }
         }
@@ -185,7 +184,7 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
 
             for (const middleware of middlewares) {
                 if (typeof middleware === 'function') {
-                    global._WebsocketServer[this.serverId]?.middlewares.push({
+                    _serverStore[this.serverId]?.middlewares.push({
                         type: 'scoped',
                         method,
                         // @ts-ignore
@@ -195,7 +194,7 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
             }
         } else if (middlewares.every(m => typeof m === 'function')) {
             // @ts-ignore
-            global._WebsocketServer[this.serverId].middlewares.push(...(middlewares as Array<WebsocketService.MiddlewareFn<Attr>>).map(m => ({ type: 'global', fn: m })));
+            _serverStore[this.serverId].middlewares.push(...(middlewares as Array<WebsocketService.MiddlewareFn<Attr>>).map(m => ({ type: 'global', fn: m })));
         }
     }
 
@@ -218,7 +217,7 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
 
             for (const noticeHandler of noticeHandlers) {
                 if (typeof noticeHandler === 'function') {
-                    global._WebsocketServer[this.serverId]?.noticeHandlers.push({
+                    _serverStore[this.serverId]?.noticeHandlers.push({
                         type: 'scoped',
                         notice,
                         // @ts-ignore
@@ -228,7 +227,7 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
             }
         } else if (noticeHandlers.every(n => typeof n === 'function')) {
             // @ts-ignore
-            global._WebsocketServer[this.serverId].noticeHandlers.push(...(noticeHandlers as Array<WebsocketService.NoticeFn<Attr>>).map(n => ({ type: 'global', fn: n })));
+            _serverStore[this.serverId].noticeHandlers.push(...(noticeHandlers as Array<WebsocketService.NoticeFn<Attr>>).map(n => ({ type: 'global', fn: n })));
         }
     }
 
@@ -241,7 +240,7 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
             for (const fn of args) {
                 if (typeof fn === 'function') {
                     // @ts-ignore
-                    global._WebsocketServer[this.serverId]?.onlineCallbacks.push(fn);
+                    _serverStore[this.serverId]?.onlineCallbacks.push(fn);
                 }
             }
         }
@@ -252,7 +251,7 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
             for (const fn of args) {
                 if (typeof fn === 'function') {
                     // @ts-ignore
-                    global._WebsocketServer[this.serverId]?.offlineCallbacks.push(fn);
+                    _serverStore[this.serverId]?.offlineCallbacks.push(fn);
                 }
             }
         }
@@ -263,14 +262,14 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
             for (const fn of args) {
                 if (typeof fn === 'function') {
                     // @ts-ignore
-                    global._WebsocketServer[this.serverId]?.errorCallbacks.push(fn);
+                    _serverStore[this.serverId]?.errorCallbacks.push(fn);
                 }
             }
         }
     }
 
     getSocket(connectId: string): Socket.Link<Attr> | undefined {
-        return global._sessionMap[connectId] as Socket.Link<Attr> | undefined;
+        return _sessionMap[connectId] as Socket.Link<Attr> | undefined;
     }
 
     getSockets(is: WebsocketService.IsThisSocket<Attr>) {
@@ -320,10 +319,10 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
     getSocketAttr<K extends keyof Attr>(connectId: string, ...attributes: Array<K>): Pick<Attr, Array<K>[number]> | undefined
 
     getSocketAttr<K extends keyof Attr>(connectId: string, ...attribute: Array<K>) {
-        if (global._sessionMap[connectId]) {
+        if (_sessionMap[connectId]) {
 
             // @ts-ignore
-            return global._sessionMap[connectId].getAttr(...attribute);
+            return _sessionMap[connectId].getAttr(...attribute);
         }
         return undefined;
     }
@@ -380,8 +379,8 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
     }
 
     setSocketAttr(connectId: string, attribute: Partial<Attr>) {
-        if (global._sessionMap[connectId]) {
-            global._sessionMap[connectId].setAttr(attribute);
+        if (_sessionMap[connectId]) {
+            _sessionMap[connectId].setAttr(attribute);
         }
     }
 
@@ -390,6 +389,6 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
     }
 
     get methodList() {
-        return Object.keys(global._WebsocketServer[this.serverId]?.methods || {});
+        return Object.keys(_serverStore[this.serverId]?.methods || {});
     }
 }

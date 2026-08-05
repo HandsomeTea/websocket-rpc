@@ -1,7 +1,8 @@
 import { uuid } from '../lib.js';
 import type { Socket, AnyObject } from '../typings.js';
+import { _serverStore } from '../global.js';
 
-const getErrorFns = (serverId: string) => global._WebsocketServer[serverId]?.errorCallbacks || [];
+const getErrorFns = (serverId: string) => _serverStore[serverId]?.errorCallbacks || [];
 const executeErrorFns = async <T>(error: T, socket: Socket.Link<AnyObject>, serverId: string, reqData?: Socket.MethodRequest) => {
     // try {
     const errorFns = getErrorFns(serverId);
@@ -28,16 +29,16 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
             method,
             result: 'pong'
         });
-        delete global._WebsocketServer[serverId]?.requestIds[id];
+        delete _serverStore[serverId]?.requestIds[id];
         return;
     } else if (method === 'connect') {
         socket.sendout({ id: `${id}`, method, result: { msg: 'connected', session: socket.id } });
-        delete global._WebsocketServer[serverId]?.requestIds[id];
+        delete _serverStore[serverId]?.requestIds[id];
         return;
     }
 
     // ====================================== method是否存在 ======================================
-    if (!global._WebsocketServer[serverId]?.methods[method]) {
+    if (!_serverStore[serverId]?.methods[method]) {
         if (socket.option.logger) {
             socket.option.logger(`request:${method}`).error(`Method not found with ${socket.option.RPCSerializer.serialize(data)}`);
         }
@@ -54,14 +55,14 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
                 }
             });
         }
-        delete global._WebsocketServer[serverId]?.requestIds[id];
+        delete _serverStore[serverId]?.requestIds[id];
         return;
     }
 
     // ====================================== 执行中间件 ======================================
     const validType = new Set(['string', 'number', 'boolean']);
 
-    for (const middleware of global._WebsocketServer[serverId].middlewares) {
+    for (const middleware of _serverStore[serverId].middlewares) {
         try {
             const result = middleware.type === 'global' ?
                 // @ts-ignore
@@ -108,14 +109,14 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
                     }
                 });
             }
-            delete global._WebsocketServer[serverId]?.requestIds[id];
+            delete _serverStore[serverId]?.requestIds[id];
             return;
         }
     }
 
     // ====================================== 执行method ======================================
     try {
-        const result = await global._WebsocketServer[serverId].methods[method](params, socket);
+        const result = await _serverStore[serverId].methods[method](params, socket);
 
         socket.sendout({
             id: `${id}`,
@@ -140,7 +141,7 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
             });
         }
     }
-    delete global._WebsocketServer[serverId]?.requestIds[id];
+    delete _serverStore[serverId]?.requestIds[id];
 };
 
 export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
@@ -224,7 +225,7 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                 (!!id || id === 0) &&
                 (typeof id === 'string' || typeof id === 'number')
             )) {
-                const noticeHandlers = global._WebsocketServer[serverId]?.noticeHandlers || [];
+                const noticeHandlers = _serverStore[serverId]?.noticeHandlers || [];
 
                 if (noticeHandlers.length > 0) {
                     for (const noticeHandler of noticeHandlers) {
@@ -248,7 +249,7 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                 continue;
             }
 
-            if (typeof global._WebsocketServer[serverId]?.requestIds[id] !== 'undefined') {
+            if (typeof _serverStore[serverId]?.requestIds[id] !== 'undefined') {
                 if (socket.option.logger) {
                     socket.option.logger('socket-receive').error(`duplicate request with ${parameter.toString()}`);
                 }
@@ -264,7 +265,7 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                 continue;
             }
             // @ts-ignore
-            global._WebsocketServer[serverId].requestIds[id] = Date.now();
+            _serverStore[serverId].requestIds[id] = Date.now();
             // ====================================== 执行 ======================================
             processRequest(socket, serverId, data as Socket.MethodRequest & { id: string | number });
         }

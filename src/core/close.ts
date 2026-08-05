@@ -1,4 +1,5 @@
 import type { Socket, AnyObject } from '../typings.js';
+import { _sessionMap, _serverStore } from '../global.js';
 
 export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
     socket.on('close', async () => {
@@ -8,7 +9,7 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
             socket.option.logger('close-socket-connection').warn(`socket:${id} is closed.`);
         }
 
-        const offlineFns = global._WebsocketServer[serverId]?.offlineCallbacks || [];
+        const offlineFns = _serverStore[serverId]?.offlineCallbacks || [];
 
         if (offlineFns.length > 0) {
             try {
@@ -21,7 +22,7 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
 
                     socket.option.logger('close-socket-connection').error(e.stack || e.message);
                 }
-                const errorFns = global._WebsocketServer[serverId]?.errorCallbacks || [];
+                const errorFns = _serverStore[serverId]?.errorCallbacks || [];
 
                 if (errorFns.length > 0) {
                     for (const fn of errorFns) {
@@ -32,8 +33,8 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
             }
         }
 
-        if (global._sessionMap[id]) {
-            delete global._sessionMap[id];
+        if (_sessionMap[id]) {
+            delete _sessionMap[id];
         }
     });
 };
