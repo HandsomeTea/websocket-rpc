@@ -81,6 +81,11 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
                         }
                         continue;
                     }
+
+                    if (value === socket.attribute[key]) {
+                        continue;
+                    }
+
                     if (key in socket.attribute) {
                         if (socket.option.logger) {
                             socket.option.logger(`middleware:${method}`).warn(`socket attribute [${key}] changed: ${socket.attribute[key]} => ${value}`);

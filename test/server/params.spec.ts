@@ -50,21 +50,23 @@ describe('服务器-参数测试', () => {
 	});
 
 	test('缺少id', async () => {
-		const result = await new Promise(resolve => {
-			client.client.send(JSON.stringify({ method: 'method1', params: [], jsonrpc: '2.0' }));
-			client.client.once('message', data => resolve(JSON.parse(data.toString())));
+		const params = 'notice str';
+		const result = new Promise((resolve, reject) => {
+			server.onNotice(data => {
+				if (data !== params) {
+					reject();
+				}
+			});
+			server.onNotice('method1', data => {
+				if (data !== params) {
+					return reject();
+				}
+				resolve(data);
+			});
 		});
 
-		expect(result).toStrictEqual({
-			jsonrpc: '2.0',
-			id: expect.any(String),
-			method: 'method1',
-			error: {
-				code: -32602,
-				message: 'Invalid params',
-				data: expect.any(String)
-			}
-		});
+		client.client.send(JSON.stringify({ method: 'method1', params, jsonrpc: '2.0' }));
+		expect(await result).toStrictEqual(params);
 	});
 
 	test('缺少method', async () => {

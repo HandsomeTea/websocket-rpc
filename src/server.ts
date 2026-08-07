@@ -1,7 +1,7 @@
 import WebSocket, { WebSocketServer, type Server } from 'ws';
 import http from 'http';
 import crypto from 'crypto';
-import { createLogInstance, log } from './logger.js';
+import { log } from './logger.js';
 import { _serverStore, _sessionMap } from './global.js';
 import setCore from './core/index.js';
 import type { WebsocketService, Logger, Socket, AnyObject } from './typings.js';
@@ -25,7 +25,6 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
             if (typeof options.log === 'function') {
                 this.logger = options.log;
             } else {
-                createLogInstance();
                 this.logger = log;
             }
         }

@@ -1,48 +1,36 @@
-import log4js, { type Configuration } from 'log4js';
+import pino from 'pino';
 
-/**
- * 定义日志配置
- */
-export const createLogInstance = (): void => {
-    log4js.configure({
-        disableClustering: true,
-        appenders: {
-            _system: {
-                type: 'stdout',
-                layout: {
-                    type: 'pattern',
-                    pattern: '%[[%d{ISO8601_WITH_TZ_OFFSET}] [%p] [%X{Module}]%] %m%n'
+const isDev = process.env.NODE_ENV === 'development';
+const caller = () => {
+    const stack = new Error().stack?.split('\n') || [];
+    const line = stack.find(l => l.includes('.ts:') && !l.includes('logger.ts'));
+    const match = line?.match(/\((.+\.ts):(\d+):(\d+)\)/);
+    return (match ? `${match[1]}:${match[2]}` : '').trim().replace(`${process.cwd()}/`, '');
+};
+const terminalLogger = pino(
+    {
+        level: 'trace',
+        timestamp: pino.stdTimeFunctions.isoTime,
+        base: {
+            pid: undefined,
+            hostname: undefined
+        },
+        ...(isDev && { mixin() { return { location: caller() }; } })
+    },
+    isDev ? pino.transport({
+        targets: [
+            {
+                target: 'pino-pretty',
+                level: 'trace',
+                options: {
+                    colorize: true,
+                    translateTime: 'SYS:yyyy-mm-dd HH:MM:ss.l o',
+                    ignore: 'pid, hostname'
                 }
             }
-            // [2021-09-23 16:59:33.762] %d{yyyy-MM-dd hh:mm:ss.SSS}
-            // [2021-08-05T18:17:00.549] %d
-            // [2021-08-05T18:17:39.235+0800] %d{ISO8601_WITH_TZ_OFFSET}
-            // [18:18:21.475] %d{ABSOLUTE}
-            // [05 08 2021 18:19:20.196] %d{DATE}
-            // [2021-08-05T18:19:44.804] %d{ISO8601}
-        },
-        categories: {
-            default: {
-                appenders: ['_system'],
-                level: 'OFF',
-                enableCallStack: true
-            },
-            systemLog: {
-                appenders: ['_system'],
-                level: 'ALL'
-            }
-        }
-    } as Configuration);
-};
+        ]
+    }) : undefined
+);
 
-/**
- * 系统日志使用
- * @param {string} module
- */
-export const log = (module?: string): log4js.Logger => {
-    const _systemLogger = log4js.getLogger('systemLog');
-
-    _systemLogger.addContext('Module', module || 'websocket');
-
-    return _systemLogger;
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const log = (module = 'websocket', option?: { [key: string]: any }) => terminalLogger.child({ module, ...option });

@@ -15,7 +15,7 @@ export default (socket: Socket.Link<AnyObject>): void => {
         const msg: Socket.MethodResponse = {
             jsonrpc: '2.0',
             id: message.id,
-            method: message.method || `method-${message.id}`
+            method: message.method
         };
 
         if (typeof message.error !== 'undefined') {
