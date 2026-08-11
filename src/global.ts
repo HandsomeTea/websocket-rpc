@@ -15,7 +15,7 @@ export const _serverStore: {
         offlineCallbacks: Array<WebsocketService.OfflineCallbackFn<AnyObject>>;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         errorCallbacks: Array<WebsocketService.ErrorCallbackFn<AnyObject, any>>;
-        requestIds: Record<string, number>;
+        requestIds: Map<string | number, number>;
     }
 } = {};
 

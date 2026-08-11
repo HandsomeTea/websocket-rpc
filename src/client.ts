@@ -5,7 +5,7 @@ import { uuid } from './lib.js';
 
 const DEFAULT_TIMEOUT = 10;
 
-export class WebsocketClient<M extends string = string> implements WsClient.Client<M> {
+export class WebsocketClient<Method extends string = string, Notice extends string = string> implements WsClient.Client<Method, Notice> {
 	private webSocket!: WebSocket;
 	private addr: string | URL;
 	private configs!: WebSocket.ClientOptions | ClientRequestArgs;
@@ -20,7 +20,7 @@ export class WebsocketClient<M extends string = string> implements WsClient.Clie
 		}
 		if (options) {
 			if (options.timeout) {
-				this.options.timeout = options.timeout || DEFAULT_TIMEOUT;
+				this.options.timeout = options.timeout ?? DEFAULT_TIMEOUT;
 			}
 		}
 	}
@@ -33,7 +33,14 @@ export class WebsocketClient<M extends string = string> implements WsClient.Clie
 		await new Promise((resolve, reject) => {
 			this.webSocket = new WebSocket(this.addr, this.configs);
 			this.webSocket.on('message', data => {
-				const res = JSON.parse(data.toString()) as Socket.MethodResponse;
+				let res: Socket.MethodResponse | null = null;
+
+				try {
+					res = JSON.parse(data.toString()) as Socket.MethodResponse;
+				} catch (e) {
+					console.log(e, data);
+					return;
+				}
 				const cacheId = this.getRecordKey(res.method, res.id);
 
 				if (this.record[cacheId]) {
@@ -75,14 +82,14 @@ export class WebsocketClient<M extends string = string> implements WsClient.Clie
 	}
 
 	/**
-	 *
+	 * 发送一个method请求
 	 * @param method
 	 * @param params
 	 * @param option 可选项
 	 * @param option.timeout 可选项，超时时间，单位秒
-	 * @returns
+	 * @returns {Promise<RequestResult>}
 	 */
-	async request(method: M, params?: unknown, option?: { timeout: number }): Promise<WsClient.RequestResult> {
+	private async _request(method: Method, params?: unknown, option?: { timeout: number }): Promise<WsClient.RequestResult> {
 		if (this.status !== WebSocket.OPEN) {
 			throw new Error('WebSocket is not open!');
 		}
@@ -107,14 +114,18 @@ export class WebsocketClient<M extends string = string> implements WsClient.Clie
 								message: 'Time out',
 								data: 'Time out'
 							};
-						}, (timeout || self.options.timeout || DEFAULT_TIMEOUT) * 1000) as unknown as number;
+						}, (timeout ?? self.options.timeout ?? DEFAULT_TIMEOUT) * 1000) as unknown as number;
 
-						self.webSocket.send(JSON.stringify({
-							jsonrpc: '2.0',
-							id,
-							method,
-							params: params || {}
-						}));
+						try {
+							self.webSocket.send(JSON.stringify({
+								jsonrpc: '2.0',
+								id,
+								method,
+								params
+							}));
+						} catch (e) {
+							console.log(e);
+						}
 					}
 
 					private clearTimer() {
@@ -141,12 +152,88 @@ export class WebsocketClient<M extends string = string> implements WsClient.Clie
 		}
 	}
 
+	/**
+	 * 批量发送多个method请求，结果返回顺序与请求顺序一致
+	 *
+	 * @param {Method} arg.method method名称
+	 * @param {*} [arg.params]
+	 * @param {object} [arg.option] Object
+	 * @param {number} [arg.option.timeout] 超时时间，单位为秒，默认10秒
+	 * @returns {Promise<Array<RequestResult>>}
+	 */
+	request(arg: Array<{ method: Method, params?: unknown, option?: { timeout: number } }>): Promise<Array<WsClient.RequestResult>>;
+
+	/**
+	 * 发送一个method请求
+	 *
+	 * @param {Method} method method名称
+	 * @param {*} [params]
+	 * @param {object} [option] Object
+	 * @param {number} [option.timeout] 超时时间，单位为秒，默认10秒
+	 * @returns {Promise<RequestResult>}
+	 */
+	request(method: Method, params?: unknown, option?: { timeout: number }): Promise<WsClient.RequestResult>;
+
+	async request(
+		req: Method | Array<{ method: Method, params?: unknown, option?: { timeout: number } }>,
+		params?: unknown,
+		option?: { timeout: number }) {
+		if (Array.isArray(req)) {
+			const tasks = req.map(({ method, params, option }) => this._request(method, params, option));
+
+			return await Promise.all(tasks);
+		} else {
+			return await this._request(req, params, option);
+		}
+	}
+
+	/**
+	 * 向服务器发送一次通知
+	 *
+	 * @param {Notice} notice 通知名称
+	 * @param {*} [params]
+	 * @returns {void}
+	 */
+	notify(notice: Notice, params?: unknown): void;
+
+	/**
+	 * 向服务器批量发送多个通知
+	 *
+	 * @param {Notice} arg.notice 通知名称
+	 * @param {*} [arg.params]
+	 * @returns {void}
+	 * @memberof Client
+	 */
+	notify(arg: Array<{ notice: Notice, params?: unknown }>): void;
+
+	notify(
+		notice: Notice | Array<{ notice: Notice, params?: unknown }>,
+		params?: unknown,
+	) {
+		if (this.status !== WebSocket.OPEN) {
+			throw new Error('WebSocket is not open!');
+		}
+		const notifys = Array.isArray(notice) ? notice : [{ notice, params }];
+
+		for (const { notice, params } of notifys) {
+			try {
+				this.webSocket.send(JSON.stringify({
+					jsonrpc: '2.0',
+					method: notice,
+					params
+				}));
+			} catch (e) {
+				console.log(e);
+			}
+		}
+	}
+
 	async ping(): Promise<WsClient.RequestResult> {
-		return await this.request('ping' as M);
+		return await this.request('ping' as Method);
 	}
 
 	async isConnected(): Promise<WsClient.RequestResult> {
-		return await this.request('connect' as M);
+		return await this.request('connect' as Method);
 	}
 
 	offline(...args: Array<() => void>): void {

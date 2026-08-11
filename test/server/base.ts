@@ -1,7 +1,7 @@
-import { WebsocketServer, WebsocketClient, Attribute } from '../../src';
+import { WebsocketServer, WebsocketClient, Attribute, ServerOptions } from '../../src';
 
-export default <Attr extends Attribute>(port: number) => {
-	const server = new WebsocketServer<Attr>({ port });
+export default <Attr extends Attribute>(port: number, serverOptions?: ServerOptions) => {
+	const server = new WebsocketServer<Attr>({ port }, serverOptions);
 	const client = new WebsocketClient(`ws://localhost:${port}`);
 
 	return {

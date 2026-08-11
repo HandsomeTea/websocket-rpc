@@ -50,7 +50,6 @@
   "exclude": [
     "node_modules",
     "dist",
-    "test",
-    "src/typings.js"
+    "test"
   ]
 }

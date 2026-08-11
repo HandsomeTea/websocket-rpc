@@ -68,4 +68,32 @@ describe('客户端-request', () => {
 
         expect(result.result).toBe(1);
     });
+
+    it('接收重复返回', async () => {
+        server.register('method5', async params => {
+            return await new Promise(resolve => {
+                setTimeout(() => {
+                    resolve(params);
+                }, 2000);
+            });
+        });
+        const sameId = 'same-id-test';
+
+        client.client.send(JSON.stringify({ method: 'method5', id: sameId, params: [1, 2], jsonrpc: '2.0' }));
+        const result = new Promise(resolve => {
+            client.client.send(JSON.stringify({ method: 'method5', id: sameId, params: [2, 2], jsonrpc: '2.0' }));
+            client.client.once('message', data => resolve(JSON.parse(data.toString())));
+        });
+
+        expect(await result).toStrictEqual({
+            jsonrpc: '2.0',
+            id: sameId,
+            method: 'method5',
+            error: {
+                code: -32600,
+                message: 'Invalid Request',
+                data: `Duplicate request id: ${sameId}`
+            }
+        });
+    });
 });

@@ -4,16 +4,19 @@ import { _serverStore } from '../global.js';
 
 const getErrorFns = (serverId: string) => _serverStore[serverId]?.errorCallbacks || [];
 const executeErrorFns = async <T>(error: T, socket: Socket.Link<AnyObject>, serverId: string, reqData?: Socket.MethodRequest) => {
-    // try {
     const errorFns = getErrorFns(serverId);
 
     for (const fn of errorFns) {
-        // @ts-ignore
-        await fn(error, socket, reqData);
+        try {
+            // @ts-ignore
+            await fn(error, socket, reqData);
+        } catch (error) {
+            if (socket.option.logger) {
+                // @ts-ignore
+                socket.option.logger(`error:${fn.name}`).error(error);
+            }
+        }
     }
-    // } catch (error) {
-    //     //
-    // }
 };
 const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, data: { jsonrpc: '2.0', method: string, id: string | number, params?: unknown }) => {
     const { id, method, params } = data;
@@ -29,11 +32,11 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
             method,
             result: 'pong'
         });
-        delete _serverStore[serverId]?.requestIds[id];
+        _serverStore[serverId]?.requestIds.delete(id);
         return;
     } else if (method === 'connect') {
         socket.sendout({ id: `${id}`, method, result: { msg: 'connected', session: socket.id } });
-        delete _serverStore[serverId]?.requestIds[id];
+        _serverStore[serverId]?.requestIds.delete(id);
         return;
     }
 
@@ -46,7 +49,7 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
             await executeErrorFns(new Error('Method not found'), socket, serverId, data);
         } else {
             socket.sendout({
-                id: `${id}`,
+                id,
                 method,
                 error: {
                     code: -32601,
@@ -55,7 +58,7 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
                 }
             });
         }
-        delete _serverStore[serverId]?.requestIds[id];
+        _serverStore[serverId]?.requestIds.delete(id);
         return;
     }
 
@@ -105,7 +108,7 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
                 await executeErrorFns(error, socket, serverId, data);
             } else {
                 socket.sendout({
-                    id: `${id}`,
+                    id,
                     method,
                     error: {
                         code: -32001,
@@ -114,7 +117,7 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
                     }
                 });
             }
-            delete _serverStore[serverId]?.requestIds[id];
+            _serverStore[serverId]?.requestIds.delete(id);
             return;
         }
     }
@@ -146,7 +149,7 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
             });
         }
     }
-    delete _serverStore[serverId]?.requestIds[id];
+    _serverStore[serverId]?.requestIds.delete(id);
 };
 
 export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
@@ -192,8 +195,8 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                     await executeErrorFns(new Error(errorStr), socket, serverId, data);
                 } else {
                     socket.sendout({
-                        id: id || uuid(),
-                        method: method || '',
+                        id: id ?? uuid(),
+                        method: method ?? '',
                         error: {
                             code: -32602,
                             message: 'Invalid params',
@@ -214,8 +217,8 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                     await executeErrorFns(new Error(errorStr), socket, serverId, data);
                 } else {
                     socket.sendout({
-                        id: id || uuid(),
-                        method: method || '',
+                        id: id ?? uuid(),
+                        method: method ?? '',
                         error: {
                             code: -32602,
                             message: 'Invalid params',
@@ -254,13 +257,13 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                 continue;
             }
 
-            if (typeof _serverStore[serverId]?.requestIds[id] !== 'undefined') {
+            if (typeof _serverStore[serverId]?.requestIds.get(id) !== 'undefined') {
                 if (socket.option.logger) {
                     socket.option.logger('socket-receive').error(`duplicate request with ${parameter.toString()}`);
                 }
                 socket.sendout({
                     id,
-                    method: method || '',
+                    method,
                     error: {
                         code: -32600,
                         message: 'Invalid Request',
@@ -270,7 +273,7 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                 continue;
             }
             // @ts-ignore
-            _serverStore[serverId].requestIds[id] = Date.now();
+            _serverStore[serverId].requestIds.set(id, Date.now());
             // ====================================== 执行 ======================================
             processRequest(socket, serverId, data as Socket.MethodRequest & { id: string | number });
         }

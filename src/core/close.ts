@@ -12,22 +12,22 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
         const offlineFns = _serverStore[serverId]?.offlineCallbacks || [];
 
         if (offlineFns.length > 0) {
-            try {
-                for (const fn of offlineFns) {
+            for (const fn of offlineFns) {
+                try {
                     await fn(socket.attribute, socket.id);
-                }
-            } catch (error) {
-                if (socket.option.logger) {
-                    const e = error as Error;
+                } catch (error) {
+                    if (socket.option.logger) {
+                        const e = error as Error;
 
-                    socket.option.logger('close-socket-connection').error(e.stack || e.message);
-                }
-                const errorFns = _serverStore[serverId]?.errorCallbacks || [];
+                        socket.option.logger('close-socket-connection').error(e.stack || e.message);
+                    }
+                    const errorFns = _serverStore[serverId]?.errorCallbacks || [];
 
-                if (errorFns.length > 0) {
-                    for (const fn of errorFns) {
-                        // @ts-ignore
-                        await fn(error as Error, socket);
+                    if (errorFns.length > 0) {
+                        for (const fn of errorFns) {
+                            // @ts-ignore
+                            await fn(error as Error, socket);
+                        }
                     }
                 }
             }

@@ -6,7 +6,7 @@ export default (socket: Socket.Link<AnyObject>): void => {
     socket.setAttr = (attribute, value) => {
         if (typeof attribute === 'string' && typeof value !== 'undefined') {
             socket.attribute[attribute] = value;
-        } else if (typeof attribute === 'object' && !Array.isArray(attribute)) {
+        } else if (attribute && typeof attribute === 'object' && !Array.isArray(attribute)) {
             Object.assign(socket.attribute, attribute);
         }
     };

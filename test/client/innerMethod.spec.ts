@@ -14,12 +14,21 @@ afterAll(() => {
 });
 
 
-describe('客户端-ping', () => {
+describe('内置method', () => {
 
     it('ping', async () => {
-        const result = await client.request('ping');
+        const result = await client.ping();
 
         expect(result.result).toBe('pong');
+    });
+
+    it('isConnected', async () => {
+        const result = await client.isConnected();
+
+        expect(result.result).toStrictEqual({
+            msg: 'connected',
+            session: expect.any(String)
+        });
     });
 
 });

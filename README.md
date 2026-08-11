@@ -23,6 +23,8 @@
     - [server.offline](#serveroffline)
     - [server.error](#servererror)
   - [扩展配置](#%E6%89%A9%E5%B1%95%E9%85%8D%E7%BD%AE)
+    - [日志](#%E6%97%A5%E5%BF%97)
+    - [数据压缩](#%E6%95%B0%E6%8D%AE%E5%8E%8B%E7%BC%A9)
 - [Client](#client)
   - [基本用法](#%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95)
   - [发送请求](#%E5%8F%91%E9%80%81%E8%AF%B7%E6%B1%82)
@@ -564,8 +566,11 @@ server.error(error1, error2);
 
 `new WebsocketServer(config, options);`
 
-- `[options.log]`：`Boolean | Function`，默认`false`关闭日志打印，当为`true`时，将采用内置的`log4js`日志配置打印日志；如果为一个函数，则需要返回一个`Logger`对象，系统的日志将采用该对象打印。
+### 日志
 
+- `[options.log]`：`Boolean | Function`，默认`false`关闭日志打印，当为`true`时，将采用内置的`pino`日志配置打印日志，在使用内置`pino`打印日志时，如果读取到`process.env.NODE_ENV`为`development`时，日志将会显示打印位置，并做简单美化；如果为一个函数，则需要返回一个`Logger`对象，系统的日志将采用该对象打印。
+
+### 数据压缩
 - `[options.compression]`：`zlib`，默认`undefined`。当为`zlib`时，将对服务器发送到客户端的数据先进行zlib压缩，再发送。
 
 ```typescript

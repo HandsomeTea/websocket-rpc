@@ -12,6 +12,7 @@ export default defineConfig({
                 functions: 85,
                 lines: 80,
             },
+            provider: 'v8',
             include: ['src/**/*.ts'],
             exclude: ['src/typings.ts', 'src/global.ts', 'src/index.ts'],
         }

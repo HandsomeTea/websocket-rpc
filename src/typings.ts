@@ -14,23 +14,23 @@ export interface AnyObject {
 
 export declare namespace Socket {
 
-	interface SetAttr<T extends AnyObject> {
-		/** 为socket设置key为attribute属性，值为value */
-		<K extends keyof T>(attribute: K, value: T[K]): void;
-
+	interface SetAttr<Attr extends AnyObject> {
 		/** 将attribute的键值设置到socket的属性中 */
-		(attribute: Partial<T>): void;
+		(attribute: Partial<Attr>): void;
+
+		/** 为socket设置key为attribute属性，值为value */
+		<K extends keyof Attr>(attribute: K, value: Attr[K]): void;
 	}
 
-	interface GetAttr<T extends AnyObject> {
+	interface GetAttr<Attr extends AnyObject> {
+		/** 获取socket的全部属性 */
+		(): Attr;
+
 		/** 获取socket的某个属性 */
-		<K extends keyof T>(attribute: K): T[K] | undefined;
+		<K extends keyof Attr>(attribute: K): Attr[K] | undefined;
 
 		/** 获取某些属性 */
-		<K extends keyof T>(attribute: K, ...attributes: Array<K>): { [S in K]: T[S] };
-
-		/** 获取socket的全部属性 */
-		(): T;
+		<K extends keyof Attr>(attribute: K, ...attributes: Array<K>): { [Key in K]: Attr[Key] };
 	}
 
 	export interface MethodRequest {
@@ -54,9 +54,9 @@ export declare namespace Socket {
 		error?: WebsocketService.RPCError
 	}
 
-	export interface Link<T extends AnyObject> extends WebSocket {
+	export interface Link<Attr extends AnyObject> extends WebSocket {
 		/** 连接的全部属性 */
-		readonly attribute: T
+		readonly attribute: Attr
 		/** 连接的id */
 		readonly id: string
 		readonly option: {
@@ -74,10 +74,10 @@ export declare namespace Socket {
 		 * @param {Omit<MethodResponse, 'jsonrpc'>} message
 		 * @memberof Link
 		 */
-		readonly sendout: (message: Omit<MethodResponse, 'jsonrpc'>) => void;
+		readonly sendout: (message: Omit<MethodResponse, 'jsonrpc'>) => Promise<void>;
 
-		readonly setAttr: SetAttr<T>;
-		readonly getAttr: GetAttr<T>;
+		readonly setAttr: SetAttr<Attr>;
+		readonly getAttr: GetAttr<Attr>;
 	}
 }
 
@@ -117,28 +117,28 @@ export declare namespace WebsocketService {
 	// @ts-ignore
 	export type ErrorCallbackFn<Attribute extends AnyObject, E> = (error: E, socket: Socket.Link<Partial<Attribute>>, reqData?: Socket.MethodRequest) => void | Promise<void>;
 
-	interface Use<Attribute extends AnyObject, M extends string = string> {
+	interface Use<Attribute extends AnyObject, Method extends string = string> {
 		/** 注册适用于所有method的一个或多个中间件 */
 		(middleware: MiddlewareFn<Attribute>, ...middlewares: Array<MiddlewareFn<Attribute>>): void;
 
 		/** 注册只适用于某个method的一个或多个中间件 */
-		(method: M, ...middlewares: Array<MiddlewareFn<Attribute>>): void;
+		(method: Method, ...middlewares: Array<MiddlewareFn<Attribute>>): void;
 	}
 
-	interface Register<Attribute extends AnyObject, M extends string = string> {
+	interface Register<Attribute extends AnyObject, Method extends string = string> {
 		/** 注册一个method */
-		(method: M, cb: MethodFn<Attribute>): void;
+		(method: Method, cb: MethodFn<Attribute>): void;
 
 		/** 注册一个或多个method */
-		(method: Record<M, MethodFn<Attribute>>): void;
+		(method: Record<Method, MethodFn<Attribute>>): void;
 	}
 
-	interface OnNotice<Attribute extends AnyObject> {
+	interface OnNotice<Attribute extends AnyObject, Notice extends string = string> {
 		/** 注册一个或多个针对所有notice消息的监听事件 */
 		(noticeHandler: NoticeFn<Attribute>, ...noticeHandlers: Array<NoticeFn<Attribute>>): void;
 
 		/** 注册一个或多个只适用于某个notice消息的监听事件 */
-		<N extends string = string>(notice: N, ...noticeHandlers: Array<NoticeFn<Attribute>>): void;
+		(notice: Notice, ...noticeHandlers: Array<NoticeFn<Attribute>>): void;
 	}
 
 	export type IsThisSocket<Attr> = (attribute: Attr) => boolean | undefined;
@@ -165,10 +165,10 @@ export declare namespace WebsocketService {
 		<K extends keyof Attribute>(is: IsThisSocket<Attribute>, ...attributes: Array<K>): Array<Pick<Attribute, Array<K>[number]>>;
 	}
 
-	export interface Server<Attribute extends AnyObject, M extends string = string> {
-		readonly use: Use<Attribute, M>;
-		readonly register: Register<Attribute, M>;
-		readonly onNotice: OnNotice<Attribute>;
+	export interface Server<Attribute extends AnyObject, Method extends string = string, Notice extends string = string> {
+		readonly use: Use<Attribute, Method>;
+		readonly register: Register<Attribute, Method>;
+		readonly onNotice: OnNotice<Attribute, Notice>;
 
 		/**
 		 * 启动服务
@@ -271,7 +271,55 @@ export declare namespace WsClient {
 	export type ListenCallbackFn = (error: Socket.MethodResponse['error'] | null, result: Socket.MethodResponse['result']) => void;
 	export type RequestResult = { error?: Socket.MethodResponse['error'], result?: Socket.MethodResponse['result'] };
 
-	export interface Client<M extends string = string> {
+	interface Request<Method extends string = string> {
+		/**
+		 * 发送一个method请求
+		 *
+		 * @param {Method} method method名称
+		 * @param {*} [params]
+		 * @param {object} [option] Object
+		 * @param {number} [option.timeout] 超时时间，单位为秒，默认10秒
+		 * @returns {Promise<RequestResult>}
+		 * @memberof Client
+		 */
+		(method: Method, params?: unknown, option?: { timeout: number }): Promise<RequestResult>;
+
+		/**
+		 * 批量发送多个method请求，结果返回顺序与请求顺序一致
+		 *
+		 * @param {Method} arg.method method名称
+		 * @param {*} [arg.params]
+		 * @param {object} [arg.option] Object
+		 * @param {number} [arg.option.timeout] 超时时间，单位为秒，默认10秒
+		 * @returns {Promise<Array<RequestResult>>}
+		 * @memberof Client
+		 */
+		(arg: Array<{ method: Method, params?: unknown, option?: { timeout: number } }>): Promise<Array<RequestResult>>;
+	}
+
+	interface Notify<Notice extends string = string> {
+		/**
+		 * 向服务器发送一次通知
+		 *
+		 * @param {Notice} notice 通知名称
+		 * @param {*} [params]
+		 * @returns {void}
+		 * @memberof Client
+		 */
+		(notice: Notice, params?: unknown): void;
+
+		/**
+		 * 向服务器批量发送多个通知
+		 *
+		 * @param {Notice} arg.notice 通知名称
+		 * @param {*} [arg.params]
+		 * @returns {void}
+		 * @memberof Client
+		 */
+		(arg: Array<{ notice: Notice, params?: unknown }>): void;
+	}
+
+	export interface Client<Method extends string = string, Notice extends string = string> {
 		/** 连接状态：连接还没有打开. */
 		readonly CONNECTING: number;
 		/** 连接状态：连接已准备就绪. */
@@ -291,14 +339,18 @@ export declare namespace WsClient {
 		readonly open: () => Promise<void>;
 
 		/**
-		 * 发送一个method请求
+		 * 发送method请求
 		 *
-		 * @param {M} method method名称
-		 * @param {*} [params]
-		 * @returns {Promise<RequestResult>}
 		 * @memberof Client
 		 */
-		readonly request: (method: M, params?: unknown) => Promise<RequestResult>;
+		readonly request: Request<Method>;
+
+		/**
+		 * 向服务器发送通知
+		 *
+		 * @memberof Client
+		 */
+		readonly notify: Notify<Notice>;
 
 		/**
 		 * ping
@@ -315,6 +367,8 @@ export declare namespace WsClient {
 		 */
 		readonly isConnected: () => Promise<RequestResult>;
 
+		// readonly onNotice: OnNotice;
+
 		/**
 		 * 注册一个/多个客户端离线时的回调函数
 		 *
@@ -323,16 +377,16 @@ export declare namespace WsClient {
 		 */
 		readonly offline: (...args: Array<() => void>) => void;
 
-		// readonly onNotice: OnNotice;
-
 		/**
-		 * 为某个method设置一个监听事件
+		 * 为某个method设置一个监听事件，一般用于服务器主动推送数据的监听，推送的数据符合JSON-RPC规范
+		 * 服务器主动推送数据可使用：socket.sendout
 		 *
 		 * @memberof Client
 		 */
 		readonly listening: (method: string, callback: ListenCallbackFn, once?: boolean) => void;
 
-		readonly removeListening: (method: string, callback: () => void) => void;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		readonly removeListening: (method: string, callback: (...args: any[]) => void) => void;
 
 		/**
 		 * 关闭当前连接

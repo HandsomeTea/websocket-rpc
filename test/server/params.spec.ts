@@ -31,6 +31,22 @@ describe('服务器-参数测试', () => {
 		expect(server.methodList).toStrictEqual(['method1']);
 	});
 
+	test('批量访问', async () => {
+		server.register('method2', (params) => {
+			const [num1, num2] = params as Array<number>;
+
+			return num1 + num2;
+		});
+
+		const _result = await client.request([
+			{ method: 'method2', params: [5, 3] },
+			{ method: 'method2', params: [1, 1], option: { timeout: 3 } }
+		]);
+		const result = _result.map(item => item.result as number);
+
+		expect(result).toStrictEqual([8, 2]);
+	});
+
 	test('非json参数,不可解析', async () => {
 		const result = await new Promise(resolve => {
 			client.client.send('asdasdasd');
@@ -49,7 +65,7 @@ describe('服务器-参数测试', () => {
 		});
 	});
 
-	test('缺少id', async () => {
+	test('缺少id:应为notice', async () => {
 		const params = 'notice str';
 		const result = new Promise((resolve, reject) => {
 			server.onNotice(data => {
@@ -66,6 +82,18 @@ describe('服务器-参数测试', () => {
 		});
 
 		client.client.send(JSON.stringify({ method: 'method1', params, jsonrpc: '2.0' }));
+		expect(await result).toStrictEqual(params);
+	});
+
+	test('id非法:应为notice', async () => {
+		const params = 'notice str1';
+		const result = new Promise(resolve => {
+			server.onNotice('method1', data => {
+				resolve(data);
+			});
+		});
+
+		client.client.send(JSON.stringify({ id: [2], method: 'method1', params, jsonrpc: '2.0' }));
 		expect(await result).toStrictEqual(params);
 	});
 

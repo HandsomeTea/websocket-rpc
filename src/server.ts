@@ -8,7 +8,7 @@ import type { WebsocketService, Logger, Socket, AnyObject } from './typings.js';
 import { uuid } from './lib.js';
 
 
-export class WebsocketServer<Attr extends AnyObject, M extends string = string> implements WebsocketService.Server<Attr, M> {
+export class WebsocketServer<Attr extends AnyObject, Method extends string = string, Notice extends string = string> implements WebsocketService.Server<Attr, Method, Notice> {
     private options: Socket.Link<Attr>['option'] = {
         RPCSerializer: {
             serialize: (data) => JSON.stringify(data, null, '   '),
@@ -16,7 +16,7 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
         }
     };
     private configs: WebSocket.ServerOptions = {};
-    private server!: Server;
+    private server: Server | null = null;
     private serverId: string = crypto.randomBytes(16).toString('hex');
     private logger?: ((module?: string) => Logger);
 
@@ -45,7 +45,7 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
             onlineCallbacks: [],
             offlineCallbacks: [],
             errorCallbacks: [],
-            requestIds: {}
+            requestIds: new Map()
         };
 
         Object.freeze(_serverStore[this.serverId]);
@@ -57,6 +57,9 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
             if (this.logger) {
                 this.logger('startup').error(error.stack || error.message);
             }
+        });
+        this.server.on('close', () => {
+            delete _serverStore[this.serverId];
         });
         this.server.on('connection', async (socket: Socket.Link<Attr>, request: http.IncomingMessage) => {
 
@@ -134,20 +137,20 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
     /**
      * 注册一个method
      *
-     * @param {M} method method名称
+     * @param {Method} method method名称
      * @param {WebsocketService.MethodFn<Attr>} cb
      * @memberof WebsocketServer
      */
-    register(method: M, cb: WebsocketService.MethodFn<Attr>): void;
+    register(method: Method, cb: WebsocketService.MethodFn<Attr>): void;
     /**
      * 注册一个或多个method
      *
-     * @param {Record<M, WebsocketService.MethodFn<Attr>>} method method回调函数
+     * @param {Record<Method, WebsocketService.MethodFn<Attr>>} method method回调函数
      * @memberof WebsocketServer
      */
-    register(method: Record<M, WebsocketService.MethodFn<Attr>>): void;
+    register(method: Record<Method, WebsocketService.MethodFn<Attr>>): void;
 
-    register(method: M | Record<M, WebsocketService.MethodFn<Attr>>, cb?: WebsocketService.MethodFn<Attr>) {
+    register(method: Method | Record<Method, WebsocketService.MethodFn<Attr>>, cb?: WebsocketService.MethodFn<Attr>) {
         if (typeof method === 'string' && typeof cb === 'function') {
             // @ts-ignore
             _serverStore[this.serverId].methods[method] = cb;
@@ -171,13 +174,13 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
     /**
      * 注册只适用于某个method的一个或多个中间件
      *
-     * @param {M} method method名称
+     * @param {Method} method method名称
      * @param {...Array<WebsocketService.MiddlewareFn<Attr>>} middlewares
      * @memberof WebsocketServer
      */
-    use(method: M, ...middlewares: Array<WebsocketService.MiddlewareFn<Attr>>): void;
+    use(method: Method, ...middlewares: Array<WebsocketService.MiddlewareFn<Attr>>): void;
 
-    use(...middlewares: Array<WebsocketService.MiddlewareFn<Attr>> | [M, ...Array<WebsocketService.MiddlewareFn<Attr>>]) {
+    use(...middlewares: Array<WebsocketService.MiddlewareFn<Attr>> | [Method, ...Array<WebsocketService.MiddlewareFn<Attr>>]) {
         if (typeof middlewares[0] === 'string') {
             const method = middlewares.shift() as string;
 
@@ -208,9 +211,9 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
      * @param notice 消息事件名称，取消息中的method值
      * @param noticeHandlers
      */
-    onNotice<N extends string = string>(notice: N, ...noticeHandlers: Array<WebsocketService.NoticeFn<Attr>>): void;
+    onNotice(notice: Notice, ...noticeHandlers: Array<WebsocketService.NoticeFn<Attr>>): void;
 
-    onNotice(...noticeHandlers: Array<WebsocketService.NoticeFn<Attr>> | [string, ...Array<WebsocketService.NoticeFn<Attr>>]) {
+    onNotice(...noticeHandlers: Array<WebsocketService.NoticeFn<Attr>> | [Notice, ...Array<WebsocketService.NoticeFn<Attr>>]) {
         if (typeof noticeHandlers[0] === 'string') {
             const notice = noticeHandlers.shift() as string;
 
@@ -231,7 +234,8 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
     }
 
     close() {
-        this.server.close();
+        this.server?.close();
+        this.server = null;
     }
 
     online(...args: Array<WebsocketService.OnlineCallbackFn<Attr>>): void {
@@ -245,6 +249,10 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
         }
     }
 
+    /**
+     * 连接断开后的回调
+     * @param {Array<WebsocketService.OfflineCallbackFn<Attr>>} args
+     */
     offline(...args: Array<WebsocketService.OfflineCallbackFn<Attr>>): void {
         if (Array.isArray(args) && args.length > 0) {
             for (const fn of args) {
@@ -323,7 +331,6 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
             // @ts-ignore
             return _sessionMap[connectId].getAttr(...attribute);
         }
-        return undefined;
     }
 
     /**
@@ -384,7 +391,7 @@ export class WebsocketServer<Attr extends AnyObject, M extends string = string> 
     }
 
     get clients() {
-        return this.server.clients as Set<Socket.Link<Attr>>;
+        return (this.server?.clients || new Set()) as Set<Socket.Link<Attr>>;
     }
 
     get methodList() {
