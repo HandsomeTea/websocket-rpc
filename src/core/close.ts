@@ -5,8 +5,8 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
     socket.on('close', async () => {
         const { id } = socket;
 
-        if (socket.option.logger) {
-            socket.option.logger('close-socket-connection').warn(`socket:${id} is closed.`);
+        if (socket.logger) {
+            socket.logger('close-socket-connection').warn(`socket:${id} is closed.`);
         }
 
         const offlineFns = _serverStore[serverId]?.offlineCallbacks || [];
@@ -16,10 +16,10 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                 try {
                     await fn(socket.attribute, socket.id);
                 } catch (error) {
-                    if (socket.option.logger) {
+                    if (socket.logger) {
                         const e = error as Error;
 
-                        socket.option.logger('close-socket-connection').error(e.stack || e.message);
+                        socket.logger('close-socket-connection').error(e.stack || e.message);
                     }
                     const errorFns = _serverStore[serverId]?.errorCallbacks || [];
 

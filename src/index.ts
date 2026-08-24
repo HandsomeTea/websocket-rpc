@@ -1,33 +1,35 @@
-import type { WebsocketService, Socket, WsClient, AnyObject } from './typings.js';
+import type { WebSocketService, Socket, WsClient, AnyObject } from './typings.js';
 
-export type MiddlewareFn<Attribute extends AnyObject> = WebsocketService.MiddlewareFn<Attribute>;
+export type MiddlewareFn<Attribute extends AnyObject> = WebSocketService.MiddlewareFn<Attribute>;
 
-export type MethodFn<Attribute extends AnyObject> = WebsocketService.MethodFn<Attribute>;
+export type MethodFn<Attribute extends AnyObject> = WebSocketService.MethodFn<Attribute>;
 
-export type NoticeFn<Attribute extends AnyObject> = WebsocketService.NoticeFn<Attribute>;
+export type NoticeFn<Attribute extends AnyObject> = WebSocketService.NoticeFn<Attribute>;
 
-export type OnlineCallbackFn<Attribute extends AnyObject> = WebsocketService.OnlineCallbackFn<Attribute>;
+export type OnlineCallbackFn<Attribute extends AnyObject> = WebSocketService.OnlineCallbackFn<Attribute>;
 
-export type OfflineCallbackFn<Attribute extends AnyObject> = WebsocketService.OfflineCallbackFn<Attribute>;
+export type OfflineCallbackFn<Attribute extends AnyObject> = WebSocketService.OfflineCallbackFn<Attribute>;
 
-export type ErrorCallbackFn<Attribute extends AnyObject, E> = WebsocketService.ErrorCallbackFn<Attribute, E>;
+export type ErrorCallbackFn<Attribute extends AnyObject, E> = WebSocketService.ErrorCallbackFn<Attribute, E>;
 
 export type Link<Attribute extends AnyObject> = Socket.Link<Attribute>;
 
-export type ListenCallbackFn = WsClient.ListenCallbackFn;
+export type ClientListeningCallbackFn = WsClient.ListeningCallbackFn;
 
 export type Attribute = AnyObject;
 
-export type RPCError = WebsocketService.RPCError;
+export type RPCError = WebSocketService.RPCError;
 
-export type MethodResponse = Socket.MethodResponse;
+export type ServerMessage = Socket.ServerMessage;
 
 export type RequestResult = WsClient.RequestResult;
 
-export type ServerOptions = WebsocketService.Options;
+export type ServerOptions = WebSocketService.Options;
 
 export type ClientOptions = WsClient.Options;
 
-export { WebsocketServer } from './server.js';
+export { WebSocketServer } from './server.js';
 
-export { WebsocketClient } from './client.js';
+export { WebSocketClient } from './client.js';
+
+export { BrowserWsClient } from './browser.js';

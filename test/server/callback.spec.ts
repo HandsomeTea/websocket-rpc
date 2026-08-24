@@ -1,47 +1,32 @@
 import { describe, it, expect } from 'vitest';
-import WS from 'ws';
-import { WebsocketServer } from '../../src';
 import { uuid } from '../../src/lib';
+import instance from '../base';
+
 
 describe('服务器-回调事件', () => {
 
     it('online', async () => {
-        const result = await new Promise(resolve => {
-            const port = 3202;
-            const server = new WebsocketServer({ port });
-
-            server.start();
-            server.online(socket => {
-                socket.sendout({
-                    id: uuid(),
-                    method: 'test-notice',
-                    result: 'success'
-                });
-            });
-            const client = new WS(`ws://localhost:${port}`);
-
-            client.once('message', data => {
-                server.close();
-                client.close();
-                resolve(JSON.parse(data.toString()));
-            });
-        });
-
-        expect(result).toStrictEqual({
-            jsonrpc: '2.0',
-            id: expect.any(String),
+        const { server, client } = await instance(undefined, false);
+        const testData = {
             method: 'test-notice',
-            result: 'success'
+            result: 'online'
+        };
+        const result = new Promise(async resolve => {
+            server.online(() => {
+                resolve(testData);
+            });
         });
+
+        await client.open();
+        client.close();
+        server.close();
+        expect(await result).toStrictEqual(testData);
     });
 
     it('offline', async () => {
         let sessionId = '';
-        const result = await new Promise(resolve => {
-            const port = 3203;
-            const server = new WebsocketServer({ port });
-
-            server.start();
+        const { server, client } = await instance(undefined, false);
+        const result = new Promise(async resolve => {
             server.online(socket => {
                 sessionId = socket.id;
             });
@@ -49,96 +34,74 @@ describe('服务器-回调事件', () => {
                 server.close();
                 resolve(id);
             });
-            const client = new WS(`ws://localhost:${port}`);
-
-            client.on('open', () => {
-                client.close();
-            });
         });
+        await client.open();
 
-        expect(result).toEqual(sessionId);
+        client.close();
+        server.close();
+        expect(await result).toEqual(sessionId);
     });
 
     it('method error', async () => {
-        const result = await new Promise(resolve => {
-            const port = 3204;
-            const server = new WebsocketServer({ port });
+        const { server, client } = await instance();
 
-            server.start();
-            server.error<Error>((error, socket) => {
-                socket.send(error.message);
-                server.close();
-            });
-            server.register('m1', () => {
-                throw new Error('method-error');
-            });
-            const client = new WS(`ws://localhost:${port}`);
-
-            client.on('open', () => {
-                client.send(JSON.stringify({ method: 'm1', id: uuid(), params: [], jsonrpc: '2.0' }));
-                client.once('message', data => {
-                    client.close();
-                    resolve(data.toString());
-                });
+        server.error<Error>((error, socket, data) => {
+            socket.sendout({
+                id: data?.id || uuid(),
+                method: 'm1',
+                result: error.message
             });
         });
 
-        expect(result).toEqual('method-error');
+        server.register('m1', () => {
+            throw new Error('method-error');
+        });
+        const result = await client.request('m1');
+
+        client.close();
+        server.close();
+        expect(result.result).toEqual('method-error');
     });
 
     it('某个method的中间件error', async () => {
-        const result = await new Promise(resolve => {
-            const port = 3205;
-            const server = new WebsocketServer({ port });
+        const { server, client } = await instance();
 
-            server.start();
-            server.error<Error>((error, socket) => {
-                socket.send(error.message);
-                server.close();
-            });
-            server.use('m1', () => {
-                throw new Error('m1-middleware-error');
-            });
-            server.register('m1', () => { });
-            const client = new WS(`ws://localhost:${port}`);
-
-            client.on('open', () => {
-                client.send(JSON.stringify({ method: 'm1', id: uuid(), params: [], jsonrpc: '2.0' }));
-                client.once('message', data => {
-                    client.close();
-                    resolve(data.toString());
-                });
+        server.error<Error>((error, socket, req) => {
+            socket.sendout({
+                id: req?.id || uuid(),
+                method: 'm2',
+                result: error.message
             });
         });
+        server.use('m2', () => {
+            throw new Error('m1-middleware-error');
+        });
+        server.register('m2', () => { });
+        const result = await client.request('m2');
 
-        expect(result).toEqual('m1-middleware-error');
+        client.close();
+        server.close();
+        expect(result.result).toEqual('m1-middleware-error');
     });
 
     it('对所有method起作用的中间件error', async () => {
-        const result = await new Promise(resolve => {
-            const port = 3206;
-            const server = new WebsocketServer({ port });
+        const { server, client } = await instance();
 
-            server.start();
-            server.error<Error>((error, socket) => {
-                socket.send(error.message);
-                server.close();
-            });
-            server.use(() => {
-                throw new Error('middleware-error');
-            });
-            server.register('m2', () => { });
-            const client = new WS(`ws://localhost:${port}`);
-
-            client.on('open', () => {
-                client.send(JSON.stringify({ method: 'm2', id: uuid(), params: [], jsonrpc: '2.0' }));
-                client.once('message', data => {
-                    client.close();
-                    resolve(data.toString());
-                });
+        server.error<Error>((error, socket, req) => {
+            socket.sendout({
+                id: req?.id || uuid(),
+                method: 'm3',
+                result: error.message
             });
         });
+        server.use(() => {
+            throw new Error('middleware-error');
+        });
+        server.register('m3', () => { });
+        const result = await client.request('m3');
 
-        expect(result).toEqual('middleware-error');
+        client.close();
+        server.close();
+        expect(result.result).toEqual('middleware-error');
     });
 });

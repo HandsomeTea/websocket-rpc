@@ -1,19 +1,18 @@
 import mongoose from 'mongoose';
 import { sessionService, instanceService } from './service';
-import { WebsocketServer } from '../src';
+import { WebSocketServer } from '../src';
 import cluster from 'cluster';
 
 const start = async () => {
     await mongoose.connect('mongodb://localhost:27017/test');
-    const server = new WebsocketServer<{ userId: string }>({ port: 3801 });
+    const server = new WebSocketServer<{ userId: string }>({ port: 3801 });
 
-    server.start(() => {
-        instanceService.healthCheck();
+    await server.start();
+    instanceService.healthCheck();
 
-        if (cluster.isWorker) {
-            console.log(`server ${process.pid} start`);
-        }
-    });
+    if (cluster.isWorker) {
+        console.log(`server ${process.pid} start`);
+    }
 
     server.register('login', async (params, socket) => {
         const { user } = params as { user: string };

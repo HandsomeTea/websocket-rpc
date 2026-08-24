@@ -11,9 +11,9 @@ const executeErrorFns = async <T>(error: T, socket: Socket.Link<AnyObject>, serv
             // @ts-ignore
             await fn(error, socket, reqData);
         } catch (error) {
-            if (socket.option.logger) {
+            if (socket.logger) {
                 // @ts-ignore
-                socket.option.logger(`error:${fn.name}`).error(error);
+                socket.logger(`error:${fn.name}`).error(error);
             }
         }
     }
@@ -21,43 +21,39 @@ const executeErrorFns = async <T>(error: T, socket: Socket.Link<AnyObject>, serv
 const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, data: { jsonrpc: '2.0', method: string, id: string | number, params?: unknown }) => {
     const { id, method, params } = data;
 
-    if (socket.option.logger) {
-        socket.option.logger(`request:${method}`).debug(socket.option.RPCSerializer.serialize(data));
+    if (socket.logger) {
+        socket.logger(`request:${method}`).debug(socket.option.jsonSerializer.serialize(data));
     }
 
     // ====================================== 特殊method处理 ======================================
     if (method === 'ping') {
         socket.sendout({
-            id: `${id}`,
+            id,
             method,
             result: 'pong'
         });
         _serverStore[serverId]?.requestIds.delete(id);
         return;
     } else if (method === 'connect') {
-        socket.sendout({ id: `${id}`, method, result: { msg: 'connected', session: socket.id } });
+        socket.sendout({ id, method, result: { msg: 'connected', session: socket.id } });
         _serverStore[serverId]?.requestIds.delete(id);
         return;
     }
 
     // ====================================== method是否存在 ======================================
     if (!_serverStore[serverId]?.methods[method]) {
-        if (socket.option.logger) {
-            socket.option.logger(`request:${method}`).error(`Method not found with ${socket.option.RPCSerializer.serialize(data)}`);
+        if (socket.logger) {
+            socket.logger(`request:${method}`).error(`Method not found with ${socket.option.jsonSerializer.serialize(data)}`);
         }
-        if (getErrorFns(serverId).length > 0) {
-            await executeErrorFns(new Error('Method not found'), socket, serverId, data);
-        } else {
-            socket.sendout({
-                id,
-                method,
-                error: {
-                    code: -32601,
-                    message: 'Method not found',
-                    data: 'Method not found'
-                }
-            });
-        }
+        socket.sendout({
+            id,
+            method,
+            error: {
+                code: -32601,
+                message: 'Method not found',
+                data: 'Method not found'
+            }
+        });
         _serverStore[serverId]?.requestIds.delete(id);
         return;
     }
@@ -79,8 +75,8 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
                     const value = result[key];
 
                     if (!validType.has(typeof value)) {
-                        if (socket.option.logger) {
-                            socket.option.logger(`middleware:${method}`).warn(`invalid new socket attribute [${key}] value: ${value}, ignored!`);
+                        if (socket.logger) {
+                            socket.logger(`middleware:${method}`).warn(`invalid new socket attribute [${key}] value: ${value}, ignored!`);
                         }
                         continue;
                     }
@@ -90,8 +86,8 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
                     }
 
                     if (key in socket.attribute) {
-                        if (socket.option.logger) {
-                            socket.option.logger(`middleware:${method}`).warn(`socket attribute [${key}] changed: ${socket.attribute[key]} => ${value}`);
+                        if (socket.logger) {
+                            socket.logger(`middleware:${method}`).warn(`socket attribute [${key}] changed: ${socket.attribute[key]} => ${value}`);
                         }
                     }
 
@@ -101,8 +97,8 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
                 }
             }
         } catch (error) {
-            if (socket.option.logger) {
-                socket.option.logger(`middleware:${method}`).error(socket.option.RPCSerializer.serialize(error));
+            if (socket.logger) {
+                socket.logger(`middleware:${method}`).error(socket.option.jsonSerializer.serialize(error));
             }
             if (getErrorFns(serverId).length > 0) {
                 await executeErrorFns(error, socket, serverId, data);
@@ -124,22 +120,20 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
 
     // ====================================== 执行method ======================================
     try {
-        const result = await _serverStore[serverId].methods[method](params, socket);
-
         socket.sendout({
-            id: `${id}`,
+            id,
             method,
-            result
+            result: await _serverStore[serverId].methods[method](params, socket)
         });
     } catch (error) {
-        if (socket.option.logger) {
-            socket.option.logger(`method:${method}`).error(socket.option.RPCSerializer.serialize(error));
+        if (socket.logger) {
+            socket.logger(`method:${method}`).error(socket.option.jsonSerializer.serialize(error));
         }
         if (getErrorFns(serverId).length > 0) {
             await executeErrorFns(error, socket, serverId, data);
         } else {
             socket.sendout({
-                id: `${id}`,
+                id,
                 method,
                 error: {
                     code: -32001,
@@ -158,81 +152,121 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
         let data = null;
 
         try {
-            data = socket.option.RPCSerializer.deserialize(parameter.toString());
+            data = socket.option.jsonSerializer.deserialize(parameter.toString());
         } catch (error) {
-            if (socket.option.logger) {
-                socket.option.logger('socket-receive').error(`Parse error with ${parameter.toString()}`);
+            if (socket.logger) {
+                socket.logger('socket-receive').error(`Parse error with ${parameter.toString()}`);
             }
-            if (getErrorFns(serverId).length > 0) {
-                return await executeErrorFns(error, socket, serverId);
-            } else {
-                return socket.sendout({
-                    id: uuid(),
-                    method: '',
-                    error: {
-                        code: -32700,
-                        message: 'Parse error',
-                        data: (error as Error).message
-                    }
-                });
-            }
+
+            return socket.sendout({
+                id: null,
+                error: {
+                    code: -32700,
+                    message: 'Parse error',
+                    data: (error as Error).message
+                }
+            });
         }
 
         const _datas = data as Socket.MethodRequest | Array<Socket.MethodRequest>;
         const datas = Array.isArray(_datas) ? _datas : [_datas];
+
+        if (datas.length === 0) {
+            if (socket.logger) {
+                socket.logger('socket-receive').error(`Invalid request with ${socket.option.jsonSerializer.serialize(data)}`);
+            }
+
+            socket.sendout({
+                id: uuid(),
+                error: {
+                    code: -32600,
+                    message: 'Invalid request',
+                    data: 'Invalid request: []'
+                }
+            });
+            return;
+        }
 
         for (const data of datas) {
             // ====================================== 数据合法性检查 ======================================
             const { jsonrpc, method, id, params } = data;
 
             if (jsonrpc !== '2.0') {
-                if (socket.option.logger) {
-                    socket.option.logger('socket-receive').error(`Invalid params with ${socket.option.RPCSerializer.serialize(data)}`);
+                if (socket.logger) {
+                    socket.logger('socket-receive').error(`Invalid request with ${socket.option.jsonSerializer.serialize(data)}`);
                 }
-                const errorStr = `Invalid field[jsonrpc]: ${jsonrpc}`;
 
-                if (getErrorFns(serverId).length > 0) {
-                    await executeErrorFns(new Error(errorStr), socket, serverId, data);
-                } else {
-                    socket.sendout({
-                        id: id ?? uuid(),
-                        method: method ?? '',
-                        error: {
-                            code: -32602,
-                            message: 'Invalid params',
-                            data: errorStr
-                        }
-                    });
-                }
+                socket.sendout({
+                    id: id ?? null,
+                    method,
+                    error: {
+                        code: -32600,
+                        message: 'Invalid request',
+                        data: `Invalid field[jsonrpc]: ${jsonrpc}`
+                    }
+                });
                 continue;
             }
 
             if (!(method && typeof method === 'string')) {
-                if (socket.option.logger) {
-                    socket.option.logger('socket-receive').error(`Invalid params with ${socket.option.RPCSerializer.serialize(data)}`);
+                if (socket.logger) {
+                    socket.logger('socket-receive').error(`Invalid request with ${socket.option.jsonSerializer.serialize(data)}`);
                 }
-                const errorStr = `Invalid field[method]: ${socket.option.RPCSerializer.serialize(method)}`;
 
-                if (getErrorFns(serverId).length > 0) {
-                    await executeErrorFns(new Error(errorStr), socket, serverId, data);
-                } else {
-                    socket.sendout({
-                        id: id ?? uuid(),
-                        method: method ?? '',
-                        error: {
-                            code: -32602,
-                            message: 'Invalid params',
-                            data: errorStr
-                        }
-                    });
-                }
+                socket.sendout({
+                    id: id ?? null,
+                    method,
+                    error: {
+                        code: -32600,
+                        message: 'Invalid request',
+                        data: `Invalid field[method]: ${socket.option.jsonSerializer.serialize(method)}`
+                    }
+                });
                 continue;
             }
 
-            if (!(
-                (!!id || id === 0) &&
-                (typeof id === 'string' || typeof id === 'number')
-            )) {
+            if (
+                typeof id === 'number' && (isNaN(id) || id.toString().includes('.'))
+                || (
+                    typeof id !== 'undefined'
+                    && typeof id !== 'number'
+                    && typeof id !== 'string'
+                    && id !== null
+                )
+            ) {
+                if (socket.logger) {
+                    socket.logger('socket-receive').error(`Invalid request with ${socket.option.jsonSerializer.serialize(data)}`);
+                }
+
+                socket.sendout({
+                    id,
+                    method,
+                    error: {
+                        code: -32600,
+                        message: 'Invalid request',
+                        data: `Invalid field[id]: ${socket.option.jsonSerializer.serialize(id)}`
+                    }
+                });
+                continue;
+            }
+
+            if (id === null) {
+                if (socket.logger) {
+                    socket.logger('socket-receive').error('Invalid request with id: null');
+                }
+                socket.sendout({
+                    id,
+                    method,
+                    error: {
+                        code: -32600,
+                        message: 'Invalid request',
+                        data: 'Invalid field[id]: null'
+                    }
+                });
+                continue;
+            }
+
+            if (typeof id === 'undefined') {
                 const noticeHandlers = _serverStore[serverId]?.noticeHandlers || [];
 
                 if (noticeHandlers.length > 0) {
@@ -245,8 +279,8 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                                 await noticeHandler.fn(params, socket.attribute, method);
                             }
                         } catch (error) {
-                            if (socket.option.logger) {
-                                socket.option.logger(`notice:${method}`).error(socket.option.RPCSerializer.serialize(error));
+                            if (socket.logger) {
+                                socket.logger(`notice:${method}`).error(socket.option.jsonSerializer.serialize(error));
                             }
                             if (getErrorFns(serverId).length > 0) {
                                 await executeErrorFns(error, socket, serverId, data);
@@ -258,8 +292,8 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
             }
 
             if (typeof _serverStore[serverId]?.requestIds.get(id) !== 'undefined') {
-                if (socket.option.logger) {
-                    socket.option.logger('socket-receive').error(`duplicate request with ${parameter.toString()}`);
+                if (socket.logger) {
+                    socket.logger('socket-receive').error(`duplicate request with ${parameter.toString()}`);
                 }
                 socket.sendout({
                     id,
@@ -272,6 +306,7 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                 });
                 continue;
             }
+
             // @ts-ignore
             _serverStore[serverId].requestIds.set(id, Date.now());
             // ====================================== 执行 ======================================

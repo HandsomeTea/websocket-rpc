@@ -8,8 +8,10 @@ export interface Logger {
 	error(message: string): void;
 }
 
+type BaseType = string | number | boolean | null;
+
 export interface AnyObject {
-	[key: string]: string | number | boolean;
+	[key: string]: BaseType | Array<BaseType> | AnyObject | Array<AnyObject>;
 }
 
 export declare namespace Socket {
@@ -35,23 +37,24 @@ export declare namespace Socket {
 
 	export interface MethodRequest {
 		jsonrpc: '2.0'
-		/** 一般为随机字符串，uuid为佳 */
-		id?: string | number
+		/** 一般为随机字符串或，uuid为佳 */
+		id?: string | number | null
 		method: string
 		params?: unknown
 	}
 
-	export interface MethodResponse {
+	export interface ServerMessage {
 		jsonrpc: '2.0'
-		/** 一般为随机字符串，uuid为佳 */
-		id: string | number
+		/** 一般为随机字符串或，uuid为佳 */
+		id: string | number | null
 		/**
 		 * 非jsonrpc2.0标准字段。
 		 * 用于标记结果所属的method时，可取请求数据的method值；也可自定义取值，标记服务器自定义推送信息
+		 * 不可以为unknownMsg，以unknownMsg为名的method是客户端监听位置消息的固定method
 		 */
-		method: string
+		method?: string
 		result?: unknown
-		error?: WebsocketService.RPCError
+		error?: WebSocketService.RPCError
 	}
 
 	export interface Link<Attr extends AnyObject> extends WebSocket {
@@ -59,10 +62,10 @@ export declare namespace Socket {
 		readonly attribute: Attr
 		/** 连接的id */
 		readonly id: string
+		readonly logger?: (module?: string) => Logger
+
 		readonly option: {
-			logger?: (module?: string) => Logger
-			compression?: WebsocketService.Options['compression']
-			RPCSerializer: {
+			jsonSerializer: {
 				serialize: (data: unknown) => string
 				deserialize: (data: string) => unknown
 			}
@@ -71,10 +74,10 @@ export declare namespace Socket {
 		/**
 		 * 发送符合jsonrpc2.0规范的数据
 		 *
-		 * @param {Omit<MethodResponse, 'jsonrpc'>} message
+		 * @param {Omit<ServerMessage, 'jsonrpc'>} message
 		 * @memberof Link
 		 */
-		readonly sendout: (message: Omit<MethodResponse, 'jsonrpc'>) => Promise<void>;
+		readonly sendout: (message: Omit<ServerMessage, 'jsonrpc'>) => Promise<void>;
 
 		readonly setAttr: SetAttr<Attr>;
 		readonly getAttr: GetAttr<Attr>;
@@ -82,12 +85,11 @@ export declare namespace Socket {
 }
 
 
-export declare namespace WebsocketService {
+export declare namespace WebSocketService {
 
 	export interface Options {
 		log?: boolean | ((module?: string) => Logger)
-		compression?: 'zlib'
-		RPCSerializer?: {
+		jsonSerializer?: {
 			/** 序列化方法，默认为JSON.stringify */
 			serialize?: (data: unknown) => string
 			/** 反序列化方法，默认为JSON.parse */
@@ -96,7 +98,7 @@ export declare namespace WebsocketService {
 	}
 
 	export interface RPCError {
-		/** 应为-32768至-32000之间的数字 */
+		/** -32768至-32000的数字 */
 		code: number
 		message: string
 		data?: unknown
@@ -118,18 +120,30 @@ export declare namespace WebsocketService {
 	export type ErrorCallbackFn<Attribute extends AnyObject, E> = (error: E, socket: Socket.Link<Partial<Attribute>>, reqData?: Socket.MethodRequest) => void | Promise<void>;
 
 	interface Use<Attribute extends AnyObject, Method extends string = string> {
-		/** 注册适用于所有method的一个或多个中间件 */
+		/**
+		 * 注册适用于所有method的一个或多个中间件
+		 * 内置的ping和connect不会执行任何中间件
+		*/
 		(middleware: MiddlewareFn<Attribute>, ...middlewares: Array<MiddlewareFn<Attribute>>): void;
 
-		/** 注册只适用于某个method的一个或多个中间件 */
+		/**
+		 * 注册只适用于某个method的一个或多个中间件
+		 * 内置的ping和connect不支持注册中间件
+		*/
 		(method: Method, ...middlewares: Array<MiddlewareFn<Attribute>>): void;
 	}
 
 	interface Register<Attribute extends AnyObject, Method extends string = string> {
-		/** 注册一个method */
+		/**
+		 * 注册一个method
+		 * @param {Method} method method名称，不支持ping和connect(已内置)，若传入ping或connect，则忽略
+		 */
 		(method: Method, cb: MethodFn<Attribute>): void;
 
-		/** 注册一个或多个method */
+		/**
+		 * 注册一个或多个method
+		 * method名称不支持ping和connect(已内置)，若传入ping或connect，则忽略
+		 */
 		(method: Record<Method, MethodFn<Attribute>>): void;
 	}
 
@@ -175,7 +189,7 @@ export declare namespace WebsocketService {
 		 *
 		 * @memberof Server
 		 */
-		readonly start: (cb?: () => void) => void;
+		readonly start: () => Promise<void>;
 
 		/**
 		 * 停止服务
@@ -204,7 +218,7 @@ export declare namespace WebsocketService {
 		 * middleware或method运行出错时的错误处理。
 		 * 注意：只处理middleware和method执行抛出的错误
 		 * @template E
-		 * @param {...Array<WebsocketService.ErrorCallbackFn<Attribute, E>>} args
+		 * @param {...Array<WebSocketService.ErrorCallbackFn<Attribute, E>>} args
 		 * @memberof Server
 		 */
 		readonly error: <E>(...args: Array<ErrorCallbackFn<Attribute, E>>) => void;
@@ -255,6 +269,8 @@ export declare namespace WebsocketService {
 		 * @memberof Server
 		 */
 		readonly methodList: Array<string>;
+
+		readonly port: number | undefined;
 	}
 }
 
@@ -264,12 +280,13 @@ export declare namespace WsClient {
 	export interface Options {
 		/**
 		 * 接收method返回超时时间，单位为秒，默认10秒
+		 * 设置为0表示不设置超时
 		 */
 		timeout?: number;
 	}
 
-	export type ListenCallbackFn = (error: Socket.MethodResponse['error'] | null, result: Socket.MethodResponse['result']) => void;
-	export type RequestResult = { error?: Socket.MethodResponse['error'], result?: Socket.MethodResponse['result'] };
+	export type ListeningCallbackFn = (error: Socket.ServerMessage['error'] | null, result: Socket.ServerMessage['result']) => void;
+	export type RequestResult = { error?: Socket.ServerMessage['error'], result?: Socket.ServerMessage['result'] };
 
 	interface Request<Method extends string = string> {
 		/**
@@ -365,9 +382,7 @@ export declare namespace WsClient {
 		 *
 		 * @memberof Client
 		 */
-		readonly isConnected: () => Promise<RequestResult>;
-
-		// readonly onNotice: OnNotice;
+		readonly connectInfo: () => Promise<RequestResult>;
 
 		/**
 		 * 注册一个/多个客户端离线时的回调函数
@@ -378,15 +393,26 @@ export declare namespace WsClient {
 		readonly offline: (...args: Array<() => void>) => void;
 
 		/**
-		 * 为某个method设置一个监听事件，一般用于服务器主动推送数据的监听，推送的数据符合JSON-RPC规范
-		 * 服务器主动推送数据可使用：socket.sendout
+		 * 为某个method设置一个监听事件，一般用于服务器主动推送数据的监听
+		 * 服务器主动推送的数据没有method字段时，可通过listening('unknownMsg', ...)来监听
+		 * 可添加多次，监听事件会按添加顺序触发
 		 *
+		 * @param {string} method
+		 * @param {ListeningCallbackFn} callback
+		 * @param {boolean} [once]
+		 * @returns {void}
 		 * @memberof Client
 		 */
-		readonly listening: (method: string, callback: ListenCallbackFn, once?: boolean) => void;
+		readonly listening: (method: string, callback: ListeningCallbackFn, once?: boolean) => void;
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		readonly removeListening: (method: string, callback: (...args: any[]) => void) => void;
+		/**
+		 *
+		 * @param {string} method
+		 * @param {ListeningCallbackFn} callback
+		 * @returns {void}
+		 * @memberof Client
+		 */
+		readonly removeListening: (method: string, callback: ListeningCallbackFn) => void;
 
 		/**
 		 * 关闭当前连接

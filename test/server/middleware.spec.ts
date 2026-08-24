@@ -1,26 +1,28 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import instance from './base';
+import instance from '../base';
+import { WebSocketServer, WebSocketClient, Attribute } from '../../src';
 
-const { server, client } = instance(3324);
+let server: WebSocketServer<Attribute>;
+let client: WebSocketClient;
+
 
 beforeAll(async () => {
-	await new Promise(resolve => {
-		server.start();
-		server.register('method1', (_params: unknown, socket) => {
-			return {
-				result: 'success',
-				...socket.attribute
-			};
-		});
-		resolve(0);
+	({ server, client } = await instance());
+
+	server.register('method1', (_params: unknown, socket) => {
+		return {
+			result: 'success',
+			...socket.attribute
+		};
 	});
-	await client.open();
 });
+
 
 afterAll(() => {
 	client.close();
 	server.close();
 });
+
 
 describe('服务器-middleware', () => {
 

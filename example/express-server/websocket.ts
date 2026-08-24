@@ -1,4 +1,4 @@
-import { WebsocketServer } from '../../src';
+import { WebSocketServer } from '../../src';
 import server from './server';
 
 type SocketData = {
@@ -6,6 +6,6 @@ type SocketData = {
     role: string;
     token: string;
 }
-const websocket = new WebsocketServer<SocketData>({ server });
+const websocket = new WebSocketServer<SocketData>({ server });
 
 export default websocket;

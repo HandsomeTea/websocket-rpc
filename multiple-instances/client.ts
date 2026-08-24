@@ -1,10 +1,10 @@
-import { WebsocketClient } from '../src'
+import { WebSocketClient } from '../src'
 
 /** 2分钟后，会有3个客户端下线，注意观察session数据 */
 
 const test = async () => {
 	for (let s = 0; s < 10; s++) {
-		const client = new WebsocketClient('ws://localhost:3801');
+		const client = new WebSocketClient('ws://localhost:3801');
 
 		await client.open();
 

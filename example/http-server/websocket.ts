@@ -1,5 +1,5 @@
 import server from './server';
-import { WebsocketServer } from '../../src';
+import { WebSocketServer } from '../../src';
 
 type SocketData = {
     userId: string;
@@ -7,4 +7,4 @@ type SocketData = {
     token: string;
 }
 
-export default new WebsocketServer<SocketData>({ server });
+export default new WebSocketServer<SocketData>({ server });

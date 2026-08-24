@@ -1,4 +1,4 @@
-import { WebsocketServer } from '../../src';
+import { WebSocketServer } from '../../src';
 import { port } from '../port';
 
 type SocketData = {
@@ -7,4 +7,4 @@ type SocketData = {
     token: string;
 }
 
-export default new WebsocketServer<SocketData>({ port });
+export default new WebSocketServer<SocketData>({ port });

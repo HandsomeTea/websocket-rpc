@@ -1,4 +1,4 @@
-import { WebsocketServer, WebsocketClient } from './src/index.js';
+import { WebSocketServer, WebSocketClient } from './src/index.js';
 import os from 'os';
 
 const PORT = 3999;
@@ -30,14 +30,14 @@ function percentile(sorted: number[], p: number) {
 }
 
 async function runBench(cfg: BenchConfig) {
-    const server = new WebsocketServer({ port: PORT });
+    const server = new WebSocketServer({ port: PORT });
     server.register('echo', (params) => params);
     server.start();
 
     const connectStart = Date.now();
     const clients = await Promise.all(
         Array.from({ length: cfg.concurrent }, async () => {
-            const c = new WebsocketClient(`ws://localhost:${PORT}`);
+            const c = new WebSocketClient(`ws://localhost:${PORT}`);
 
             await c.open();
             return c;

@@ -41,7 +41,15 @@
 		"url": "git+https://github.com/HandsomeTea/websocket-rpc.git"
 	},
 	"keywords": [
-		"websocket"
+		"websocket",
+		"rpc",
+		"json-rpc",
+		"jsonrpc",
+		"jsonrpc2",
+		"websocket-rpc",
+		"websocket-json-rpc",
+		"websocket-jsonrpc",
+		"websocket-jsonrpc2"
 	],
 	"author": "HandsomeTea.coco@gmail.com",
 	"license": "MIT",
@@ -50,10 +58,13 @@
 	},
 	"homepage": "https://github.com/HandsomeTea/websocket-rpc#readme",
 	"dependencies": {
-		"pino": "^10.3.1",
 		"ws": "^8.21.1"
 	},
+	"optionalDependencies": {
+		"pino": "^10.3.1"
+	},
 	"devDependencies": {
+		"@types/express": "^5.0.6",
 		"@types/node": "^24.13.3",
 		"@types/ws": "^8.18.1",
 		"@vitest/coverage-v8": "^4.1.10",

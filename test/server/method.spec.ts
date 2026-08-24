@@ -1,21 +1,22 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, afterAll, beforeAll } from 'vitest';
 import { uuid } from '../../src/lib';
-import instance from './base';
+import instance from '../base';
+import { WebSocketServer, WebSocketClient, Attribute } from '../../src';
 
-const { server, client } = instance(3323);
+let server: WebSocketServer<Attribute>;
+let client: WebSocketClient;
+
 
 beforeAll(async () => {
-	await new Promise(resolve => {
-		server.start();
-		resolve(0);
-	});
-	await client.open()
+	({ server, client } = await instance());
 });
+
 
 afterAll(() => {
 	client.close();
 	server.close();
 });
+
 
 describe('服务器-method', () => {
 
@@ -137,21 +138,24 @@ describe('服务器-method', () => {
 	});
 
 	it('method内部向客户端主动发送消息', async () => {
-		const test = { sub: 'test' };
-		const result = await new Promise(resolve => {
-			server.register('method9', (_params, socket) => {
-				socket.send(JSON.stringify(test));
+		server.register('method9', (_params, socket) => {
+			socket.sendout({
+				id: uuid(),
+				method: 'method-sub',
+				result: {
+					sub: 'test'
+				}
 			});
-			client.client.send(JSON.stringify({ method: 'method9', id: uuid(), params: [], jsonrpc: '2.0' }));
-			client.client.on('message', data => {
-				const res = JSON.parse(data.toString());
-
-				if (typeof res === 'object' && res.sub === 'test') {
+		});
+		const result = new Promise(resolve => {
+			client.listening('method-sub', (error, res) => {
+				if (!error) {
 					resolve(res);
 				}
 			});
 		});
+		await client.request('method9');
 
-		expect(result).toStrictEqual(test);
+		expect(await result).toStrictEqual({ sub: 'test' });
 	});
 });

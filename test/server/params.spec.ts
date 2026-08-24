@@ -1,21 +1,22 @@
-import { describe, expect, beforeAll, afterAll, test } from 'vitest';
+import { describe, expect, afterAll, test, beforeAll } from 'vitest';
 import { uuid } from '../../src/lib';
-import instance from './base';
+import instance from '../base';
+import { WebSocketServer, WebSocketClient, Attribute } from '../../src';
 
-const { server, client } = instance(3325);
+let server: WebSocketServer<Attribute>;
+let client: WebSocketClient;
+
 
 beforeAll(async () => {
-	await new Promise(resolve => {
-		server.start();
-		resolve(0);
-	});
-	await client.open();
+	({ server, client } = await instance());
 });
+
 
 afterAll(() => {
 	client.close();
 	server.close();
 });
+
 
 describe('服务器-参数测试', () => {
 
@@ -55,8 +56,7 @@ describe('服务器-参数测试', () => {
 
 		expect(result).toStrictEqual({
 			jsonrpc: '2.0',
-			id: expect.any(String),
-			method: expect.any(String),
+			id: null,
 			error: {
 				code: -32700,
 				message: 'Parse error',
@@ -85,16 +85,22 @@ describe('服务器-参数测试', () => {
 		expect(await result).toStrictEqual(params);
 	});
 
-	test('id非法:应为notice', async () => {
-		const params = 'notice str1';
-		const result = new Promise(resolve => {
-			server.onNotice('method1', data => {
-				resolve(data);
-			});
+	test('id非法', async () => {
+		const result = await new Promise(resolve => {
+			client.client.send(JSON.stringify({ id: [2], method: 'method1', params: {}, jsonrpc: '2.0' }));
+			client.client.once('message', data => resolve(JSON.parse(data.toString())));
 		});
 
-		client.client.send(JSON.stringify({ id: [2], method: 'method1', params, jsonrpc: '2.0' }));
-		expect(await result).toStrictEqual(params);
+		expect(await result).toStrictEqual({
+			jsonrpc: '2.0',
+			id: [2],
+			method: 'method1',
+			error: {
+				code: -32600,
+				message: 'Invalid request',
+				data: expect.any(String)
+			}
+		});
 	});
 
 	test('缺少method', async () => {
@@ -106,10 +112,9 @@ describe('服务器-参数测试', () => {
 		expect(result).toStrictEqual({
 			jsonrpc: '2.0',
 			id: expect.any(String),
-			method: expect.any(String),
 			error: {
-				code: -32602,
-				message: 'Invalid params',
+				code: -32600,
+				message: 'Invalid request',
 				data: expect.any(String)
 			}
 		});
@@ -126,8 +131,8 @@ describe('服务器-参数测试', () => {
 			id: expect.any(String),
 			method: 'mm',
 			error: {
-				code: -32602,
-				message: 'Invalid params',
+				code: -32600,
+				message: 'Invalid request',
 				data: expect.any(String)
 			}
 		});
@@ -144,8 +149,8 @@ describe('服务器-参数测试', () => {
 			id: expect.any(String),
 			method: 'mm',
 			error: {
-				code: -32602,
-				message: 'Invalid params',
+				code: -32600,
+				message: 'Invalid request',
 				data: expect.any(String)
 			}
 		});
@@ -160,10 +165,9 @@ describe('服务器-参数测试', () => {
 		expect(result).toStrictEqual({
 			jsonrpc: '2.0',
 			id: expect.any(String),
-			method: expect.any(String),
 			error: {
-				code: -32602,
-				message: 'Invalid params',
+				code: -32600,
+				message: 'Invalid request',
 				data: expect.any(String)
 			}
 		});

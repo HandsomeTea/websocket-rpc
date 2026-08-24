@@ -1,12 +1,15 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import instance from './base';
+import { describe, it, expect, afterAll, beforeAll } from 'vitest';
+import instance from '../base';
+import { WebSocketServer, WebSocketClient, Attribute } from '../../src';
 
-const { server, client } = instance(3403);
+let server: WebSocketServer<Attribute>;
+let client: WebSocketClient;
+
 
 beforeAll(async () => {
-	server.start();
-	await client.open();
+	({ server, client } = await instance());
 });
+
 
 afterAll(() => {
 	client.close();

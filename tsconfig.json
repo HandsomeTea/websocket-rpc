@@ -15,7 +15,8 @@
     // For nodejs:
     "lib": [
       "es2024",
-      "ESNext.Disposable"
+      "ESNext.Disposable",
+      "DOM"
     ],
     // "types": ["node"],
     // and npm install -D @types/node

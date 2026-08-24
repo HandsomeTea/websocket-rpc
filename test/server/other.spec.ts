@@ -1,6 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, afterAll, beforeAll } from 'vitest';
 import { Link } from '../../src';
-import instance from './base';
+import instance from '../base';
+import { WebSocketServer, WebSocketClient, Attribute } from '../../src';
+
+let server: WebSocketServer<Attribute>;
+let client: WebSocketClient;
 
 type SocketAttr = {
 	id: string
@@ -9,20 +13,17 @@ type SocketAttr = {
 	socketSetAttr: number
 }
 
-const { server, client } = instance<SocketAttr>(3326);
 
 beforeAll(async () => {
-	await new Promise(resolve => {
-		server.start();
-		resolve(0);
-	});
-	await client.open();
+	({ server, client } = await instance<SocketAttr>());
 });
+
 
 afterAll(() => {
 	client.close();
 	server.close();
 });
+
 
 describe('服务器-其它功能接口', () => {
 	it('getSocket', async () => {
@@ -41,8 +42,6 @@ describe('服务器-其它功能接口', () => {
 		let ins: null | Link<SocketAttr> = null;
 
 		server.use((_params, socket) => {
-
-			// @ts-ignore
 			ins = socket;
 			return { id: socket.id };
 		});
@@ -51,8 +50,6 @@ describe('服务器-其它功能接口', () => {
 		expect(ins).not.toBeNull();
 		const clents = server.getSockets(attr => attr.id === (result.result as { id: string }).id);
 
-
-		// @ts-ignore
 		expect(clents.has(ins)).toBe(true);
 	});
 

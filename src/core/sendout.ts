@@ -1,17 +1,23 @@
-import zlib from 'zlib';
-import { promisify } from 'util';
 import WebSocket from 'ws';
 import type { Socket, AnyObject } from '../typings.js';
 
 export default (socket: Socket.Link<AnyObject>): void => {
 
     // @ts-ignore
-    socket.sendout = async (message: Omit<Socket.MethodResponse, 'jsonrpc'>) => {
+    socket.sendout = async (message: Omit<Socket.ServerMessage, 'jsonrpc'>) => {
         if (socket.readyState !== WebSocket.OPEN) {
             return;
         }
+        const logger = socket.logger;
 
-        const msg: Socket.MethodResponse = {
+        if (message.method === 'unknownMsg') {
+            if (logger) {
+                logger('sendout').warn('Sending messages with the \'method\' field set to \'unknownMsg\' is not allowed.');
+            }
+            return;
+        }
+
+        const msg: Socket.ServerMessage = {
             jsonrpc: '2.0',
             id: message.id,
             method: message.method
@@ -26,26 +32,20 @@ export default (socket: Socket.Link<AnyObject>): void => {
         } else {
             msg.result = message.result;
         }
-        const sendJson = socket.option.RPCSerializer.serialize(msg);
-        const logger = socket.option.logger;
+        const sendJson = socket.option.jsonSerializer.serialize(msg);
 
-        if (socket.option.compression === 'zlib') {
-            if (logger) {
-                const logJson = socket.option.RPCSerializer.serialize(msg);
-
-                logger(message.method ? `compressed-response:${message.method}` : 'compressed-response').trace(logJson);
-            }
-            const deflateAsync = promisify(zlib.deflate);
-
-            return socket.send(await deflateAsync(sendJson, {
-                level: zlib.constants.Z_BEST_SPEED
-            }));
-        }
         if (logger) {
-            const logJson = socket.option.RPCSerializer.serialize(msg);
+            const logJson = socket.option.jsonSerializer.serialize(msg);
 
             logger(message.method ? `response:${message.method}` : 'response').trace(logJson);
         }
-        return socket.send(sendJson);
+        await new Promise((resolve, reject) => {
+            try {
+                socket.send(sendJson);
+                resolve(true);
+            } catch (e) {
+                reject(e);
+            }
+        });
     };
 };

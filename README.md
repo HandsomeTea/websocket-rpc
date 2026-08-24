@@ -91,7 +91,7 @@ const result = await client.request('hello');
 
 
 console.log(result);
-// hello world!
+// { result: 'hello world!' }
 ```
 
 
@@ -245,12 +245,14 @@ console.log(result5);
 server.register('hello',(_params, socket)=>{
     // _params 为method的请求参数
     socket.sendout({
+    	id: 'id-1',
         method: 'test',
         result: 'pending hello'
     });
 
     // 或者
     socket.send(JSON.stringify({
+    	id: 'id-1',
         jsonrpc: '2.0',
         method: 'test',
         result: 'pending hello'
@@ -570,32 +572,14 @@ server.error(error1, error2);
 
 - `[options.log]`：`Boolean | Function`，默认`false`关闭日志打印，当为`true`时，将采用内置的`pino`日志配置打印日志，在使用内置`pino`打印日志时，如果读取到`process.env.NODE_ENV`为`development`时，日志将会显示打印位置，并做简单美化；如果为一个函数，则需要返回一个`Logger`对象，系统的日志将采用该对象打印。
 
-### 数据压缩
-- `[options.compression]`：`zlib`，默认`undefined`。当为`zlib`时，将对服务器发送到客户端的数据先进行zlib压缩，再发送。
+### 自定义JSON序列化
 
-```typescript
-import { WebsocketServer } from '@coco-sheng/websocket-rpc';
+## 其它
+
+- [JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)规范中申明请求对象的`id`字段一般不为NULL，原则上虽然允许为null，但是实际操作中一般不会将该值设置为`null`，因此，框架设计对其做了合理简化，`id`为`null`的请求视为无效请求。
+- 暂无其它。
 
 
-const port = 3403;
-
-export default new WebsocketServer<SocketAttr>({ port }, {
-    log: () => console,
-    compression: 'zlib'
-});
-```
-
-客户端解压缩示例：
-
-```typescript
-// 使用 WebsocketClient 时，解压由 ws 库自动处理
-// 如果使用裸 WebSocket，需要手动解压：
-const ws = new WebSocket('ws://localhost:3403');
-ws.on('message', data => {
-    const decompressed = JSON.parse(zlib.inflateSync(data as Buffer).toString());
-    console.log(decompressed);
-});
-```
 
 # Client
 
