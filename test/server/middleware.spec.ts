@@ -9,7 +9,7 @@ let client: WebSocketClient;
 beforeAll(async () => {
 	({ server, client } = await instance());
 
-	server.register('method1', (_params: unknown, socket) => {
+	server.register('method1', (_params, socket) => {
 		return {
 			result: 'success',
 			...socket.attribute

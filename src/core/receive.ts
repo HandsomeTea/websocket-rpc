@@ -1,4 +1,3 @@
-import { uuid } from '../lib.js';
 import type { Socket, AnyObject } from '../typings.js';
 import { _serverStore } from '../global.js';
 
@@ -177,7 +176,6 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
             }
 
             socket.sendout({
-                id: uuid(),
                 error: {
                     code: -32600,
                     message: 'Invalid request',

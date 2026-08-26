@@ -39,7 +39,7 @@ describe('服务器-参数测试', () => {
 			return num1 + num2;
 		});
 
-		const _result = await client.request([
+		const _result = await client.batch([
 			{ method: 'method2', params: [5, 3] },
 			{ method: 'method2', params: [1, 1], option: { timeout: 3 } }
 		]);

@@ -5,34 +5,13 @@ import { _serverStore, _sessionMap } from './global.js';
 import setCore from './core/index.js';
 import type { WebSocketService, Logger, Socket, AnyObject } from './typings.js';
 import { uuid } from './lib.js';
+import { jsonSerialize } from './json.js';
 
 
 export class WebSocketServer<Attr extends AnyObject, Method extends string = string, Notice extends string = string> implements WebSocketService.Server<Attr, Method, Notice> {
     private options: { jsonSerializer: Socket.Link<Attr>['option']['jsonSerializer'], log?: boolean | Socket.Link<Attr>['logger'] } = {
         jsonSerializer: {
-            serialize: (data) => {
-                const errorReplacer = (key: string, value: unknown) => {
-                    if (value instanceof Error) {
-                        const result = {
-                            name: value.name,
-                            message: value.message,
-                            stack: value.stack,
-                            cause: value.cause
-                        };
-
-                        if (process.env.NODE_ENV !== 'development') {
-                            delete result.stack;
-                        }
-                        return result;
-                    }
-                    return value;
-                };
-                if (process.env.NODE_ENV === 'development') {
-                    return JSON.stringify(data, errorReplacer, '   ')
-                } else {
-                    return JSON.stringify(data, errorReplacer);
-                }
-            },
+            serialize: jsonSerialize,
             deserialize: JSON.parse
         }
     };
@@ -146,7 +125,6 @@ export class WebSocketServer<Attr extends AnyObject, Method extends string = str
                             }
                         } else {
                             socket.sendout({
-                                id: uuid(),
                                 method: 'connection',
                                 error: {
                                     code: -32603,

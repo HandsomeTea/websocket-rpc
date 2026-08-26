@@ -1,3 +1,4 @@
+import { jsonSerialize } from './json.js';
 import type { Socket, WsClient } from './typings.js';
 
 export const CLIENT_DEFAULT_TIMEOUT = 10;
@@ -14,7 +15,14 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
 
     protected webSocket!: WebSocketType;
 
-    protected options: WsClient.Options = { timeout: CLIENT_DEFAULT_TIMEOUT };
+    protected options = {
+        timeout: CLIENT_DEFAULT_TIMEOUT,
+        jsonSerializer: {
+            serialize: jsonSerialize,
+            deserialize: JSON.parse
+        },
+        perMessageHandler: undefined as WsClient.Options['perMessageHandler']
+    };
 
     protected record: Record<string, { result: Socket.ServerMessage['result'], error: Socket.ServerMessage['error'] }> = {};
 
@@ -24,7 +32,24 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
 
     private onceListenerMap: Record<string, WeakMap<WsClient.ListeningCallbackFn, WsClient.ListeningCallbackFn>> = {};
 
-    private idGenerator = new JsonRpcIdGenerator();
+    private idGenerator = new JsonRPCIdGenerator();
+
+    protected init(options?: WsClient.Options) {
+        if (options) {
+            if (typeof options.timeout === 'number' && !isNaN(options.timeout) && options.timeout >= 0) {
+                this.options.timeout = options.timeout;
+            }
+            if (options.perMessageHandler && typeof options.perMessageHandler === 'function') {
+                this.options.perMessageHandler = options.perMessageHandler;
+            }
+            if (options.jsonSerializer?.serialize && typeof options.jsonSerializer.serialize === 'function') {
+                this.options.jsonSerializer.serialize = options.jsonSerializer.serialize;
+            }
+            if (options.jsonSerializer?.deserialize && typeof options.jsonSerializer.deserialize === 'function') {
+                this.options.jsonSerializer.deserialize = options.jsonSerializer.deserialize;
+            }
+        }
+    }
 
     protected clearPendingRequests(info: string) {
         const pending = Object.values(this.record);
@@ -49,28 +74,68 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
         const targets = Array.from(this.listeners[method] || []);
 
         for (const fn of targets) {
-            fn(data.error, data.result);
+            if (data.error || data.result) {
+                fn(data.error, data.result);
+            } else {
+                fn(data as unknown as Socket.ServerMessage['error'], undefined);
+            }
         }
     }
 
-    listening(method: string, callback: WsClient.ListeningCallbackFn, once?: boolean): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    protected async messageHandler(data: any): Promise<void> {
+        let res: Socket.ServerMessage | null = null;
+
+        try {
+            let _data = data;
+
+            if (this.options.perMessageHandler) {
+                _data = await this.options.perMessageHandler(data);
+            } else {
+                _data = data.toString();
+            }
+            res = this.options.jsonSerializer.deserialize(_data) as Socket.ServerMessage;
+        } catch (e) {
+            console.log(e, data);
+            return;
+        }
+
+        const cacheId = this.getRecordKey(res.id, res.method);
+
+        if (cacheId && this.record[cacheId]) {
+            if (res.error) {
+                this.record[cacheId].error = res.error;
+            } else {
+                this.record[cacheId].result = res.result;
+            }
+        } else if (res.method) { // 服务端的notify
+            this.emit(res.method, res);
+        } else { // 未知消息
+            this.emit('unknownMsg', res);
+        }
+    }
+
+    listening(method: string, callback: WsClient.ListeningCallbackFn): void {
         if (!this.listeners[method]) {
             this.listeners[method] = new Set();
         }
-        if (once) {
-            const wrapper: typeof callback = (...args: Parameters<typeof callback>) => {
-                this.removeListening(method, callback);
-                callback(...args);
-            };
+        this.listeners[method].add(callback);
+    }
 
-            if (!this.onceListenerMap[method]) {
-                this.onceListenerMap[method] = new WeakMap();
-            }
-            this.onceListenerMap[method].set(callback, wrapper);
-            this.listeners[method].add(wrapper);
-        } else {
-            this.listeners[method].add(callback);
+    listeningOnce(method: string, callback: WsClient.ListeningCallbackFn): void {
+        if (!this.listeners[method]) {
+            this.listeners[method] = new Set();
         }
+        const wrapper: typeof callback = (...args: Parameters<typeof callback>) => {
+            this.removeListening(method, callback);
+            callback(...args);
+        };
+
+        if (!this.onceListenerMap[method]) {
+            this.onceListenerMap[method] = new WeakMap();
+        }
+        this.onceListenerMap[method].set(callback, wrapper);
+        this.listeners[method].add(wrapper);
     }
 
     removeListening(method: string, callback: WsClient.ListeningCallbackFn): void {
@@ -86,20 +151,21 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
 
     /**
      * 发送一个method请求
-     * @param method
-     * @param params
-     * @param option 可选项
-     * @param option.timeout 可选项，超时时间，单位秒, 0表示不设置超时
+     *
+     * @param {Method} method method名称
+     * @param {*} [params]
+     * @param {object} [option] Object
+     * @param {number} [option.timeout] 超时时间，单位为秒，默认10秒, 0表示不设置超时
      * @returns {Promise<RequestResult>}
      */
-    private async _request(method: Method, params?: unknown, option?: { timeout: number }): Promise<WsClient.RequestResult> {
+    async request(method: Method, params?: unknown, option?: { timeout: number }): Promise<WsClient.RequestResult> {
         if (this.status !== WebSocket.OPEN) {
             throw new Error('WebSocket is not open!');
         }
         if (!method) {
             throw new Error('method name is required!');
         }
-        const id = this.idGenerator.nextId();
+        const id = this.idGenerator.id();
         const cacheId = this.getRecordKey(id, method) as string;
         const self = this;
         const { timeout } = option || {};
@@ -110,7 +176,15 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
                     private timer: number | null = null;
                     constructor() {
                         const _self = this;
-                        const _timeout = timeout ?? self.options.timeout ?? CLIENT_DEFAULT_TIMEOUT;
+                        let _timeout = -1;
+
+                        if (typeof timeout === 'number' && !isNaN(timeout) && timeout >= 0) {
+                            _timeout = timeout;
+                        } else if (typeof self.options.timeout === 'number' && !isNaN(self.options.timeout) && self.options.timeout >= 0) {
+                            _timeout = self.options.timeout;
+                        } else {
+                            _timeout = CLIENT_DEFAULT_TIMEOUT;
+                        }
 
                         if (_timeout !== 0) {
                             this.timer = setTimeout(() => {
@@ -123,7 +197,7 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
                         }
 
                         try {
-                            self.webSocket.send(JSON.stringify({
+                            self.webSocket.send(self.options.jsonSerializer.serialize({
                                 jsonrpc: '2.0',
                                 id,
                                 method,
@@ -131,6 +205,12 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
                             }));
                         } catch (e) {
                             console.log(e);
+
+                            _self.error = {
+                                code: -32001,
+                                message: 'Parse error',
+                                data: 'Parse error'
+                            }
                         }
                     }
 
@@ -167,30 +247,16 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
      * @param {number} [arg.option.timeout] 超时时间，单位为秒，默认10秒, 0表示不设置超时
      * @returns {Promise<Array<RequestResult>>}
      */
-    request(arg: Array<{ method: Method, params?: unknown, option?: { timeout: number } }>): Promise<Array<WsClient.RequestResult>>;
-
-    /**
-     * 发送一个method请求
-     *
-     * @param {Method} method method名称
-     * @param {*} [params]
-     * @param {object} [option] Object
-     * @param {number} [option.timeout] 超时时间，单位为秒，默认10秒, 0表示不设置超时
-     * @returns {Promise<RequestResult>}
-     */
-    request(method: Method, params?: unknown, option?: { timeout: number }): Promise<WsClient.RequestResult>;
-
-    async request(
-        req: Method | Array<{ method: Method, params?: unknown, option?: { timeout: number } }>,
-        params?: unknown,
-        option?: { timeout: number }) {
-        if (Array.isArray(req)) {
-            const tasks = req.map(({ method, params, option }) => this._request(method, params, option));
-
-            return await Promise.all(tasks);
-        } else {
-            return await this._request(req, params, option);
+    async batch(arg: Array<{ method: Method, params?: unknown, option?: { timeout: number } }>) {
+        if (!Array.isArray(arg)) {
+            throw new Error('batch argument[arg] must be an array!');
         }
+        if (arg.find(req => !req.method)) {
+            throw new Error('batch argument[arg] must be an array of objects with method property!')
+        }
+        const tasks = arg.map(({ method, params, option }) => this.request(method, params, option));
+
+        return await Promise.all(tasks);
     }
 
     /**
@@ -223,7 +289,7 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
 
         for (const { notice, params } of notifies) {
             try {
-                this.webSocket.send(JSON.stringify({
+                this.webSocket.send(this.options.jsonSerializer.serialize({
                     jsonrpc: '2.0',
                     method: notice,
                     params
@@ -278,15 +344,34 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
     }
 
     get status() {
-        return this.webSocket.readyState;
+        if (this.webSocket) {
+            return this.webSocket.readyState;
+        }
+        return this.CLOSED;
     }
 }
 
-export class JsonRpcIdGenerator {
+/**
+ * jsonrpc id生成器，适用于客户端/服务端
+ * - example:
+ * ```
+ *      const idGenerator = new JsonRPCIdGenerator();
+ * ```
+ * - then you can use it to generate id:
+ * ```
+ *      const id = idGenerator.id();
+ * ```
+ * @class JsonRPCIdGenerator
+ */
+export class JsonRPCIdGenerator {
     private prefix = Math.random().toString(36).substring(2, 6);
-    private id = 1;
+    private _id = 1;
 
-    public nextId(): string {
-        return `${this.prefix}_${this.id++}`;
+    /**
+     * 生成jsonrpc id
+     * @returns {string}
+     */
+    public id(): string {
+        return `${this.prefix}_${this._id++}`;
     }
 }

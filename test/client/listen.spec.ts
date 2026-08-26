@@ -1,5 +1,4 @@
 import { describe, it, expect, afterAll, beforeAll } from 'vitest';
-import { uuid } from '../../src/lib';
 import instance from '../base';
 import { WebSocketServer, WebSocketClient, Attribute } from '../../src';
 
@@ -25,7 +24,6 @@ describe('客户端-listening', () => {
 
 		server.register('method1', (_params, socket) => {
 			socket.sendout({
-				id: uuid(),
 				method: 'method1',
 				result: str
 			});
@@ -50,7 +48,6 @@ describe('客户端-listening', () => {
 
 		server.register('method2', (_params, socket) => {
 			socket.sendout({
-				id: uuid(),
 				method: 'method2',
 				error
 			});

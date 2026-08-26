@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { uuid } from '../../src/lib';
 import instance from '../base';
 
 
@@ -47,7 +46,7 @@ describe('服务器-回调事件', () => {
 
         server.error<Error>((error, socket, data) => {
             socket.sendout({
-                id: data?.id || uuid(),
+                id: data?.id,
                 method: 'm1',
                 result: error.message
             });
@@ -68,7 +67,7 @@ describe('服务器-回调事件', () => {
 
         server.error<Error>((error, socket, req) => {
             socket.sendout({
-                id: req?.id || uuid(),
+                id: req?.id,
                 method: 'm2',
                 result: error.message
             });
@@ -89,7 +88,7 @@ describe('服务器-回调事件', () => {
 
         server.error<Error>((error, socket, req) => {
             socket.sendout({
-                id: req?.id || uuid(),
+                id: req?.id,
                 method: 'm3',
                 result: error.message
             });
@@ -103,5 +102,59 @@ describe('服务器-回调事件', () => {
         client.close();
         server.close();
         expect(result.result).toEqual('middleware-error');
+    });
+
+    it('没有注册error处理函数，sendout兜底中间件', async () => {
+        const { server, client } = await instance();
+
+        server.register('m4', () => { });
+        server.use('m4', (_params) => {
+            const params = _params as { for: string };
+
+            if (params.for === 'all-middleware') {
+                return;
+            }
+            throw new Error('m4-middleware-error');
+        })
+        server.use(_params => {
+            const params = _params as { for: string };
+
+            if (params.for !== 'all-middleware') {
+                return;
+            }
+            throw new Error('all-middleware-error');
+        });
+        const result1 = await client.request('m4', { for: 'all-middleware' });
+        const result2 = await client.request('m4', {});
+
+        client.close();
+        server.close();
+        expect(result1.error).toStrictEqual({
+            code: -32001,
+            message: 'Method Request failed',
+            data: { name: 'Error', message: 'all-middleware-error' }
+        });
+        expect(result2.error).toStrictEqual({
+            code: -32001,
+            message: 'Method Request failed',
+            data: { name: 'Error', message: 'm4-middleware-error' }
+        });
+    });
+
+    it('没有注册error处理函数，sendout兜底method', async () => {
+        const { server, client } = await instance();
+
+        server.register('m5', () => {
+            throw new Error('m5-error');
+        });
+        const result = await client.request('m5');
+
+        client.close();
+        server.close();
+        expect(result.error).toStrictEqual({
+            code: -32001,
+            message: 'Method Request failed',
+            data: { name: 'Error', message: 'm5-error' }
+        })
     });
 });

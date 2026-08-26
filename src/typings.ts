@@ -37,7 +37,7 @@ export declare namespace Socket {
 
 	export interface MethodRequest {
 		jsonrpc: '2.0'
-		/** 一般为随机字符串或，uuid为佳 */
+		/** 一般为随机字符串或数字 */
 		id?: string | number | null
 		method: string
 		params?: unknown
@@ -45,7 +45,7 @@ export declare namespace Socket {
 
 	export interface ServerMessage {
 		jsonrpc: '2.0'
-		/** 一般为随机字符串或，uuid为佳 */
+		/** 一般为随机字符串或数字 */
 		id: string | number | null
 		/**
 		 * 非jsonrpc2.0标准字段。
@@ -73,11 +73,38 @@ export declare namespace Socket {
 
 		/**
 		 * 发送符合jsonrpc2.0规范的数据
+		 * - id为null/number/string，非必填项，若不填，则自动设置
+		 * - method为string，非必填项，也非jsonrpc2.0标准字段，用于客户端自定义业务标记
+		 * - result为unknown，非必填项，与error二选一
+		 * - error为WebSocketService.RPCError，非必填项，与result二选一
+		 * - example:
+		 * ```
+		 * socket.sendout({
+		 * 	method: 'xxx',
+		 * 	result: ...
+		 * });
 		 *
+		 * socket.sendout({
+		 * 	method: 'xxx',
+		 * 	error: {
+		 * 		code: -32xxx,
+		 * 		message: 'xxx'
+		 * 	 	data: ...
+		 * 	}
+		 * });
+		 * socket.sendout({
+		 * 	result: ...
+		 * });
+		 * socket.sendout({
+		 * 	id: 'xxxxxxx',
+		 * 	method: 'xxx',
+		 * 	result: ...
+		 * });
+		 * ```
 		 * @param {Omit<ServerMessage, 'jsonrpc'>} message
 		 * @memberof Link
 		 */
-		readonly sendout: (message: Omit<ServerMessage, 'jsonrpc'>) => Promise<void>;
+		readonly sendout: (message: Omit<ServerMessage, 'jsonrpc' | 'id'> & { id?: ServerMessage['id'] }) => Promise<void>;
 
 		readonly setAttr: SetAttr<Attr>;
 		readonly getAttr: GetAttr<Attr>;
@@ -279,10 +306,20 @@ export declare namespace WsClient {
 
 	export interface Options {
 		/**
-		 * 接收method返回超时时间，单位为秒，默认10秒
-		 * 设置为0表示不设置超时
+		 * - 接收method返回超时时间，单位为秒，默认10秒
+		 * - 设置为0表示不设置超时
 		 */
 		timeout?: number;
+		/**
+		 * - 消息序列化/反序列化处理
+		 * - 默认使用`JSON.stringify`/`JSON.parse`
+		 */
+		jsonSerializer?: WebSocketService.Options['jsonSerializer'];
+		/**
+		 * - 该函数在客户端接收到服务端消息后，消息反序列化之前运行
+		 * - 可用于对服务端发送消息的加密/压缩等解析和处理
+		 */
+		perMessageHandler?: (data: unknown) => string | Promise<string>;
 	}
 
 	export type ListeningCallbackFn = (error: Socket.ServerMessage['error'] | null, result: Socket.ServerMessage['result']) => void;
@@ -300,7 +337,9 @@ export declare namespace WsClient {
 		 * @memberof Client
 		 */
 		(method: Method, params?: unknown, option?: { timeout: number }): Promise<RequestResult>;
+	}
 
+	interface BatchRequests<Method extends string = string> {
 		/**
 		 * 批量发送多个method请求，结果返回顺序与请求顺序一致
 		 *
@@ -363,6 +402,13 @@ export declare namespace WsClient {
 		readonly request: Request<Method>;
 
 		/**
+		 * 批量发送多个method请求，结果返回顺序与请求顺序一致
+		 *
+		 * @memberof Client
+		 */
+		readonly batch: BatchRequests<Method>;
+
+		/**
 		 * 向服务器发送通知
 		 *
 		 * @memberof Client
@@ -399,11 +445,19 @@ export declare namespace WsClient {
 		 *
 		 * @param {string} method
 		 * @param {ListeningCallbackFn} callback
-		 * @param {boolean} [once]
 		 * @returns {void}
 		 * @memberof Client
 		 */
-		readonly listening: (method: string, callback: ListeningCallbackFn, once?: boolean) => void;
+		readonly listening: (method: string, callback: ListeningCallbackFn) => void;
+
+		/**
+		 * 同listening，但只监听一次就移除
+		 * @param {string} method
+		 * @param {ListeningCallbackFn} callback
+		 * @returns {void}
+		 * @memberof Client
+		 */
+		readonly listeningOnce: (method: string, callback: ListeningCallbackFn) => void;
 
 		/**
 		 *

@@ -1,5 +1,4 @@
 import { describe, it, expect, afterAll, beforeAll } from 'vitest';
-import { uuid } from '../../src/lib';
 import instance from '../base';
 import { WebSocketServer, WebSocketClient, Attribute } from '../../src';
 
@@ -140,7 +139,6 @@ describe('服务器-method', () => {
 	it('method内部向客户端主动发送消息', async () => {
 		server.register('method9', (_params, socket) => {
 			socket.sendout({
-				id: uuid(),
 				method: 'method-sub',
 				result: {
 					sub: 'test'

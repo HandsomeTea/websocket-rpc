@@ -1,10 +1,11 @@
 import WebSocket from 'ws';
 import type { Socket, AnyObject } from '../typings.js';
+import { uuid } from '../lib.js';
 
 export default (socket: Socket.Link<AnyObject>): void => {
 
     // @ts-ignore
-    socket.sendout = async (message: Omit<Socket.ServerMessage, 'jsonrpc'>) => {
+    socket.sendout = async (message: Omit<Socket.ServerMessage, 'jsonrpc' | 'id'> & { id?: Socket.ServerMessage['id'] }) => {
         if (socket.readyState !== WebSocket.OPEN) {
             return;
         }
@@ -19,7 +20,7 @@ export default (socket: Socket.Link<AnyObject>): void => {
 
         const msg: Socket.ServerMessage = {
             jsonrpc: '2.0',
-            id: message.id,
+            id: typeof message.id === 'undefined' ? uuid() : message.id,
             method: message.method
         };
 
@@ -37,7 +38,7 @@ export default (socket: Socket.Link<AnyObject>): void => {
         if (logger) {
             const logJson = socket.option.jsonSerializer.serialize(msg);
 
-            logger(message.method ? `response:${message.method}` : 'response').trace(logJson);
+            logger(message.method ? `response:${message.method}` : 'response').debug(logJson);
         }
         await new Promise((resolve, reject) => {
             try {
