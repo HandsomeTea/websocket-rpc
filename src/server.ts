@@ -8,8 +8,13 @@ import { uuid } from './lib.js';
 import { jsonSerialize } from './json.js';
 
 
-export class WebSocketServer<Attr extends AnyObject, Method extends string = string, Notice extends string = string> implements WebSocketService.Server<Attr, Method, Notice> {
-    private options: { jsonSerializer: Socket.Link<Attr>['option']['jsonSerializer'], log?: boolean | Socket.Link<Attr>['logger'] } = {
+export class WebSocketServer<
+    Attr extends AnyObject,
+    Method extends string = string,
+    OnNoticeMethod extends string = string,
+    SendMethod extends string = string
+> implements WebSocketService.Server<Attr, Method, OnNoticeMethod, SendMethod> {
+    private options: { jsonSerializer: Socket.Link<Attr, SendMethod>['option']['jsonSerializer'], log?: boolean | Socket.Link<Attr, SendMethod>['logger'] } = {
         jsonSerializer: {
             serialize: jsonSerialize,
             deserialize: JSON.parse
@@ -66,36 +71,34 @@ export class WebSocketServer<Attr extends AnyObject, Method extends string = str
             });
             this.server.on('listening', () => {
                 resolve(true);
-            })
-            this.server.on('close', () => {
-                // delete _serverStore[this.serverId];
             });
-            this.server.on('connection', async (socket: Socket.Link<Attr>, request: http.IncomingMessage) => {
+            this.server.on('connection', async (socket: Socket.Link<Attr, SendMethod>, request: http.IncomingMessage) => {
 
-                // @ts-ignore
-                socket.option = {
+                const mount = socket as {
+                    option: Socket.Link<Attr, SendMethod>['option'];
+                    logger?: Socket.Link<Attr, SendMethod>['logger'];
+                    id: string;
+                    attribute: Partial<Attr>;
+                };
+
+                mount.option = {
                     jsonSerializer: this.options.jsonSerializer
                 };
-                Object.freeze(socket.option);
+                Object.freeze(mount.option);
 
                 if (this.logger) {
-                    // @ts-ignore
-                    socket.logger = this.logger;
-                    Object.freeze(socket.logger);
+                    mount.logger = this.logger;
+                    Object.freeze(mount.logger);
                 }
 
 
-                // @ts-ignore
-                socket.id = uuid();
-                // @ts-ignore
-                _sessionMap[socket.id] = socket;
+                mount.id = uuid();
+                mount.attribute = {};
 
+                const link = socket as unknown as Socket.Link<AnyObject, string>;
 
-                // @ts-ignore
-                socket.attribute = {};
-
-                // @ts-ignore
-                setCore(socket, this.serverId);
+                _sessionMap[mount.id] = link;
+                setCore(link, this.serverId);
 
                 if (socket.logger) {
                     socket.logger('connection').debug(`socket:${socket.id} is connected!`);
@@ -104,10 +107,11 @@ export class WebSocketServer<Attr extends AnyObject, Method extends string = str
                 const onlineFns = _serverStore[this.serverId]?.onlineCallbacks || [];
 
                 if (onlineFns.length > 0) {
+                    const cbSocket = socket as unknown as Socket.Link<Partial<AnyObject>, string>;
+
                     try {
                         for (const fn of onlineFns) {
-                            // @ts-ignore
-                            await fn(socket, request);
+                            await fn(cbSocket, request);
                         }
                     } catch (error) {
                         if (socket.logger) {
@@ -119,13 +123,11 @@ export class WebSocketServer<Attr extends AnyObject, Method extends string = str
 
                         if (errorFns.length > 0) {
                             for (const fn of errorFns) {
-
-                                // @ts-ignore
-                                await fn(error as Error, socket);
+                                await fn(error as Error, cbSocket);
                             }
                         } else {
                             socket.sendout({
-                                method: 'connection',
+                                method: 'connection' as SendMethod,
                                 error: {
                                     code: -32603,
                                     message: 'Internal error',
@@ -142,35 +144,36 @@ export class WebSocketServer<Attr extends AnyObject, Method extends string = str
     /**
      * 注册一个method
      *
+     * @template Params
      * @param {Method} method method名称，不支持ping和connect(已内置)，若传入ping或connect，则忽略
-     * @param {WebSocketService.MethodFn<Attr>} cb
+     * @param {WebSocketService.MethodFn<Attr, SendMethod, Params>} cb
      * @memberof WebSocketServer
      */
-    register(method: Method, cb: WebSocketService.MethodFn<Attr>): void;
+    register<Params = unknown>(method: Method, cb: WebSocketService.MethodFn<Attr, SendMethod, Params>): void;
     /**
      * 注册一个或多个method
      * method名称不支持ping和connect(已内置)，若传入ping或connect，则忽略
      *
-     * @param {Record<Method, WebSocketService.MethodFn<Attr>>} method method回调函数
+     * @param {Partial<Record<Method, WebSocketService.MethodFn<Attr, SendMethod>>>} method method回调函数
      * @memberof WebSocketServer
      */
-    register(method: Record<Method, WebSocketService.MethodFn<Attr>>): void;
+    register(method: Partial<Record<Method, WebSocketService.MethodFn<Attr, SendMethod>>>): void;
 
-    register(method: Method | Record<Method, WebSocketService.MethodFn<Attr>>, cb?: WebSocketService.MethodFn<Attr>) {
+    register(method: Method | Partial<Record<Method, WebSocketService.MethodFn<Attr, SendMethod>>>, cb?: WebSocketService.MethodFn<Attr, SendMethod>) {
         if (typeof method === 'string' && typeof cb === 'function') {
             if (method === 'ping' || method === 'connect') {
                 return;
             }
-            // @ts-ignore
-            _serverStore[this.serverId].methods[method] = cb;
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            _serverStore[this.serverId]!.methods[method] = cb as unknown as WebSocketService.MethodFn<AnyObject, string>;
         } else if (method && typeof method === 'object' && !Array.isArray(method)) {
             for (const key in method) {
                 if (key === 'ping' || key === 'connect') {
                     continue;
                 }
                 if (key && typeof method[key] === 'function') {
-                    // @ts-ignore
-                    _serverStore[this.serverId].methods[key] = method[key];
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    _serverStore[this.serverId]!.methods[key] = method[key] as unknown as WebSocketService.MethodFn<AnyObject, string>;
                 }
             }
         }
@@ -180,21 +183,22 @@ export class WebSocketServer<Attr extends AnyObject, Method extends string = str
      * 注册适用于所有method的一个或多个中间件
      * 内置的ping和connect不会执行任何中间件
      *
-     * @param {...Array<WebSocketService.MiddlewareFn<Attr>>} middlewares
+     * @param {...Array<WebSocketService.MiddlewareFn<Attr, SendMethod>>} middlewares
      * @memberof WebSocketServer
      */
-    use(middleware: WebSocketService.MiddlewareFn<Attr>, ...middlewares: Array<WebSocketService.MiddlewareFn<Attr>>): void;
+    use(middleware: WebSocketService.MiddlewareFn<Attr, SendMethod>, ...middlewares: Array<WebSocketService.MiddlewareFn<Attr, SendMethod>>): void;
     /**
      * 注册只适用于某个method的一个或多个中间件
      * 内置的ping和connect不支持注册中间件
      *
+     * @template Params
      * @param {Method} method method名称
-     * @param {...Array<WebSocketService.MiddlewareFn<Attr>>} middlewares
+     * @param {...Array<WebSocketService.MiddlewareFn<Attr, SendMethod, Params>>} middlewares
      * @memberof WebSocketServer
      */
-    use(method: Method, ...middlewares: Array<WebSocketService.MiddlewareFn<Attr>>): void;
+    use<Params = unknown>(method: Method, ...middlewares: Array<WebSocketService.MiddlewareFn<Attr, SendMethod, Params>>): void;
 
-    use(...middlewares: Array<WebSocketService.MiddlewareFn<Attr>> | [Method, ...Array<WebSocketService.MiddlewareFn<Attr>>]) {
+    use(...middlewares: Array<WebSocketService.MiddlewareFn<Attr, SendMethod>> | [Method, ...Array<WebSocketService.MiddlewareFn<Attr, SendMethod>>]) {
         if (typeof middlewares[0] === 'string') {
             const method = middlewares.shift() as string;
 
@@ -206,14 +210,18 @@ export class WebSocketServer<Attr extends AnyObject, Method extends string = str
                     _serverStore[this.serverId]?.middlewares.push({
                         type: 'scoped',
                         method,
-                        // @ts-ignore
-                        fn: middleware
+                        fn: middleware as unknown as WebSocketService.MiddlewareFn<AnyObject, string>
                     });
                 }
             }
         } else if (middlewares.every(m => typeof m === 'function')) {
-            // @ts-ignore
-            _serverStore[this.serverId].middlewares.push(...(middlewares as Array<WebSocketService.MiddlewareFn<Attr>>).map(m => ({ type: 'global', fn: m })));
+            _serverStore[this.serverId]?.middlewares.push(
+                ...(middlewares as Array<WebSocketService.MiddlewareFn<Attr>>)
+                    .map(m => ({
+                        type: 'global' as const,
+                        fn: m as unknown as WebSocketService.MiddlewareFn<AnyObject, string>
+                    }))
+            );
         }
     }
 
@@ -225,12 +233,13 @@ export class WebSocketServer<Attr extends AnyObject, Method extends string = str
     onNotice(noticeHandler: WebSocketService.NoticeFn<Attr>, ...noticeHandlers: Array<WebSocketService.NoticeFn<Attr>>): void;
     /**
      * 注册一个或多个只适用于某个notice消息的监听事件
+     *
      * @param notice 消息事件名称，取消息中的method值
      * @param noticeHandlers
      */
-    onNotice(notice: Notice, ...noticeHandlers: Array<WebSocketService.NoticeFn<Attr>>): void;
+    onNotice(notice: OnNoticeMethod, ...noticeHandlers: Array<WebSocketService.NoticeFn<Attr>>): void;
 
-    onNotice(...noticeHandlers: Array<WebSocketService.NoticeFn<Attr>> | [Notice, ...Array<WebSocketService.NoticeFn<Attr>>]) {
+    onNotice(...noticeHandlers: Array<WebSocketService.NoticeFn<Attr>> | [OnNoticeMethod, ...Array<WebSocketService.NoticeFn<Attr>>]) {
         if (typeof noticeHandlers[0] === 'string') {
             const notice = noticeHandlers.shift() as string;
 
@@ -239,28 +248,55 @@ export class WebSocketServer<Attr extends AnyObject, Method extends string = str
                     _serverStore[this.serverId]?.noticeHandlers.push({
                         type: 'scoped',
                         notice,
-                        // @ts-ignore
-                        fn: noticeHandler
+                        fn: noticeHandler as unknown as WebSocketService.NoticeFn<AnyObject>
                     });
                 }
             }
         } else if (noticeHandlers.every(n => typeof n === 'function')) {
-            // @ts-ignore
-            _serverStore[this.serverId].noticeHandlers.push(...(noticeHandlers as Array<WebSocketService.NoticeFn<Attr>>).map(n => ({ type: 'global', fn: n })));
+            _serverStore[this.serverId]?.noticeHandlers.push(
+                ...(noticeHandlers as Array<WebSocketService.NoticeFn<Attr>>)
+                    .map(n => ({
+                        type: 'global' as const,
+                        fn: n as unknown as WebSocketService.NoticeFn<AnyObject>
+                    }))
+            );
         }
     }
 
     close() {
-        this.server?.close();
+        if (!this.server) {
+            return;
+        }
+        const server = this.server;
+
         this.server = null;
+
+        const clients = [...server.clients];
+
+        if (clients.length === 0) {
+            server.close();
+            delete _serverStore[this.serverId];
+            return;
+        }
+
+        let remaining = clients.length;
+
+        for (const client of clients) {
+            client.once('close', () => {
+                if (--remaining === 0) {
+                    server.close();
+                    delete _serverStore[this.serverId];
+                }
+            });
+            client.terminate();
+        }
     }
 
-    online(...args: Array<WebSocketService.OnlineCallbackFn<Attr>>): void {
+    online(...args: Array<WebSocketService.OnlineCallbackFn<Attr, SendMethod>>): void {
         if (Array.isArray(args) && args.length > 0) {
             for (const fn of args) {
                 if (typeof fn === 'function') {
-                    // @ts-ignore
-                    _serverStore[this.serverId]?.onlineCallbacks.push(fn);
+                    _serverStore[this.serverId]?.onlineCallbacks.push(fn as unknown as WebSocketService.OnlineCallbackFn<AnyObject, string>);
                 }
             }
         }
@@ -268,36 +304,35 @@ export class WebSocketServer<Attr extends AnyObject, Method extends string = str
 
     /**
      * 连接断开后的回调
+     *
      * @param {Array<WebSocketService.OfflineCallbackFn<Attr>>} args
      */
     offline(...args: Array<WebSocketService.OfflineCallbackFn<Attr>>): void {
         if (Array.isArray(args) && args.length > 0) {
             for (const fn of args) {
                 if (typeof fn === 'function') {
-                    // @ts-ignore
-                    _serverStore[this.serverId]?.offlineCallbacks.push(fn);
+                    _serverStore[this.serverId]?.offlineCallbacks.push(fn as unknown as WebSocketService.OfflineCallbackFn<AnyObject>);
                 }
             }
         }
     }
 
-    error<E>(...args: Array<WebSocketService.ErrorCallbackFn<Attr, E>>): void {
+    error<E>(...args: Array<WebSocketService.ErrorCallbackFn<Attr, E, SendMethod>>): void {
         if (Array.isArray(args) && args.length > 0) {
             for (const fn of args) {
                 if (typeof fn === 'function') {
-                    // @ts-ignore
-                    _serverStore[this.serverId]?.errorCallbacks.push(fn);
+                    _serverStore[this.serverId]?.errorCallbacks.push(fn as unknown as WebSocketService.ErrorCallbackFn<AnyObject, unknown, string>);
                 }
             }
         }
     }
 
-    getSocket(connectId: string): Socket.Link<Attr> | undefined {
-        return _sessionMap[connectId] as Socket.Link<Attr> | undefined;
+    getSocket(connectId: string): Socket.Link<Attr, SendMethod> | undefined {
+        return _sessionMap[connectId] as Socket.Link<Attr, SendMethod> | undefined;
     }
 
     getSockets(is: WebSocketService.IsThisSocket<Attr>) {
-        const clients: Set<Socket.Link<Attr>> = new Set();
+        const clients: Set<Socket.Link<Attr, SendMethod>> = new Set();
 
         if (typeof is === 'function') {
             for (const socket of this.clients) {
@@ -319,7 +354,6 @@ export class WebSocketServer<Attr extends AnyObject, Method extends string = str
      * @returns {(Attr | undefined)}
      * @memberof WebSocketServer
      */
-    // @ts-ignore
     getSocketAttr(connectId: string): Attr | undefined;
     /**
     * 获取某个socket连接的某个属性
@@ -344,7 +378,6 @@ export class WebSocketServer<Attr extends AnyObject, Method extends string = str
 
     getSocketAttr<K extends keyof Attr>(connectId: string, ...attribute: Array<K>) {
         if (_sessionMap[connectId]) {
-
             // @ts-ignore
             return _sessionMap[connectId].getAttr(...attribute);
         }
@@ -408,7 +441,7 @@ export class WebSocketServer<Attr extends AnyObject, Method extends string = str
     }
 
     get clients() {
-        return (this.server?.clients || new Set()) as Set<Socket.Link<Attr>>;
+        return (this.server?.clients || new Set()) as Set<Socket.Link<Attr, SendMethod>>;
     }
 
     get methodList() {

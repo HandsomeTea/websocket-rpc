@@ -40,7 +40,7 @@ describe('客户端-request', () => {
         server.register('method2', () => {
             throw error;
         });
-        const result = await client.request('method2');
+        const result = await client.request('method2').catch(e => e);
 
         expect(result.error?.data).toStrictEqual(error);
     });
@@ -53,7 +53,7 @@ describe('客户端-request', () => {
                 }, 4000);
             });
         });
-        const result = await client.request('method3', undefined, { timeout: 3 });
+        const result = await client.request('method3', undefined, { timeout: 3 }).catch(e => e);
 
         expect(result.error?.data).toEqual('Time out');
     });

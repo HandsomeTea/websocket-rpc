@@ -8,14 +8,14 @@ export const jsonSerialize = (data: unknown) => {
                 cause: value.cause
             };
 
-            if (process?.env?.NODE_ENV !== 'development') {
+            if (typeof process !== 'undefined' && process?.env?.NODE_ENV !== 'development') {
                 delete result.stack;
             }
             return result;
         }
         return value;
     };
-    if (process?.env?.NODE_ENV === 'development') {
+    if (typeof process !== 'undefined' && process?.env?.NODE_ENV === 'development') {
         return JSON.stringify(data, errorReplacer, '   ')
     } else {
         return JSON.stringify(data, errorReplacer);

@@ -5,7 +5,7 @@ import receive from './receive.js';
 import attr from './attr.js';
 import type { Socket, AnyObject } from '../typings.js';
 
-export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
+export default (socket: Socket.Link<AnyObject, string>, serverId: string): void => {
     error(socket);
     sendout(socket);
     attr(socket);

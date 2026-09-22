@@ -30,7 +30,6 @@ describe('服务器-回调事件', () => {
                 sessionId = socket.id;
             });
             server.offline((_attribute, id) => {
-                server.close();
                 resolve(id);
             });
         });
@@ -124,8 +123,8 @@ describe('服务器-回调事件', () => {
             }
             throw new Error('all-middleware-error');
         });
-        const result1 = await client.request('m4', { for: 'all-middleware' });
-        const result2 = await client.request('m4', {});
+        const result1 = await client.request('m4', { for: 'all-middleware' }).catch(e => e);
+        const result2 = await client.request('m4', {}).catch(e => e);
 
         client.close();
         server.close();
@@ -147,7 +146,7 @@ describe('服务器-回调事件', () => {
         server.register('m5', () => {
             throw new Error('m5-error');
         });
-        const result = await client.request('m5');
+        const result = await client.request('m5').catch(e => e);
 
         client.close();
         server.close();

@@ -2,10 +2,9 @@ import WebSocket from 'ws';
 import type { Socket, AnyObject } from '../typings.js';
 import { uuid } from '../lib.js';
 
-export default (socket: Socket.Link<AnyObject>): void => {
+export default (socket: Socket.Link<AnyObject, string>): void => {
 
-    // @ts-ignore
-    socket.sendout = async (message: Omit<Socket.ServerMessage, 'jsonrpc' | 'id'> & { id?: Socket.ServerMessage['id'] }) => {
+    const sendout: Socket.Link<AnyObject, string>['sendout'] = async message => {
         if (socket.readyState !== WebSocket.OPEN) {
             return;
         }
@@ -21,18 +20,17 @@ export default (socket: Socket.Link<AnyObject>): void => {
         const msg: Socket.ServerMessage = {
             jsonrpc: '2.0',
             id: typeof message.id === 'undefined' ? uuid() : message.id,
-            method: message.method
+            method: message.method,
+            ...typeof message.error !== 'undefined' ? {
+                error: {
+                    code: message.error.code ?? -32000,
+                    message: message.error.message ?? 'Unknown Error',
+                    data: message.error.data
+                }
+            } : {
+                result: typeof message.result === 'undefined' ? null : message.result
+            }
         };
-
-        if (typeof message.error !== 'undefined') {
-            msg.error = {
-                code: message.error.code ?? -32000,
-                message: message.error.message ?? 'Unknown Error',
-                data: message.error.data
-            };
-        } else {
-            msg.result = message.result;
-        }
         const sendJson = socket.option.jsonSerializer.serialize(msg);
 
         if (logger) {
@@ -49,4 +47,6 @@ export default (socket: Socket.Link<AnyObject>): void => {
             }
         });
     };
+
+    (socket as { sendout: typeof sendout }).sendout = sendout;
 };

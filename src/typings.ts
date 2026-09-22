@@ -16,7 +16,7 @@ export interface AnyObject {
 
 export declare namespace Socket {
 
-	interface SetAttr<Attr extends AnyObject> {
+	interface SetAttr<Attr> {
 		/** 将attribute的键值设置到socket的属性中 */
 		(attribute: Partial<Attr>): void;
 
@@ -24,7 +24,7 @@ export declare namespace Socket {
 		<K extends keyof Attr>(attribute: K, value: Attr[K]): void;
 	}
 
-	interface GetAttr<Attr extends AnyObject> {
+	interface GetAttr<Attr> {
 		/** 获取socket的全部属性 */
 		(): Attr;
 
@@ -36,28 +36,37 @@ export declare namespace Socket {
 	}
 
 	export interface MethodRequest {
+		/** jsonrpc规范版本 */
 		jsonrpc: '2.0'
 		/** 一般为随机字符串或数字 */
 		id?: string | number | null
+		/** 请求的方法/业务标识 */
 		method: string
+		/** 请求的参数 */
 		params?: unknown
 	}
 
-	export interface ServerMessage {
-		jsonrpc: '2.0'
+	export type ServerSuccessMessage<Result = unknown> = {
+		result: Result;
+		error?: never;
+	};
+	export type ServerErrorMessage = {
+		result?: never;
+		error: WebSocketService.RPCError;
+	};
+	export type ServerMessage<SendMethod extends string = string> = {
+		jsonrpc: '2.0';
 		/** 一般为随机字符串或数字 */
-		id: string | number | null
+		id: string | number | null;
 		/**
-		 * 非jsonrpc2.0标准字段。
-		 * 用于标记结果所属的method时，可取请求数据的method值；也可自定义取值，标记服务器自定义推送信息
-		 * 不可以为unknownMsg，以unknownMsg为名的method是客户端监听位置消息的固定method
+		 * - 非jsonrpc2.0标准字段。
+		 * - 用于标记某个method的结果时，可取请求数据的method值；也可自定义取值，来标记服务器自定义的推送信息
+		 * - 不可以为`unknownMsg`，以`unknownMsg`为名的method是客户端监听未知消息的固定method
 		 */
-		method?: string
-		result?: unknown
-		error?: WebSocketService.RPCError
-	}
+		method?: SendMethod;
+	} & (ServerSuccessMessage | ServerErrorMessage);
 
-	export interface Link<Attr extends AnyObject> extends WebSocket {
+	export interface Link<Attr, SendMethod extends string = string> extends WebSocket {
 		/** 连接的全部属性 */
 		readonly attribute: Attr
 		/** 连接的id */
@@ -72,12 +81,9 @@ export declare namespace Socket {
 		}
 
 		/**
-		 * 发送符合jsonrpc2.0规范的数据
-		 * - id为null/number/string，非必填项，若不填，则自动设置
-		 * - method为string，非必填项，也非jsonrpc2.0标准字段，用于客户端自定义业务标记
-		 * - result为unknown，非必填项，与error二选一
-		 * - error为WebSocketService.RPCError，非必填项，与result二选一
-		 * - example:
+		 * 发送符合jsonrpc2.0规范的数据，主要用于服务器主动推送数据给客户端
+		 *
+		 * - 使用示例:
 		 * ```
 		 * socket.sendout({
 		 * 	method: 'xxx',
@@ -87,27 +93,45 @@ export declare namespace Socket {
 		 * socket.sendout({
 		 * 	method: 'xxx',
 		 * 	error: {
-		 * 		code: -32xxx,
-		 * 		message: 'xxx'
+		 * 		code: -32301,
+		 * 		message: 'xxx',
 		 * 	 	data: ...
 		 * 	}
 		 * });
+		 *
 		 * socket.sendout({
 		 * 	result: ...
 		 * });
+		 *
 		 * socket.sendout({
 		 * 	id: 'xxxxxxx',
 		 * 	method: 'xxx',
 		 * 	result: ...
 		 * });
 		 * ```
-		 * @param {Omit<ServerMessage, 'jsonrpc'>} message
+		 *
+		 * @template SendMethod
+		 * @param {ServerMessage['id']} [id] 可选项，若为空(不含null)，则自动设置
+		 * @param {ServerMessage<SendMethod>['method']} [method] 可选项，也非jsonrpc2.0标准字段，用于自定义业务标记
+		 * @param {ServerSuccessMessage['result']} [result] 可选项，与message.error二选一
+		 * @param {ServerErrorMessage['error']} [error] 可选项，与message.result二选一
 		 * @memberof Link
 		 */
-		readonly sendout: (message: Omit<ServerMessage, 'jsonrpc' | 'id'> & { id?: ServerMessage['id'] }) => Promise<void>;
+		readonly sendout: (message:
+			{
+				id?: ServerMessage['id'],
+				method?: ServerMessage<SendMethod>['method']
+			} & (ServerSuccessMessage | ServerErrorMessage)
+		) => Promise<void>;
 
 		readonly setAttr: SetAttr<Attr>;
 		readonly getAttr: GetAttr<Attr>;
+		/**
+		 * 删除socket的属性
+		 *
+		 * @param {...keyof Attr} attributes
+		 */
+		readonly removeAttr: (...attributes: Array<keyof Attr>) => void;
 	}
 }
 
@@ -117,7 +141,7 @@ export declare namespace WebSocketService {
 	export interface Options {
 		log?: boolean | ((module?: string) => Logger)
 		jsonSerializer?: {
-			/** 序列化方法，默认为JSON.stringify */
+			/** 序列化方法，默认为JSON.stringify(优化了Error对象展示和浏览器端NODE_ENV判断) */
 			serialize?: (data: unknown) => string
 			/** 反序列化方法，默认为JSON.parse */
 			deserialize?: (data: string) => unknown
@@ -129,87 +153,144 @@ export declare namespace WebSocketService {
 		code: number
 		message: string
 		data?: unknown
+		/** 错误的堆栈信息 */
 		stack?: string
 	}
 
-	/** 中间件阶段Attribute可能未完全获取到 */
-	// @ts-ignore
-	// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-	export type MiddlewareFn<Attribute extends AnyObject> = (params: unknown, socket: Socket.Link<Partial<Attribute>>, method: string) => Partial<Attribute> | void | Promise<Partial<Attribute> | void>
-	export type MethodFn<Attribute extends AnyObject> = (params: unknown, socket: Socket.Link<Attribute>) => unknown | Promise<unknown>;
-	export type NoticeFn<Attribute extends AnyObject> = (params: unknown, attribute: Attribute, notice: string) => void | Promise<void>;
-	/** online阶段Attribute几乎未获取到 */
-	// @ts-ignore
-	export type OnlineCallbackFn<Attribute extends AnyObject> = (socket: Socket.Link<Partial<Attribute>>, request: http.IncomingMessage) => void | Promise<void>;
-	export type OfflineCallbackFn<Attribute extends AnyObject> = (attribute: Attribute, id: string) => void | Promise<void>;
-	/** 中间件阶段可能触发错误回调，Attribute可能未完全获取到 */
-	// @ts-ignore
-	export type ErrorCallbackFn<Attribute extends AnyObject, E> = (error: E, socket: Socket.Link<Partial<Attribute>>, reqData?: Socket.MethodRequest) => void | Promise<void>;
+	/** 中间件阶段Attribute可能未完全设置，可能为空 */
+	export type MiddlewareFn<Attribute extends AnyObject, SendMethod extends string = string, Params = unknown> = (params: Params, socket: Socket.Link<Partial<Attribute>, SendMethod>, method: string) => Partial<Attribute> | undefined | Promise<Partial<Attribute> | undefined>
 
-	interface Use<Attribute extends AnyObject, Method extends string = string> {
+	export type MethodFn<Attribute extends AnyObject, SendMethod extends string = string, Params = unknown> = (params: Params, socket: Socket.Link<Attribute, SendMethod>) => unknown | Promise<unknown>;
+
+	export type NoticeFn<Attribute extends AnyObject> = (params: unknown, attribute: Attribute, notice: string) => void | Promise<void>;
+
+	/** online阶段Attribute几乎未设置，可能为空 */
+	export type OnlineCallbackFn<Attribute extends AnyObject, SendMethod extends string = string> = (socket: Socket.Link<Partial<Attribute>, SendMethod>, request: http.IncomingMessage) => void | Promise<void>;
+
+	export type OfflineCallbackFn<Attribute extends AnyObject> = (attribute: Attribute, id: string) => void | Promise<void>;
+
+	/** 中间件阶段可能触发错误回调，Attribute可能未完全获取到 */
+	export type ErrorCallbackFn<Attribute extends AnyObject, E, SendMethod extends string = string> = (error: E, socket: Socket.Link<Partial<Attribute>, SendMethod>, reqData?: Socket.MethodRequest) => void | Promise<void>;
+
+	interface Use<Attribute extends AnyObject, Method extends string = string, SendMethod extends string = string> {
 		/**
 		 * 注册适用于所有method的一个或多个中间件
-		 * 内置的ping和connect不会执行任何中间件
+		 * - 内置的ping和connect不会执行任何中间件
+		 *
+		 * @param {...Array<MiddlewareFn<Attribute, SendMethod>>} middlewares
 		*/
-		(middleware: MiddlewareFn<Attribute>, ...middlewares: Array<MiddlewareFn<Attribute>>): void;
+		(middleware: MiddlewareFn<Attribute, SendMethod>, ...middlewares: Array<MiddlewareFn<Attribute, SendMethod>>): void;
 
 		/**
 		 * 注册只适用于某个method的一个或多个中间件
-		 * 内置的ping和connect不支持注册中间件
+		 * - 内置的ping和connect不支持注册中间件
+		 *
+		 * @template Params
+		 * @param {Method} method method名称
+		 * @param {...Array<MiddlewareFn<Attribute, SendMethod, Params>>} middlewares
 		*/
-		(method: Method, ...middlewares: Array<MiddlewareFn<Attribute>>): void;
+		<Params = unknown>(method: Method, ...middlewares: Array<MiddlewareFn<Attribute, SendMethod, Params>>): void;
 	}
 
-	interface Register<Attribute extends AnyObject, Method extends string = string> {
+	interface Register<Attribute extends AnyObject, Method extends string = string, SendMethod extends string = string> {
 		/**
 		 * 注册一个method
+		 *
+		 * @template Params
 		 * @param {Method} method method名称，不支持ping和connect(已内置)，若传入ping或connect，则忽略
+		 * @param {MethodFn<Attribute, SendMethod, Params>} cb
 		 */
-		(method: Method, cb: MethodFn<Attribute>): void;
+		<Params = unknown>(method: Method, cb: MethodFn<Attribute, SendMethod, Params>): void;
 
 		/**
 		 * 注册一个或多个method
-		 * method名称不支持ping和connect(已内置)，若传入ping或connect，则忽略
+		 * - method名称不支持ping和connect(已内置)，若传入ping或connect，则忽略
+		 *
+		 * @param {Partial<Record<Method, MethodFn<Attribute, SendMethod>>>} method
 		 */
-		(method: Record<Method, MethodFn<Attribute>>): void;
+		(method: Partial<Record<Method, WebSocketService.MethodFn<Attribute, SendMethod>>>): void;
 	}
 
-	interface OnNotice<Attribute extends AnyObject, Notice extends string = string> {
-		/** 注册一个或多个针对所有notice消息的监听事件 */
+	interface OnNotice<Attribute extends AnyObject, OnNoticeMethod extends string = string> {
+		/**
+		 * 注册一个或多个针对所有notice消息的监听事件
+		 *
+		 * @param {...Array<NoticeFn<Attribute>>} noticeHandlers
+		 */
 		(noticeHandler: NoticeFn<Attribute>, ...noticeHandlers: Array<NoticeFn<Attribute>>): void;
 
-		/** 注册一个或多个只适用于某个notice消息的监听事件 */
-		(notice: Notice, ...noticeHandlers: Array<NoticeFn<Attribute>>): void;
+		/**
+		 * 注册一个或多个只适用于某个notice消息的监听事件
+		 *
+		 * @param {OnNoticeMethod} notice 消息事件名称，取消息中的method值
+		 * @param {...Array<NoticeFn<Attribute>>} noticeHandlers
+		 */
+		(notice: OnNoticeMethod, ...noticeHandlers: Array<NoticeFn<Attribute>>): void;
 	}
 
+	/**
+	 * 根据传入的attribute做判断，返回当前socket是否符合函数筛选要求
+	 */
 	export type IsThisSocket<Attr> = (attribute: Attr) => boolean | undefined;
 
 	interface GetSocketAttr<Attribute extends AnyObject> {
-		/** 获取某个socket连接的全部属性 */
+		/**
+		 * 获取某个socket连接的全部属性
+		 *
+		 * @param {string} connectId
+		 */
 		(connectId: string): Attribute | undefined;
 
-		/** 获取某个socket连接的某个属性 */
+		/**
+		 * 获取某个socket连接的某个属性
+		 *
+		 * @template K
+		 * @param {string} connectId
+		 * @param {K} attribute
+		 */
 		<K extends keyof Attribute>(connectId: string, attribute: K): Attribute[K] | undefined;
 
-		/** 获取某个socket连接的某些属性 */
+		/**
+		 * 获取某个socket连接的某些属性
+		 *
+		 * @template K
+		 * @param {string} connectId
+		 * @param {...Array<K>} attributes
+		 */
 		<K extends keyof Attribute>(connectId: string, ...attributes: Array<K>): Pick<Attribute, Array<K>[number]> | undefined;
 	}
 
 	interface GetSocketsAttr<Attribute extends AnyObject> {
-		/** 获取某些socket连接的全部属性 */
+		/**
+		 * 获取某些socket连接的全部属性
+		 *
+		 * @param {IsThisSocket<Attribute>} is
+		 */
 		(is: IsThisSocket<Attribute>): Array<Attribute>;
 
-		/** 获取某些socket连接的某个属性 */
+		/**
+		 * 获取某些socket连接的某个属性
+		 *
+		 * @template K
+		 * @param {IsThisSocket<Attribute>} is
+		 * @param {K} attribute
+		 */
 		<K extends keyof Attribute>(is: IsThisSocket<Attribute>, attribute: K): Array<Attribute[K]>;
 
-		/** 获取某些socket连接的某些属性 */
+		/**
+		 * 获取某些socket连接的某些属性
+		 *
+		 * @template K
+		 * @param {IsThisSocket<Attribute>} is
+		 * @param {...Array<K>} attributes
+		 */
 		<K extends keyof Attribute>(is: IsThisSocket<Attribute>, ...attributes: Array<K>): Array<Pick<Attribute, Array<K>[number]>>;
 	}
 
-	export interface Server<Attribute extends AnyObject, Method extends string = string, Notice extends string = string> {
-		readonly use: Use<Attribute, Method>;
-		readonly register: Register<Attribute, Method>;
-		readonly onNotice: OnNotice<Attribute, Notice>;
+	export interface Server<Attribute extends AnyObject, Method extends string = string, OnNoticeMethod extends string = string, SendMethod extends string = string> {
+		readonly use: Use<Attribute, Method, SendMethod>;
+		readonly register: Register<Attribute, Method, SendMethod>;
+		readonly onNotice: OnNotice<Attribute, OnNoticeMethod>;
 
 		/**
 		 * 启动服务
@@ -228,10 +309,10 @@ export declare namespace WebSocketService {
 		/**
 		 * 新连接构建成功后的回调
 		 *
-		 * @param {...Array<OnlineCallbackFn<Attribute>>} args
+		 * @param {...Array<OnlineCallbackFn<Attribute, SendMethod>>} args
 		 * @memberof Server
 		 */
-		readonly online: (...args: Array<OnlineCallbackFn<Attribute>>) => void;
+		readonly online: (...args: Array<OnlineCallbackFn<Attribute, SendMethod>>) => void;
 
 		/**
 		 * 连接断开后的回调
@@ -243,33 +324,44 @@ export declare namespace WebSocketService {
 
 		/**
 		 * middleware或method运行出错时的错误处理。
-		 * 注意：只处理middleware和method执行抛出的错误
+		 * - 注意：只处理middleware和method执行抛出的错误
+		 *
 		 * @template E
-		 * @param {...Array<WebSocketService.ErrorCallbackFn<Attribute, E>>} args
+		 * @param {...Array<ErrorCallbackFn<Attribute, E, SendMethod>>} args
 		 * @memberof Server
 		 */
-		readonly error: <E>(...args: Array<ErrorCallbackFn<Attribute, E>>) => void;
+		readonly error: <E>(...args: Array<ErrorCallbackFn<Attribute, E, SendMethod>>) => void;
 
 		/**
 		 * 根据socket的连接id获取socket对象
 		 *
 		 * @param {string} connectId
-		 * @returns {(Socket.Link<Attribute> | undefined)}
+		 * @returns {(Socket.Link<Attribute, SendMethod> | undefined)}
 		 * @memberof Server
 		 */
-		readonly getSocket: (connectId: string) => Socket.Link<Attribute> | undefined;
+		readonly getSocket: (connectId: string) => Socket.Link<Attribute, SendMethod> | undefined;
 
 		/**
 		 * 根据socket连接的属性数据获取socket对象
 		 *
 		 * @param {IsThisSocket<Attribute>} is
-		 * @returns {Set<Socket.Link<Attribute>>}
+		 * @returns {Set<Socket.Link<Attribute, SendMethod>>}
 		 * @memberof Server
 		 */
-		readonly getSockets: (is: IsThisSocket<Attribute>) => Set<Socket.Link<Attribute>>;
+		readonly getSockets: (is: IsThisSocket<Attribute>) => Set<Socket.Link<Attribute, SendMethod>>;
 
+		/**
+		 * 获取单个连接上的attribute信息
+		 *
+		 * @memberof Server
+		 */
 		readonly getSocketAttr: GetSocketAttr<Attribute>;
 
+		/**
+		 * 获取某些连接上的attribute信息
+		 *
+		 * @memberof Server
+		 */
 		readonly getSocketsAttr: GetSocketsAttr<Attribute>;
 
 		/**
@@ -284,10 +376,10 @@ export declare namespace WebSocketService {
 		/**
 		 * 所有socket连接
 		 *
-		 * @type {Set<Socket.Link<Attribute>>}
+		 * @type {Set<Socket.Link<Attribute, SendMethod>>}
 		 * @memberof Server
 		 */
-		readonly clients: Set<Socket.Link<Attribute>>;
+		readonly clients: Set<Socket.Link<Attribute, SendMethod>>;
 
 		/**
 		 * 所有定义的method名称
@@ -297,6 +389,11 @@ export declare namespace WebSocketService {
 		 */
 		readonly methodList: Array<string>;
 
+		/**
+		 * 服务器监听的端口
+		 *
+		 * @memberof Server
+		 */
 		readonly port: number | undefined;
 	}
 }
@@ -312,7 +409,7 @@ export declare namespace WsClient {
 		timeout?: number;
 		/**
 		 * - 消息序列化/反序列化处理
-		 * - 默认使用`JSON.stringify`/`JSON.parse`
+		 * - 默认使用`JSON.stringify(优化了Error对象展示和浏览器端NODE_ENV判断)`/`JSON.parse`
 		 */
 		jsonSerializer?: WebSocketService.Options['jsonSerializer'];
 		/**
@@ -322,31 +419,32 @@ export declare namespace WsClient {
 		perMessageHandler?: (data: unknown) => string | Promise<string>;
 	}
 
-	export type ListeningCallbackFn = (error: Socket.ServerMessage['error'] | null, result: Socket.ServerMessage['result']) => void;
-	export type RequestResult = { error?: Socket.ServerMessage['error'], result?: Socket.ServerMessage['result'] };
+	export type ListeningCallbackFn = (error: Socket.ServerErrorMessage['error'] | null, result: Socket.ServerSuccessMessage['result']) => void;
+	export type RequestResult<Result = unknown> = Socket.ServerSuccessMessage<Result> | Socket.ServerErrorMessage;
 
 	interface Request<Method extends string = string> {
 		/**
 		 * 发送一个method请求
 		 *
+		 * @template Result
 		 * @param {Method} method method名称
 		 * @param {*} [params]
 		 * @param {object} [option] Object
 		 * @param {number} [option.timeout] 超时时间，单位为秒，默认10秒
-		 * @returns {Promise<RequestResult>}
+		 * @returns {Promise<{ result: Result, error?: never } | { error: Socket.ServerErrorMessage['error'], result?: never }>}
 		 * @memberof Client
 		 */
-		(method: Method, params?: unknown, option?: { timeout: number }): Promise<RequestResult>;
+		<Result = unknown>(method: Method, params?: unknown, option?: { timeout: number }): Promise<{ result: Result, error?: never } | { error: Socket.ServerErrorMessage['error'], result?: never }>;
 	}
 
 	interface BatchRequests<Method extends string = string> {
 		/**
 		 * 批量发送多个method请求，结果返回顺序与请求顺序一致
 		 *
-		 * @param {Method} arg.method method名称
-		 * @param {*} [arg.params]
-		 * @param {object} [arg.option] Object
-		 * @param {number} [arg.option.timeout] 超时时间，单位为秒，默认10秒
+		 * - arg.method method名称
+		 * - arg.params 参数
+		 * - arg.option.timeout 超时时间，单位为秒，默认10秒, 0表示不设置超时
+		 * @param {Array<{ method: Method, params?: unknown, option?: { timeout: number } }>} arg
 		 * @returns {Promise<Array<RequestResult>>}
 		 * @memberof Client
 		 */
@@ -367,15 +465,20 @@ export declare namespace WsClient {
 		/**
 		 * 向服务器批量发送多个通知
 		 *
-		 * @param {Notice} arg.notice 通知名称
-		 * @param {*} [arg.params]
+		 * - arg.notice 通知名称
+		 * - arg.params 参数
+		 * @param {Array<{ notice: Notice, params?: unknown }>} arg
 		 * @returns {void}
 		 * @memberof Client
 		 */
 		(arg: Array<{ notice: Notice, params?: unknown }>): void;
 	}
 
-	export interface Client<Method extends string = string, Notice extends string = string> {
+	export interface Client<
+		Method extends string = string,
+		Notice extends string = string,
+		ListeningMethod extends string = string
+	> {
 		/** 连接状态：连接还没有打开. */
 		readonly CONNECTING: number;
 		/** 连接状态：连接已准备就绪. */
@@ -418,23 +521,25 @@ export declare namespace WsClient {
 		/**
 		 * ping
 		 *
-		 * @returns {Promise<RequestResult>}
+		 * @returns {Promise<RequestResult<'pong'>>}
 		 * @memberof Client
 		 */
-		readonly ping: () => Promise<RequestResult>;
+		readonly ping: () => Promise<RequestResult<'pong'>>;
 
 		/**
-		 * 检查当前连接是否已经打开
+		 * 获取连接信息(如连接id)
 		 *
+		 * @returns {Promise<RequestResult<{ msg: 'connected', session: string }>>}
 		 * @memberof Client
 		 */
-		readonly connectInfo: () => Promise<RequestResult>;
+		readonly connectInfo: () => Promise<RequestResult<{ msg: 'connected', session: string }>>;
 
 		/**
 		 * 注册一个/多个客户端离线时的回调函数
 		 *
 		 * @param args
 		 * @returns {void}
+		 * @memberof Client
 		 */
 		readonly offline: (...args: Array<() => void>) => void;
 
@@ -443,35 +548,45 @@ export declare namespace WsClient {
 		 * 服务器主动推送的数据没有method字段时，可通过listening('unknownMsg', ...)来监听
 		 * 可添加多次，监听事件会按添加顺序触发
 		 *
-		 * @param {string} method
+		 * @param {ListeningMethod} method
 		 * @param {ListeningCallbackFn} callback
 		 * @returns {void}
 		 * @memberof Client
 		 */
-		readonly listening: (method: string, callback: ListeningCallbackFn) => void;
+		readonly listening: (method: ListeningMethod, callback: ListeningCallbackFn) => void;
 
 		/**
 		 * 同listening，但只监听一次就移除
-		 * @param {string} method
+		 *
+		 * @param {ListeningMethod} method
 		 * @param {ListeningCallbackFn} callback
 		 * @returns {void}
 		 * @memberof Client
 		 */
-		readonly listeningOnce: (method: string, callback: ListeningCallbackFn) => void;
+		readonly listeningOnce: (method: ListeningMethod, callback: ListeningCallbackFn) => void;
 
 		/**
+		 * 移除对服务端某个method消息的监听事件
 		 *
-		 * @param {string} method
+		 * - 例如：
+		 * ```
+		 * const calback = (error, result) => { ... };
+		 * client.listening('method', callback);
+		 * client.removeListening('method', callback);
+		 * ```
+		 *
+		 * @param {ListeningMethod} method
 		 * @param {ListeningCallbackFn} callback
 		 * @returns {void}
 		 * @memberof Client
 		 */
-		readonly removeListening: (method: string, callback: ListeningCallbackFn) => void;
+		readonly removeListening: (method: ListeningMethod, callback: ListeningCallbackFn) => void;
 
 		/**
 		 * 关闭当前连接
 		 *
 		 * @returns {void}
+		 * @memberof Client
 		 */
 		readonly close: () => void;
 	}

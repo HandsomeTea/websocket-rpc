@@ -1,7 +1,11 @@
 import { BaseWsClient } from './common-client.js';
 import type { WsClient } from './typings.js';
 
-export class BrowserWsClient<Method extends string = string, Notice extends string = string> extends BaseWsClient<WebSocket, Method, Notice> {
+/**
+ * 浏览器端导入方式：
+ * - `import { BrowserWsClient } from '@coco-sheng/websocket-rpc/browser';`
+ */
+export class BrowserWsClient<Method extends string = string, Notice extends string = string, ListeningMethod extends string = string> extends BaseWsClient<WebSocket, Method, Notice, ListeningMethod> {
 
     private addr: string | URL;
 
@@ -17,13 +21,7 @@ export class BrowserWsClient<Method extends string = string, Notice extends stri
             this.webSocket = new WebSocket(this.addr);
             this.webSocket.onmessage = async (event: MessageEvent) => await this.messageHandler(event.data);
             this.webSocket.onopen = resolve;
-            this.webSocket.onclose = async () => {
-                for (const fn of this._close) {
-                    await fn();
-                }
-
-                this.clearPendingRequests('Connection closed');
-            };
+            this.webSocket.onclose = async () => await this.closeHandler();
             this.webSocket.onerror = e => {
                 this.clearPendingRequests('Connection error');
                 reject(e);

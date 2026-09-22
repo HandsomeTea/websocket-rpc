@@ -9,7 +9,11 @@ interface WebSocketLike {
     close(code?: number, reason?: string): void;
 }
 
-export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method extends string = string, Notice extends string = string> implements WsClient.Client<Method, Notice> {
+export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
+    Method extends string = string,
+    Notice extends string = string,
+    ListeningMethod extends string = string
+> implements WsClient.Client<Method, Notice, ListeningMethod> {
 
     abstract open(): Promise<void>;
 
@@ -24,7 +28,7 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
         perMessageHandler: undefined as WsClient.Options['perMessageHandler']
     };
 
-    protected record: Record<string, { result: Socket.ServerMessage['result'], error: Socket.ServerMessage['error'] }> = {};
+    protected record: Record<string, { result: Socket.ServerSuccessMessage['result'], error: Socket.ServerErrorMessage['error'] }> = {};
 
     protected _close: Array<() => void> = [];
 
@@ -74,10 +78,10 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
         const targets = Array.from(this.listeners[method] || []);
 
         for (const fn of targets) {
-            if (data.error || data.result) {
+            if (data.error !== undefined) {
                 fn(data.error, data.result);
             } else {
-                fn(data as unknown as Socket.ServerMessage['error'], undefined);
+                fn(null, data.result);
             }
         }
     }
@@ -115,14 +119,40 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
         }
     }
 
-    listening(method: string, callback: WsClient.ListeningCallbackFn): void {
+    protected async closeHandler() {
+        for (const fn of this._close) {
+            await fn();
+        }
+
+        this.clearPendingRequests('Connection closed');
+    }
+
+    /**
+     * 为某个method设置一个监听事件，一般用于服务器主动推送数据的监听
+     * 服务器主动推送的数据没有method字段时，可通过listening('unknownMsg', ...)来监听
+     * 可添加多次，监听事件会按添加顺序触发
+     *
+     * @param {ListeningMethod} method
+     * @param {WsClient.ListeningCallbackFn} callback
+     * @returns {void}
+     * @memberof Client
+     */
+    listening(method: ListeningMethod, callback: WsClient.ListeningCallbackFn): void {
         if (!this.listeners[method]) {
             this.listeners[method] = new Set();
         }
         this.listeners[method].add(callback);
     }
 
-    listeningOnce(method: string, callback: WsClient.ListeningCallbackFn): void {
+    /**
+     * 同listening，但只监听一次就移除
+     *
+     * @param {ListeningMethod} method
+     * @param {WsClient.ListeningCallbackFn} callback
+     * @returns {void}
+     * @memberof Client
+     */
+    listeningOnce(method: ListeningMethod, callback: WsClient.ListeningCallbackFn): void {
         if (!this.listeners[method]) {
             this.listeners[method] = new Set();
         }
@@ -138,7 +168,22 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
         this.listeners[method].add(wrapper);
     }
 
-    removeListening(method: string, callback: WsClient.ListeningCallbackFn): void {
+    /**
+     * 移除对服务端某个method消息的监听事件
+     *
+     * - 例如：
+     * ```
+     * const calback = (error, result) => { ... };
+     * client.listening('method', callback);
+     * client.removeListening('method', callback);
+     * ```
+     *
+     * @param {ListeningMethod} method
+     * @param {WsClient.ListeningCallbackFn} callback
+     * @returns {void}
+     * @memberof Client
+     */
+    removeListening(method: ListeningMethod, callback: WsClient.ListeningCallbackFn): void {
         const wrapper = this.onceListenerMap[method]?.get(callback);
 
         if (wrapper) {
@@ -152,13 +197,15 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
     /**
      * 发送一个method请求
      *
+     * @template Result
      * @param {Method} method method名称
      * @param {*} [params]
      * @param {object} [option] Object
      * @param {number} [option.timeout] 超时时间，单位为秒，默认10秒, 0表示不设置超时
-     * @returns {Promise<RequestResult>}
+     * @returns {Promise<{ result: Result, error?: never } | { error: Socket.ServerErrorMessage['error'], result?: never }>}
+     * @memberof Client
      */
-    async request(method: Method, params?: unknown, option?: { timeout: number }): Promise<WsClient.RequestResult> {
+    async request<Result = unknown>(method: Method, params?: unknown, option?: { timeout: number }): Promise<{ result: Result, error?: never } | { error: Socket.ServerErrorMessage['error'], result?: never }> {
         if (this.status !== WebSocket.OPEN) {
             throw new Error('WebSocket is not open!');
         }
@@ -170,82 +217,78 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
         const self = this;
         const { timeout } = option || {};
 
-        try {
-            return await new Promise((resolve, reject) => {
-                this.record[cacheId] = new class Cache {
-                    private timer: number | null = null;
-                    constructor() {
-                        const _self = this;
-                        let _timeout = -1;
+        return await new Promise((resolve, reject) => {
+            this.record[cacheId] = new class Cache {
+                private timer: number | null = null;
+                constructor() {
+                    const _self = this;
+                    let _timeout = -1;
 
-                        if (typeof timeout === 'number' && !isNaN(timeout) && timeout >= 0) {
-                            _timeout = timeout;
-                        } else if (typeof self.options.timeout === 'number' && !isNaN(self.options.timeout) && self.options.timeout >= 0) {
-                            _timeout = self.options.timeout;
-                        } else {
-                            _timeout = CLIENT_DEFAULT_TIMEOUT;
-                        }
+                    if (typeof timeout === 'number' && !isNaN(timeout) && timeout >= 0) {
+                        _timeout = timeout;
+                    } else if (typeof self.options.timeout === 'number' && !isNaN(self.options.timeout) && self.options.timeout >= 0) {
+                        _timeout = self.options.timeout;
+                    } else {
+                        _timeout = CLIENT_DEFAULT_TIMEOUT;
+                    }
 
-                        if (_timeout !== 0) {
-                            this.timer = setTimeout(() => {
-                                _self.error = {
-                                    code: -32003,
-                                    message: 'Time out',
-                                    data: 'Time out'
-                                };
-                            }, _timeout * 1000) as unknown as number;
-                        }
-
-                        try {
-                            self.webSocket.send(self.options.jsonSerializer.serialize({
-                                jsonrpc: '2.0',
-                                id,
-                                method,
-                                params
-                            }));
-                        } catch (e) {
-                            console.log(e);
-
+                    if (_timeout !== 0) {
+                        this.timer = setTimeout(() => {
                             _self.error = {
-                                code: -32001,
-                                message: 'Parse error',
-                                data: 'Parse error'
-                            }
+                                code: -32003,
+                                message: 'Time out',
+                                data: 'Time out'
+                            };
+                        }, _timeout * 1000) as unknown as number;
+                    }
+
+                    try {
+                        self.webSocket.send(self.options.jsonSerializer.serialize({
+                            jsonrpc: '2.0',
+                            id,
+                            method,
+                            params
+                        }));
+                    } catch (e) {
+                        console.log(e);
+
+                        _self.error = {
+                            code: -32001,
+                            message: 'Parse error',
+                            data: 'Parse error'
                         }
                     }
+                }
 
-                    private clearTimer() {
-                        if (this.timer) {
-                            clearTimeout(this.timer);
-                            this.timer = null;
-                        }
-                        delete self.record[cacheId];
+                private clearTimer() {
+                    if (this.timer) {
+                        clearTimeout(this.timer);
+                        this.timer = null;
                     }
+                    delete self.record[cacheId];
+                }
 
-                    set result(data: Socket.ServerMessage['result']) {
-                        this.clearTimer();
-                        resolve({ result: data });
-                    }
+                set result(data: Result) {
+                    this.clearTimer();
+                    resolve({ result: data });
+                }
 
-                    set error(error: Socket.ServerMessage['error']) {
-                        this.clearTimer();
-                        reject({ error });
-                    }
-                };
-            });
-        } catch (e) {
-            return e as WsClient.RequestResult;
-        }
+                set error(error: Socket.ServerErrorMessage['error']) {
+                    this.clearTimer();
+                    reject({ error });
+                }
+            };
+        });
     }
 
     /**
      * 批量发送多个method请求，结果返回顺序与请求顺序一致
      *
-     * @param {Method} arg.method method名称
-     * @param {*} [arg.params]
-     * @param {object} [arg.option] Object
-     * @param {number} [arg.option.timeout] 超时时间，单位为秒，默认10秒, 0表示不设置超时
-     * @returns {Promise<Array<RequestResult>>}
+     * - arg.method method名称
+     * - arg.option.timeout 超时时间，单位为秒，默认10秒, 0表示不设置超时
+     * @param {Array<{ method: Method, params?: unknown, option?: { timeout: number } }>} arg
+     * @returns {Promise<Array<WsClient.RequestResult>>}
+     * @memberof Client
      */
     async batch(arg: Array<{ method: Method, params?: unknown, option?: { timeout: number } }>) {
         if (!Array.isArray(arg)) {
@@ -265,14 +308,16 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
      * @param {Notice} notice 通知名称
      * @param {*} [params]
      * @returns {void}
+     * @memberof Client
      */
     notify(notice: Notice, params?: unknown): void;
 
     /**
      * 向服务器批量发送多个通知
      *
-     * @param {Notice} arg.notice 通知名称
-     * @param {*} [arg.params]
+     * - arg.notice 通知名称
+     * - arg.params 参数
+     * @param {Array<{ notice: Notice, params?: unknown }>} arg
      * @returns {void}
      * @memberof Client
      */
@@ -300,14 +345,33 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
         }
     }
 
-    async ping(): Promise<WsClient.RequestResult> {
+    /**
+     * ping
+     *
+     * @returns {Promise<WsClient.RequestResult<'pong'>>}
+     * @memberof Client
+     */
+    async ping(): Promise<WsClient.RequestResult<'pong'>> {
         return await this.request('ping' as Method);
     }
 
-    async connectInfo(): Promise<WsClient.RequestResult> {
+    /**
+     * 获取连接信息(如连接id)
+     *
+     * @returns {Promise<WsClient.RequestResult<{ msg: 'connected', session: string }>>}
+     * @memberof Client
+     */
+    async connectInfo(): Promise<WsClient.RequestResult<{ msg: 'connected', session: string }>> {
         return await this.request('connect' as Method);
     }
 
+    /**
+     * 注册一个/多个客户端离线时的回调函数
+     *
+     * @param args
+     * @returns {void}
+     * @memberof Client
+     */
     offline(...args: Array<() => void>): void {
         if (Array.isArray(args) && args.length > 0) {
             for (const fn of args) {
@@ -318,6 +382,12 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
         }
     }
 
+    /**
+     * 关闭当前连接
+     *
+     * @returns {void}
+     * @memberof Client
+     */
     close() {
         this.webSocket.close();
     }
@@ -327,22 +397,27 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
         return this.webSocket;
     }
 
+    /** 正在连接 */
     get CONNECTING() {
         return 0;
     }
 
+    /** 连接已经建立，通讯通道已打开 */
     get OPEN() {
         return 1;
     }
 
+    /** 连接正在关闭 */
     get CLOSING() {
         return 2;
     }
 
+    /** 连接已经关闭或者没有建立 */
     get CLOSED() {
         return 3;
     }
 
+    /** websocket连接状态 */
     get status() {
         if (this.webSocket) {
             return this.webSocket.readyState;
@@ -353,25 +428,99 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike, Method e
 
 /**
  * jsonrpc id生成器，适用于客户端/服务端
- * - example:
+ * - 示例:
  * ```
  *      const idGenerator = new JsonRPCIdGenerator();
  * ```
- * - then you can use it to generate id:
+ * - 生成id:
  * ```
  *      const id = idGenerator.id();
  * ```
  * @class JsonRPCIdGenerator
  */
 export class JsonRPCIdGenerator {
-    private prefix = Math.random().toString(36).substring(2, 6);
-    private _id = 1;
+    private static readonly EPOCH = 1704067200000n; // 2024-01-01 00:00:00 UTC
+
+    private static readonly MACHINE_BITS = 10n;  // 支持1024个实例
+    private static readonly SEQUENCE_BITS = 12n; // 每毫秒4096个ID
+
+    // private static readonly MAX_MACHINE_ID = (1n << JsonRPCIdGenerator.MACHINE_BITS) - 1n;
+    private static readonly MAX_SEQUENCE = (1n << JsonRPCIdGenerator.SEQUENCE_BITS) - 1n;
+
+    private static readonly MACHINE_SHIFT = JsonRPCIdGenerator.SEQUENCE_BITS;
+    private static readonly TIMESTAMP_SHIFT =
+        JsonRPCIdGenerator.SEQUENCE_BITS + JsonRPCIdGenerator.MACHINE_BITS;
+
+    private machineId: bigint;
+    private sequence: bigint = 0n;
+    private lastTimestamp: bigint = -1n;
+
+    private readonly machineIdShifted: bigint;
+
+    private generatedCount = 0;
+    private collisionRetries = 0;
+
+    constructor() {
+        // if (machineId < 0 || BigInt(machineId) > JsonRPCIdGenerator.MAX_MACHINE_ID) {
+        //     throw new Error(`Machine ID must be between 0 and ${JsonRPCIdGenerator.MAX_MACHINE_ID}`);
+        // }
+        this.machineId = BigInt(Math.floor(Math.random() * 1000));
+        this.machineIdShifted = this.machineId << JsonRPCIdGenerator.MACHINE_SHIFT;
+    }
+
+    private randomPrefix(): string {
+        return Math.floor(Math.random() * 2176782336)
+            .toString(36)
+            .padStart(6, '0');
+    }
 
     /**
      * 生成jsonrpc id
      * @returns {string}
      */
-    public id(): string {
-        return `${this.prefix}_${this._id++}`;
+    id(): string {
+        const timestamp = BigInt(Date.now());
+
+        if (timestamp === this.lastTimestamp) {
+            this.sequence = (this.sequence + 1n) & JsonRPCIdGenerator.MAX_SEQUENCE;
+
+            // 序列号耗尽
+            if (this.sequence === 0n) {
+                this.collisionRetries++;
+                return this.nextWithSpin(timestamp);
+            }
+        } else {
+            this.sequence = 0n;
+            this.lastTimestamp = timestamp;
+        }
+
+        this.generatedCount++;
+
+        const id = ((timestamp - JsonRPCIdGenerator.EPOCH) << JsonRPCIdGenerator.TIMESTAMP_SHIFT) |
+            this.machineIdShifted |
+            this.sequence;
+
+        return `id-${this.randomPrefix()}-${id.toString()}`;
     }
-}
+
+    /**
+     * 自旋等待（序列号耗尽时）
+     */
+    private nextWithSpin(previousTimestamp: bigint): string {
+        let timestamp = previousTimestamp;
+
+        while (timestamp <= previousTimestamp) {
+            timestamp = BigInt(Date.now());
+        }
+
+        this.sequence = 0n;
+        this.lastTimestamp = timestamp;
+        this.generatedCount++;
+
+        const id = ((timestamp - JsonRPCIdGenerator.EPOCH) << JsonRPCIdGenerator.TIMESTAMP_SHIFT) |
+            this.machineIdShifted |
+            this.sequence;
+
+        return `id-${this.randomPrefix()}-${id.toString()}`;
+    }
+};

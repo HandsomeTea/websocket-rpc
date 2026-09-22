@@ -58,7 +58,7 @@ describe('服务器-middleware', () => {
 		server.use(() => {
 			throw ['test', 'error'];
 		});
-		const result = await client.request('method1', []);
+		const result = await client.request('method1', []).catch(e => e);
 
 		expect(result).toStrictEqual({
 			error: {

@@ -1,10 +1,8 @@
 import { describe, it, expect, afterAll, beforeAll } from 'vitest';
 import { Link } from '../../src';
 import instance from '../base';
-import { WebSocketServer, WebSocketClient, Attribute } from '../../src';
+import { WebSocketServer, WebSocketClient } from '../../src';
 
-let server: WebSocketServer<Attribute>;
-let client: WebSocketClient;
 
 type SocketAttr = {
 	id: string
@@ -12,6 +10,9 @@ type SocketAttr = {
 	testSetAttr: string
 	socketSetAttr: number
 }
+
+let server: WebSocketServer<SocketAttr>;
+let client: WebSocketClient;
 
 
 beforeAll(async () => {
@@ -27,7 +28,7 @@ afterAll(() => {
 
 describe('服务器-其它功能接口', () => {
 	it('getSocket', async () => {
-		let ins: null | Link<SocketAttr> = null;
+		let ins: null | Link<SocketAttr, string> = null;
 
 		server.register('getSocketId', (_params, socket) => {
 			ins = socket;
@@ -39,7 +40,7 @@ describe('服务器-其它功能接口', () => {
 	});
 
 	it('getSockets', async () => {
-		let ins: null | Link<SocketAttr> = null;
+		let ins: null | Link<Partial<SocketAttr>, string> = null;
 
 		server.use((_params, socket) => {
 			ins = socket;
@@ -50,7 +51,7 @@ describe('服务器-其它功能接口', () => {
 		expect(ins).not.toBeNull();
 		const clents = server.getSockets(attr => attr.id === (result.result as { id: string }).id);
 
-		expect(clents.has(ins)).toBe(true);
+		expect(clents.has(ins as unknown as Link<SocketAttr, string>)).toBe(true);
 	});
 
 	it('getSocketAttr-all', async () => {

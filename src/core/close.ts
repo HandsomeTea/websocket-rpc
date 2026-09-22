@@ -1,7 +1,7 @@
 import type { Socket, AnyObject } from '../typings.js';
 import { _sessionMap, _serverStore } from '../global.js';
 
-export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
+export default (socket: Socket.Link<AnyObject, string>, serverId: string): void => {
     socket.on('close', async () => {
         const { id } = socket;
 
@@ -12,6 +12,8 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
         const offlineFns = _serverStore[serverId]?.offlineCallbacks || [];
 
         if (offlineFns.length > 0) {
+            const cbSocket = socket as unknown as Socket.Link<Partial<AnyObject>, string>;
+
             for (const fn of offlineFns) {
                 try {
                     await fn(socket.attribute, socket.id);
@@ -25,8 +27,7 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
 
                     if (errorFns.length > 0) {
                         for (const fn of errorFns) {
-                            // @ts-ignore
-                            await fn(error as Error, socket);
+                            await fn(error as Error, cbSocket);
                         }
                     }
                 }

@@ -1,23 +1,94 @@
-import type { Socket, AnyObject } from '../typings.js';
+import type { Socket, AnyObject, Logger } from '../typings.js';
 import { _serverStore } from '../global.js';
 
 const getErrorFns = (serverId: string) => _serverStore[serverId]?.errorCallbacks || [];
-const executeErrorFns = async <T>(error: T, socket: Socket.Link<AnyObject>, serverId: string, reqData?: Socket.MethodRequest) => {
+const executeErrorFns = async <T>(error: T, socket: Socket.Link<AnyObject, string>, serverId: string, reqData?: Socket.MethodRequest) => {
     const errorFns = getErrorFns(serverId);
+    const cbSocket = socket as unknown as Socket.Link<Partial<AnyObject>, string>;
 
     for (const fn of errorFns) {
         try {
-            // @ts-ignore
-            await fn(error, socket, reqData);
+            await fn(error, cbSocket, reqData);
         } catch (error) {
             if (socket.logger) {
-                // @ts-ignore
-                socket.logger(`error:${fn.name}`).error(error);
+                socket.logger(`error:${fn.name}`).error(String(error));
             }
         }
     }
 };
-const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, data: { jsonrpc: '2.0', method: string, id: string | number, params?: unknown }) => {
+const baseTypeOf = new Set(['string', 'number', 'boolean']);
+const isValidObject = (result: unknown): result is Record<string, unknown> =>
+    Object.prototype.toString.call(result) === '[object Object]';
+const isValidValue = (val: unknown): boolean => {
+    if (val === null || baseTypeOf.has(typeof val)) {
+        return true;
+    }
+    if (Array.isArray(val)) {
+        return val.every(isValidValue);
+    }
+    if (isValidObject(val)) {
+        return Object.values(val).every(isValidValue);
+    }
+    return false;
+};
+const upsertObject = (
+    oldData: Record<string, unknown>,
+    update: Record<string, unknown>,
+    path: string = '',
+    logger?: Logger
+) => {
+    if (!isValidObject(oldData) || !isValidObject(update)) {
+        return;
+    }
+    for (const [key, updateVal] of Object.entries(update)) {
+        if (key in Object.prototype) {
+            continue;
+        }
+        const updateDataPath = path ? `${path}.${key}` : key;
+
+        if (!isValidValue(updateVal)) {
+            logger?.warn(`invalid socket attribute [${updateDataPath}] value: ${JSON.stringify(updateVal)}, ignored!`);
+            continue;
+        }
+
+        const keyExists = Object.prototype.hasOwnProperty.call(oldData, key);
+
+        if (
+            !keyExists ||
+            updateVal === null ||
+            baseTypeOf.has(typeof updateVal) ||
+            Array.isArray(updateVal)
+        ) {
+            Object.defineProperty(oldData, key, {
+                value: updateVal,
+                writable: true,
+                enumerable: true,
+                configurable: true,
+            });
+            continue;
+        }
+
+        if (isValidObject(updateVal)) {
+            if (!isValidObject(oldData[key])) {
+                Object.defineProperty(oldData, key, {
+                    value: updateVal,
+                    writable: true,
+                    enumerable: true,
+                    configurable: true,
+                });
+            } else {
+                upsertObject(
+                    oldData[key] as Record<string, unknown>,
+                    updateVal,
+                    updateDataPath,
+                    logger
+                );
+            }
+        }
+
+    }
+};
+const processRequest = async (socket: Socket.Link<AnyObject, string>, serverId: string, data: { jsonrpc: '2.0', method: string, id: string | number, params?: unknown }) => {
     const { id, method, params } = data;
 
     if (socket.logger) {
@@ -58,42 +129,17 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
     }
 
     // ====================================== 执行中间件 ======================================
-    const validType = new Set(['string', 'number', 'boolean']);
+    const cbSocket = socket as unknown as Socket.Link<Partial<AnyObject>, string>;
 
     for (const middleware of _serverStore[serverId].middlewares) {
         try {
             const result = middleware.type === 'global' ?
-                // @ts-ignore
-                await middleware.fn(params, socket, method) :
+                await middleware.fn(params, cbSocket, method) :
                 middleware.type === 'scoped' && method === middleware.method ?
-                    // @ts-ignore
-                    await middleware.fn(params, socket, method) : null;
+                    await middleware.fn(params, cbSocket, method) : null;
 
-            if (result && typeof result === 'object' && !Array.isArray(result)) {
-                for (const key of Object.keys(result)) {
-                    const value = result[key];
-
-                    if (!validType.has(typeof value)) {
-                        if (socket.logger) {
-                            socket.logger(`middleware:${method}`).warn(`invalid new socket attribute [${key}] value: ${value}, ignored!`);
-                        }
-                        continue;
-                    }
-
-                    if (value === socket.attribute[key]) {
-                        continue;
-                    }
-
-                    if (key in socket.attribute) {
-                        if (socket.logger) {
-                            socket.logger(`middleware:${method}`).warn(`socket attribute [${key}] changed: ${socket.attribute[key]} => ${value}`);
-                        }
-                    }
-
-                    if (value !== undefined) {
-                        socket.attribute[key] = value;
-                    }
-                }
+            if (result !== null && typeof result === 'object' && !Array.isArray(result)) {
+                upsertObject(socket.attribute, result as Record<string, unknown>, '', socket.logger ? socket.logger(`middleware:${method}`) : undefined);
             }
         } catch (error) {
             if (socket.logger) {
@@ -145,7 +191,7 @@ const processRequest = async (socket: Socket.Link<AnyObject>, serverId: string, 
     _serverStore[serverId]?.requestIds.delete(id);
 };
 
-export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
+export default (socket: Socket.Link<AnyObject, string>, serverId: string): void => {
     socket.on('message', async parameter => {
         // ====================================== 数据格式化 ======================================
         let data = null;
@@ -305,8 +351,7 @@ export default (socket: Socket.Link<AnyObject>, serverId: string): void => {
                 continue;
             }
 
-            // @ts-ignore
-            _serverStore[serverId].requestIds.set(id, Date.now());
+            _serverStore[serverId]?.requestIds.set(id, Date.now());
             // ====================================== 执行 ======================================
             processRequest(socket, serverId, data as Socket.MethodRequest & { id: string | number });
         }

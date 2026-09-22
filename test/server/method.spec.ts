@@ -20,7 +20,7 @@ afterAll(() => {
 describe('服务器-method', () => {
 
 	it('method不存在', async () => {
-		const result = await client.request('method1', []);
+		const result = await client.request('method1', []).catch(e => e);
 
 		expect(result).toStrictEqual({
 			error: {
@@ -111,7 +111,7 @@ describe('服务器-method', () => {
 				code: 'USER_NOT_FOUND'
 			};
 		});
-		const result = await client.request('method10', []);
+		const result = await client.request('method10', []).catch(e => e);
 
 		expect(result).toStrictEqual({
 			error: {

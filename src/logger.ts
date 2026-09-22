@@ -15,7 +15,7 @@ const terminalLogger = pino(
             pid: undefined,
             hostname: undefined
         },
-        ...(isDev && { mixin() { return { location: caller() }; } })
+        ...isDev ? { mixin() { return { location: caller() }; } } : {}
     },
     isDev ? pino.transport({
         targets: [
