@@ -154,10 +154,10 @@ export class WebSocketServer<
      * 注册一个或多个method
      * method名称不支持ping和connect(已内置)，若传入ping或connect，则忽略
      *
-     * @param {Partial<Record<Method, WebSocketService.MethodFn<Attr, SendMethod>>>} method method回调函数
+     * @param {Partial<Record<Method, WebSocketService.MethodFn<Attr, SendMethod>>>} methods method回调函数
      * @memberof WebSocketServer
      */
-    register(method: Partial<Record<Method, WebSocketService.MethodFn<Attr, SendMethod>>>): void;
+    register(methods: Partial<Record<Method, WebSocketService.MethodFn<Attr, SendMethod>>>): void;
 
     register(method: Method | Partial<Record<Method, WebSocketService.MethodFn<Attr, SendMethod>>>, cb?: WebSocketService.MethodFn<Attr, SendMethod>) {
         if (typeof method === 'string' && typeof cb === 'function') {
@@ -234,10 +234,11 @@ export class WebSocketServer<
     /**
      * 注册一个或多个只适用于某个notice消息的监听事件
      *
+     * @template Params
      * @param notice 消息事件名称，取消息中的method值
      * @param noticeHandlers
      */
-    onNotice(notice: OnNoticeMethod, ...noticeHandlers: Array<WebSocketService.NoticeFn<Attr>>): void;
+    onNotice<Params = unknown>(notice: OnNoticeMethod, ...noticeHandlers: Array<WebSocketService.NoticeFn<Attr, Params>>): void;
 
     onNotice(...noticeHandlers: Array<WebSocketService.NoticeFn<Attr>> | [OnNoticeMethod, ...Array<WebSocketService.NoticeFn<Attr>>]) {
         if (typeof noticeHandlers[0] === 'string') {
@@ -260,70 +261,6 @@ export class WebSocketServer<
                         fn: n as unknown as WebSocketService.NoticeFn<AnyObject>
                     }))
             );
-        }
-    }
-
-    close() {
-        if (!this.server) {
-            return;
-        }
-        const server = this.server;
-
-        this.server = null;
-
-        const clients = [...server.clients];
-
-        if (clients.length === 0) {
-            server.close();
-            delete _serverStore[this.serverId];
-            return;
-        }
-
-        let remaining = clients.length;
-
-        for (const client of clients) {
-            client.once('close', () => {
-                if (--remaining === 0) {
-                    server.close();
-                    delete _serverStore[this.serverId];
-                }
-            });
-            client.terminate();
-        }
-    }
-
-    online(...args: Array<WebSocketService.OnlineCallbackFn<Attr, SendMethod>>): void {
-        if (Array.isArray(args) && args.length > 0) {
-            for (const fn of args) {
-                if (typeof fn === 'function') {
-                    _serverStore[this.serverId]?.onlineCallbacks.push(fn as unknown as WebSocketService.OnlineCallbackFn<AnyObject, string>);
-                }
-            }
-        }
-    }
-
-    /**
-     * 连接断开后的回调
-     *
-     * @param {Array<WebSocketService.OfflineCallbackFn<Attr>>} args
-     */
-    offline(...args: Array<WebSocketService.OfflineCallbackFn<Attr>>): void {
-        if (Array.isArray(args) && args.length > 0) {
-            for (const fn of args) {
-                if (typeof fn === 'function') {
-                    _serverStore[this.serverId]?.offlineCallbacks.push(fn as unknown as WebSocketService.OfflineCallbackFn<AnyObject>);
-                }
-            }
-        }
-    }
-
-    error<E>(...args: Array<WebSocketService.ErrorCallbackFn<Attr, E, SendMethod>>): void {
-        if (Array.isArray(args) && args.length > 0) {
-            for (const fn of args) {
-                if (typeof fn === 'function') {
-                    _serverStore[this.serverId]?.errorCallbacks.push(fn as unknown as WebSocketService.ErrorCallbackFn<AnyObject, unknown, string>);
-                }
-            }
         }
     }
 
@@ -437,6 +374,70 @@ export class WebSocketServer<
     setSocketAttr(connectId: string, attribute: Partial<Attr>) {
         if (_sessionMap[connectId]) {
             _sessionMap[connectId].setAttr(attribute);
+        }
+    }
+
+    online(...args: Array<WebSocketService.OnlineCallbackFn<Attr, SendMethod>>): void {
+        if (Array.isArray(args) && args.length > 0) {
+            for (const fn of args) {
+                if (typeof fn === 'function') {
+                    _serverStore[this.serverId]?.onlineCallbacks.push(fn as unknown as WebSocketService.OnlineCallbackFn<AnyObject, string>);
+                }
+            }
+        }
+    }
+
+    /**
+     * 连接断开后的回调
+     *
+     * @param {Array<WebSocketService.OfflineCallbackFn<Attr>>} args
+     */
+    offline(...args: Array<WebSocketService.OfflineCallbackFn<Attr>>): void {
+        if (Array.isArray(args) && args.length > 0) {
+            for (const fn of args) {
+                if (typeof fn === 'function') {
+                    _serverStore[this.serverId]?.offlineCallbacks.push(fn as unknown as WebSocketService.OfflineCallbackFn<AnyObject>);
+                }
+            }
+        }
+    }
+
+    error<E>(...args: Array<WebSocketService.ErrorCallbackFn<Attr, E, SendMethod>>): void {
+        if (Array.isArray(args) && args.length > 0) {
+            for (const fn of args) {
+                if (typeof fn === 'function') {
+                    _serverStore[this.serverId]?.errorCallbacks.push(fn as unknown as WebSocketService.ErrorCallbackFn<AnyObject, unknown, string>);
+                }
+            }
+        }
+    }
+
+    close() {
+        if (!this.server) {
+            return;
+        }
+        const server = this.server;
+
+        this.server = null;
+
+        const clients = [...server.clients];
+
+        if (clients.length === 0) {
+            server.close();
+            delete _serverStore[this.serverId];
+            return;
+        }
+
+        let remaining = clients.length;
+
+        for (const client of clients) {
+            client.once('close', () => {
+                if (--remaining === 0) {
+                    server.close();
+                    delete _serverStore[this.serverId];
+                }
+            });
+            client.terminate();
         }
     }
 

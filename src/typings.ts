@@ -162,7 +162,7 @@ export declare namespace WebSocketService {
 
 	export type MethodFn<Attribute extends AnyObject, SendMethod extends string = string, Params = unknown> = (params: Params, socket: Socket.Link<Attribute, SendMethod>) => unknown | Promise<unknown>;
 
-	export type NoticeFn<Attribute extends AnyObject> = (params: unknown, attribute: Attribute, notice: string) => void | Promise<void>;
+	export type NoticeFn<Attribute extends AnyObject, Params = unknown> = (params: Params, attribute: Attribute, notice: string) => void | Promise<void>;
 
 	/** online阶段Attribute几乎未设置，可能为空 */
 	export type OnlineCallbackFn<Attribute extends AnyObject, SendMethod extends string = string> = (socket: Socket.Link<Partial<Attribute>, SendMethod>, request: http.IncomingMessage) => void | Promise<void>;
@@ -206,9 +206,9 @@ export declare namespace WebSocketService {
 		 * 注册一个或多个method
 		 * - method名称不支持ping和connect(已内置)，若传入ping或connect，则忽略
 		 *
-		 * @param {Partial<Record<Method, MethodFn<Attribute, SendMethod>>>} method
+		 * @param {Partial<Record<Method, MethodFn<Attribute, SendMethod>>>} methods
 		 */
-		(method: Partial<Record<Method, WebSocketService.MethodFn<Attribute, SendMethod>>>): void;
+		(methods: Partial<Record<Method, WebSocketService.MethodFn<Attribute, SendMethod>>>): void;
 	}
 
 	interface OnNotice<Attribute extends AnyObject, OnNoticeMethod extends string = string> {
@@ -222,10 +222,11 @@ export declare namespace WebSocketService {
 		/**
 		 * 注册一个或多个只适用于某个notice消息的监听事件
 		 *
+		 * @template Params
 		 * @param {OnNoticeMethod} notice 消息事件名称，取消息中的method值
 		 * @param {...Array<NoticeFn<Attribute>>} noticeHandlers
 		 */
-		(notice: OnNoticeMethod, ...noticeHandlers: Array<NoticeFn<Attribute>>): void;
+		<Params = unknown>(notice: OnNoticeMethod, ...noticeHandlers: Array<NoticeFn<Attribute, Params>>): void;
 	}
 
 	/**
@@ -288,9 +289,6 @@ export declare namespace WebSocketService {
 	}
 
 	export interface Server<Attribute extends AnyObject, Method extends string = string, OnNoticeMethod extends string = string, SendMethod extends string = string> {
-		readonly use: Use<Attribute, Method, SendMethod>;
-		readonly register: Register<Attribute, Method, SendMethod>;
-		readonly onNotice: OnNotice<Attribute, OnNoticeMethod>;
 
 		/**
 		 * 启动服务
@@ -299,38 +297,11 @@ export declare namespace WebSocketService {
 		 */
 		readonly start: () => Promise<void>;
 
-		/**
-		 * 停止服务
-		 *
-		 * @memberof Server
-		 */
-		readonly close: () => void;
+		readonly register: Register<Attribute, Method, SendMethod>;
 
-		/**
-		 * 新连接构建成功后的回调
-		 *
-		 * @param {...Array<OnlineCallbackFn<Attribute, SendMethod>>} args
-		 * @memberof Server
-		 */
-		readonly online: (...args: Array<OnlineCallbackFn<Attribute, SendMethod>>) => void;
+		readonly use: Use<Attribute, Method, SendMethod>;
 
-		/**
-		 * 连接断开后的回调
-		 *
-		 * @param {...Array<OfflineCallbackFn<Attribute>>} args
-		 * @memberof Server
-		 */
-		readonly offline: (...args: Array<OfflineCallbackFn<Attribute>>) => void;
-
-		/**
-		 * middleware或method运行出错时的错误处理。
-		 * - 注意：只处理middleware和method执行抛出的错误
-		 *
-		 * @template E
-		 * @param {...Array<ErrorCallbackFn<Attribute, E, SendMethod>>} args
-		 * @memberof Server
-		 */
-		readonly error: <E>(...args: Array<ErrorCallbackFn<Attribute, E, SendMethod>>) => void;
+		readonly onNotice: OnNotice<Attribute, OnNoticeMethod>;
 
 		/**
 		 * 根据socket的连接id获取socket对象
@@ -374,7 +345,40 @@ export declare namespace WebSocketService {
 		readonly setSocketAttr: (connectId: string, attribute: Partial<Attribute>) => void;
 
 		/**
-		 * 所有socket连接
+		 * 新连接构建成功后的回调
+		 *
+		 * @param {...Array<OnlineCallbackFn<Attribute, SendMethod>>} args
+		 * @memberof Server
+		 */
+		readonly online: (...args: Array<OnlineCallbackFn<Attribute, SendMethod>>) => void;
+
+		/**
+		 * 连接断开后的回调
+		 *
+		 * @param {...Array<OfflineCallbackFn<Attribute>>} args
+		 * @memberof Server
+		 */
+		readonly offline: (...args: Array<OfflineCallbackFn<Attribute>>) => void;
+
+		/**
+		 * middleware或method运行出错时的错误处理。
+		 * - 注意：只处理middleware和method执行抛出的错误
+		 *
+		 * @template E
+		 * @param {...Array<ErrorCallbackFn<Attribute, E, SendMethod>>} args
+		 * @memberof Server
+		 */
+		readonly error: <E>(...args: Array<ErrorCallbackFn<Attribute, E, SendMethod>>) => void;
+
+		/**
+		 * 停止服务
+		 *
+		 * @memberof Server
+		 */
+		readonly close: () => void;
+
+		/**
+		 * 当前服务器实例中所有socket连接
 		 *
 		 * @type {Set<Socket.Link<Attribute, SendMethod>>}
 		 * @memberof Server
@@ -382,7 +386,7 @@ export declare namespace WebSocketService {
 		readonly clients: Set<Socket.Link<Attribute, SendMethod>>;
 
 		/**
-		 * 所有定义的method名称
+		 * 当前服务器实例中所有定义的method名称
 		 *
 		 * @type {Array<string>}
 		 * @memberof Server
@@ -390,7 +394,7 @@ export declare namespace WebSocketService {
 		readonly methodList: Array<string>;
 
 		/**
-		 * 服务器监听的端口
+		 * 当前服务器实例监听的端口
 		 *
 		 * @memberof Server
 		 */
@@ -519,31 +523,6 @@ export declare namespace WsClient {
 		readonly notify: Notify<Notice>;
 
 		/**
-		 * ping
-		 *
-		 * @returns {Promise<RequestResult<'pong'>>}
-		 * @memberof Client
-		 */
-		readonly ping: () => Promise<RequestResult<'pong'>>;
-
-		/**
-		 * 获取连接信息(如连接id)
-		 *
-		 * @returns {Promise<RequestResult<{ msg: 'connected', session: string }>>}
-		 * @memberof Client
-		 */
-		readonly connectInfo: () => Promise<RequestResult<{ msg: 'connected', session: string }>>;
-
-		/**
-		 * 注册一个/多个客户端离线时的回调函数
-		 *
-		 * @param args
-		 * @returns {void}
-		 * @memberof Client
-		 */
-		readonly offline: (...args: Array<() => void>) => void;
-
-		/**
 		 * 为某个method设置一个监听事件，一般用于服务器主动推送数据的监听
 		 * 服务器主动推送的数据没有method字段时，可通过listening('unknownMsg', ...)来监听
 		 * 可添加多次，监听事件会按添加顺序触发
@@ -581,6 +560,31 @@ export declare namespace WsClient {
 		 * @memberof Client
 		 */
 		readonly removeListening: (method: ListeningMethod, callback: ListeningCallbackFn) => void;
+
+		/**
+		 * ping
+		 *
+		 * @returns {Promise<RequestResult<'pong'>>}
+		 * @memberof Client
+		 */
+		readonly ping: () => Promise<RequestResult<'pong'>>;
+
+		/**
+		 * 获取连接信息(如连接id)
+		 *
+		 * @returns {Promise<RequestResult<{ msg: 'connected', session: string }>>}
+		 * @memberof Client
+		 */
+		readonly connectInfo: () => Promise<RequestResult<{ msg: 'connected', session: string }>>;
+
+		/**
+		 * 注册一个/多个客户端离线时的回调函数
+		 *
+		 * @param callbacks
+		 * @returns {void}
+		 * @memberof Client
+		 */
+		readonly offline: (...callbacks: Array<() => void>) => void;
 
 		/**
 		 * 关闭当前连接

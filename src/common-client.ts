@@ -1,3 +1,4 @@
+import { JsonRPCIdGenerator } from './id-generator.js';
 import { jsonSerialize } from './json.js';
 import type { Socket, WsClient } from './typings.js';
 
@@ -125,73 +126,6 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
         }
 
         this.clearPendingRequests('Connection closed');
-    }
-
-    /**
-     * 为某个method设置一个监听事件，一般用于服务器主动推送数据的监听
-     * 服务器主动推送的数据没有method字段时，可通过listening('unknownMsg', ...)来监听
-     * 可添加多次，监听事件会按添加顺序触发
-     *
-     * @param {ListeningMethod} method
-     * @param {WsClient.ListeningCallbackFn} callback
-     * @returns {void}
-     * @memberof Client
-     */
-    listening(method: ListeningMethod, callback: WsClient.ListeningCallbackFn): void {
-        if (!this.listeners[method]) {
-            this.listeners[method] = new Set();
-        }
-        this.listeners[method].add(callback);
-    }
-
-    /**
-     * 同listening，但只监听一次就移除
-     *
-     * @param {ListeningMethod} method
-     * @param {WsClient.ListeningCallbackFn} callback
-     * @returns {void}
-     * @memberof Client
-     */
-    listeningOnce(method: ListeningMethod, callback: WsClient.ListeningCallbackFn): void {
-        if (!this.listeners[method]) {
-            this.listeners[method] = new Set();
-        }
-        const wrapper: typeof callback = (...args: Parameters<typeof callback>) => {
-            this.removeListening(method, callback);
-            callback(...args);
-        };
-
-        if (!this.onceListenerMap[method]) {
-            this.onceListenerMap[method] = new WeakMap();
-        }
-        this.onceListenerMap[method].set(callback, wrapper);
-        this.listeners[method].add(wrapper);
-    }
-
-    /**
-     * 移除对服务端某个method消息的监听事件
-     *
-     * - 例如：
-     * ```
-     * const calback = (error, result) => { ... };
-     * client.listening('method', callback);
-     * client.removeListening('method', callback);
-     * ```
-     *
-     * @param {ListeningMethod} method
-     * @param {WsClient.ListeningCallbackFn} callback
-     * @returns {void}
-     * @memberof Client
-     */
-    removeListening(method: ListeningMethod, callback: WsClient.ListeningCallbackFn): void {
-        const wrapper = this.onceListenerMap[method]?.get(callback);
-
-        if (wrapper) {
-            this.listeners[method]?.delete(wrapper);
-            this.onceListenerMap[method]?.delete(callback);
-        } else {
-            this.listeners[method]?.delete(callback);
-        }
     }
 
     /**
@@ -346,6 +280,73 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
     }
 
     /**
+     * 为某个method设置一个监听事件，一般用于服务器主动推送数据的监听
+     * 服务器主动推送的数据没有method字段时，可通过listening('unknownMsg', ...)来监听
+     * 可添加多次，监听事件会按添加顺序触发
+     *
+     * @param {ListeningMethod} method
+     * @param {WsClient.ListeningCallbackFn} callback
+     * @returns {void}
+     * @memberof Client
+     */
+    listening(method: ListeningMethod, callback: WsClient.ListeningCallbackFn): void {
+        if (!this.listeners[method]) {
+            this.listeners[method] = new Set();
+        }
+        this.listeners[method].add(callback);
+    }
+
+    /**
+     * 同listening，但只监听一次就移除
+     *
+     * @param {ListeningMethod} method
+     * @param {WsClient.ListeningCallbackFn} callback
+     * @returns {void}
+     * @memberof Client
+     */
+    listeningOnce(method: ListeningMethod, callback: WsClient.ListeningCallbackFn): void {
+        if (!this.listeners[method]) {
+            this.listeners[method] = new Set();
+        }
+        const wrapper: typeof callback = (...args: Parameters<typeof callback>) => {
+            this.removeListening(method, callback);
+            callback(...args);
+        };
+
+        if (!this.onceListenerMap[method]) {
+            this.onceListenerMap[method] = new WeakMap();
+        }
+        this.onceListenerMap[method].set(callback, wrapper);
+        this.listeners[method].add(wrapper);
+    }
+
+    /**
+     * 移除对服务端某个method消息的监听事件
+     *
+     * - 例如：
+     * ```
+     * const calback = (error, result) => { ... };
+     * client.listening('method', callback);
+     * client.removeListening('method', callback);
+     * ```
+     *
+     * @param {ListeningMethod} method
+     * @param {WsClient.ListeningCallbackFn} callback
+     * @returns {void}
+     * @memberof Client
+     */
+    removeListening(method: ListeningMethod, callback: WsClient.ListeningCallbackFn): void {
+        const wrapper = this.onceListenerMap[method]?.get(callback);
+
+        if (wrapper) {
+            this.listeners[method]?.delete(wrapper);
+            this.onceListenerMap[method]?.delete(callback);
+        } else {
+            this.listeners[method]?.delete(callback);
+        }
+    }
+
+    /**
      * ping
      *
      * @returns {Promise<WsClient.RequestResult<'pong'>>}
@@ -368,13 +369,13 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
     /**
      * 注册一个/多个客户端离线时的回调函数
      *
-     * @param args
+     * @param callbacks
      * @returns {void}
      * @memberof Client
      */
-    offline(...args: Array<() => void>): void {
-        if (Array.isArray(args) && args.length > 0) {
-            for (const fn of args) {
+    offline(...callbacks: Array<() => void>): void {
+        if (Array.isArray(callbacks) && callbacks.length > 0) {
+            for (const fn of callbacks) {
                 if (typeof fn === 'function') {
                     this._close.push(fn);
                 }
@@ -425,102 +426,3 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
         return this.CLOSED;
     }
 }
-
-/**
- * jsonrpc id生成器，适用于客户端/服务端
- * - 示例:
- * ```
- *      const idGenerator = new JsonRPCIdGenerator();
- * ```
- * - 生成id:
- * ```
- *      const id = idGenerator.id();
- * ```
- * @class JsonRPCIdGenerator
- */
-export class JsonRPCIdGenerator {
-    private static readonly EPOCH = 1704067200000n; // 2024-01-01 00:00:00 UTC
-
-    private static readonly MACHINE_BITS = 10n;  // 支持1024个实例
-    private static readonly SEQUENCE_BITS = 12n; // 每毫秒4096个ID
-
-    // private static readonly MAX_MACHINE_ID = (1n << JsonRPCIdGenerator.MACHINE_BITS) - 1n;
-    private static readonly MAX_SEQUENCE = (1n << JsonRPCIdGenerator.SEQUENCE_BITS) - 1n;
-
-    private static readonly MACHINE_SHIFT = JsonRPCIdGenerator.SEQUENCE_BITS;
-    private static readonly TIMESTAMP_SHIFT =
-        JsonRPCIdGenerator.SEQUENCE_BITS + JsonRPCIdGenerator.MACHINE_BITS;
-
-    private machineId: bigint;
-    private sequence: bigint = 0n;
-    private lastTimestamp: bigint = -1n;
-
-    private readonly machineIdShifted: bigint;
-
-    private generatedCount = 0;
-    private collisionRetries = 0;
-
-    constructor() {
-        // if (machineId < 0 || BigInt(machineId) > JsonRPCIdGenerator.MAX_MACHINE_ID) {
-        //     throw new Error(`Machine ID must be between 0 and ${JsonRPCIdGenerator.MAX_MACHINE_ID}`);
-        // }
-        this.machineId = BigInt(Math.floor(Math.random() * 1000));
-        this.machineIdShifted = this.machineId << JsonRPCIdGenerator.MACHINE_SHIFT;
-    }
-
-    private randomPrefix(): string {
-        return Math.floor(Math.random() * 2176782336)
-            .toString(36)
-            .padStart(6, '0');
-    }
-
-    /**
-     * 生成jsonrpc id
-     * @returns {string}
-     */
-    id(): string {
-        const timestamp = BigInt(Date.now());
-
-        if (timestamp === this.lastTimestamp) {
-            this.sequence = (this.sequence + 1n) & JsonRPCIdGenerator.MAX_SEQUENCE;
-
-            // 序列号耗尽
-            if (this.sequence === 0n) {
-                this.collisionRetries++;
-                return this.nextWithSpin(timestamp);
-            }
-        } else {
-            this.sequence = 0n;
-            this.lastTimestamp = timestamp;
-        }
-
-        this.generatedCount++;
-
-        const id = ((timestamp - JsonRPCIdGenerator.EPOCH) << JsonRPCIdGenerator.TIMESTAMP_SHIFT) |
-            this.machineIdShifted |
-            this.sequence;
-
-        return `id-${this.randomPrefix()}-${id.toString()}`;
-    }
-
-    /**
-     * 自旋等待（序列号耗尽时）
-     */
-    private nextWithSpin(previousTimestamp: bigint): string {
-        let timestamp = previousTimestamp;
-
-        while (timestamp <= previousTimestamp) {
-            timestamp = BigInt(Date.now());
-        }
-
-        this.sequence = 0n;
-        this.lastTimestamp = timestamp;
-        this.generatedCount++;
-
-        const id = ((timestamp - JsonRPCIdGenerator.EPOCH) << JsonRPCIdGenerator.TIMESTAMP_SHIFT) |
-            this.machineIdShifted |
-            this.sequence;
-
-        return `id-${this.randomPrefix()}-${id.toString()}`;
-    }
-};

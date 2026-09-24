@@ -25,7 +25,7 @@
 		"example": "tsx ./example/example.ts",
 		"instance-server": "tsx ./multiple-instances/server.ts",
 		"instance-client": "tsx ./multiple-instances/client.ts",
-		"title": "./node_modules/.bin/doctoc README.md multiple-instances/README.md",
+		"doc:title": "./node_modules/.bin/doctoc README.md multiple-instances/README.md",
 		"lint:fix": "eslint . --fix",
 		"preview-eslint": "npx @eslint/config-inspector",
 		"commit": "./node_modules/cz-customizable/standalone.js",

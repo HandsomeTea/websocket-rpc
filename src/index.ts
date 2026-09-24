@@ -34,4 +34,4 @@ export { WebSocketClient } from './client.js';
 
 export { BrowserWsClient } from './browser.js';
 
-export { JsonRPCIdGenerator } from './common-client.js';
+export { JsonRPCIdGenerator } from './id-generator.js';
