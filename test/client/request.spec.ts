@@ -1,6 +1,6 @@
 import { describe, it, expect, afterAll, beforeAll } from 'vitest';
 import instance from '../base';
-import { WebSocketServer, WebSocketClient, Attribute } from '../../src';
+import { WebSocketServer, WebSocketClient, Attribute, RPCError } from '../../src';
 
 let server: WebSocketServer<Attribute>;
 let client: WebSocketClient;
@@ -28,7 +28,7 @@ describe('客户端-request', () => {
         });
         const result = await client.request('method1', { test: 'test-params' });
 
-        expect(result.result).toStrictEqual({
+        expect(result).toStrictEqual({
             params: { test: 'test-params' },
             method: 'method1'
         });
@@ -40,9 +40,9 @@ describe('客户端-request', () => {
         server.register('method2', () => {
             throw error;
         });
-        const result = await client.request('method2').catch(e => e);
+        const result = await client.request('method2').catch(e => e) as RPCError;
 
-        expect(result.error?.data).toStrictEqual(error);
+        expect(result.data).toStrictEqual(error);
     });
 
     it('接收超时返回', async () => {
@@ -53,9 +53,9 @@ describe('客户端-request', () => {
                 }, 4000);
             });
         });
-        const result = await client.request('method3', undefined, { timeout: 3 }).catch(e => e);
+        const result = await client.request('method3', undefined, { timeout: 3 }).catch(e => e) as RPCError;
 
-        expect(result.error?.data).toEqual('Time out');
+        expect(result.data).toStrictEqual('Time out');
     });
 
     it('接收延后返回', async () => {
@@ -69,7 +69,7 @@ describe('客户端-request', () => {
         });
         const result = await client.request('method4');
 
-        expect(result.result).toBe(1);
+        expect(result).toBe(1);
     });
 
     it('接收重复返回', async () => {

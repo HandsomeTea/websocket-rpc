@@ -26,9 +26,7 @@ describe('服务器-参数测试', () => {
 		});
 		const result = await client.request('method1', []);
 
-		expect(result).toStrictEqual({
-			result: 'test1'
-		});
+		expect(result).toStrictEqual('test1');
 		expect(server.methodList).toStrictEqual(['method1']);
 	});
 
@@ -39,12 +37,10 @@ describe('服务器-参数测试', () => {
 			return num1 + num2;
 		});
 
-		const _result = await client.batch([
+		const result = await client.batch([
 			{ method: 'method2', params: [5, 3] },
 			{ method: 'method2', params: [1, 1], option: { timeout: 3 } }
-		]);
-		const result = _result.map(item => item.result as number);
-
+		]) as Array<number>;
 		expect(result).toStrictEqual([8, 2]);
 	});
 

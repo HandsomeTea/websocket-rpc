@@ -22,13 +22,13 @@ describe('内置method', () => {
     it('ping', async () => {
         const result = await client.ping();
 
-        expect(result.result).toBe('pong');
+        expect(result).toBe('pong');
     });
 
     it('connectInfo', async () => {
         const result = await client.connectInfo();
 
-        expect(result.result).toStrictEqual({
+        expect(result).toStrictEqual({
             msg: 'connected',
             session: expect.any(String)
         });

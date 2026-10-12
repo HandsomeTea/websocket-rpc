@@ -131,15 +131,14 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
     /**
      * 发送一个method请求
      *
-     * @template Result
      * @param {Method} method method名称
      * @param {*} [params]
      * @param {object} [option] Object
      * @param {number} [option.timeout] 超时时间，单位为秒，默认10秒, 0表示不设置超时
-     * @returns {Promise<{ result: Result, error?: never } | { error: Socket.ServerErrorMessage['error'], result?: never }>}
+     * @returns {Promise<unknown>}
      * @memberof Client
      */
-    async request<Result = unknown>(method: Method, params?: unknown, option?: { timeout: number }): Promise<{ result: Result, error?: never } | { error: Socket.ServerErrorMessage['error'], result?: never }> {
+    async request(method: Method, params?: unknown, option?: { timeout: number }): Promise<unknown> {
         if (this.status !== WebSocket.OPEN) {
             throw new Error('WebSocket is not open!');
         }
@@ -202,14 +201,14 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
                     delete self.record[cacheId];
                 }
 
-                set result(data: Result) {
+                set result(data: unknown) {
                     this.clearTimer();
-                    resolve({ result: data });
+                    resolve(data);
                 }
 
                 set error(error: Socket.ServerErrorMessage['error']) {
                     this.clearTimer();
-                    reject({ error });
+                    reject(error);
                 }
             };
         });
@@ -221,7 +220,7 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
      * - arg.method method名称
      * - arg.option.timeout 超时时间，单位为秒，默认10秒, 0表示不设置超时
      * @param {Array<{ method: Method, params?: unknown, option?: { timeout: number } }>} arg
-     * @returns {Promise<Array<WsClient.RequestResult>>}
+     * @returns {Promise<Array<unknown>>}
      * @memberof Client
      */
     async batch(arg: Array<{ method: Method, params?: unknown, option?: { timeout: number } }>) {
@@ -349,21 +348,21 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
     /**
      * ping
      *
-     * @returns {Promise<WsClient.RequestResult<'pong'>>}
+     * @returns {Promise<'pong'>}
      * @memberof Client
      */
-    async ping(): Promise<WsClient.RequestResult<'pong'>> {
-        return await this.request('ping' as Method);
+    async ping(): Promise<'pong'> {
+        return await this.request('ping' as Method) as 'pong';
     }
 
     /**
      * 获取连接信息(如连接id)
      *
-     * @returns {Promise<WsClient.RequestResult<{ msg: 'connected', session: string }>>}
+     * @returns {Promise<{ msg: 'connected', session: string }>}
      * @memberof Client
      */
-    async connectInfo(): Promise<WsClient.RequestResult<{ msg: 'connected', session: string }>> {
-        return await this.request('connect' as Method);
+    async connectInfo(): Promise<{ msg: 'connected', session: string }> {
+        return await this.request('connect' as Method) as { msg: 'connected', session: string };
     }
 
     /**

@@ -29,7 +29,7 @@ describe('浏览器', () => {
         });
         const result = await client.request('test-method', { a: 1 });
 
-        expect(result.result).toStrictEqual({ a: 1 });
+        expect(result).toStrictEqual({ a: 1 });
     });
 
 });

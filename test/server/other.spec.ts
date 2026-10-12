@@ -34,9 +34,9 @@ describe('服务器-其它功能接口', () => {
 			ins = socket;
 			return { id: socket.id };
 		});
-		const result = await client.request('getSocketId', []);
+		const result = await client.request('getSocketId', []) as { id: string };
 
-		expect(server.getSocket((result.result as { id: string }).id)).toBe(ins);
+		expect(server.getSocket(result.id)).toBe(ins);
 	});
 
 	it('getSockets', async () => {
@@ -46,10 +46,10 @@ describe('服务器-其它功能接口', () => {
 			ins = socket;
 			return { id: socket.id };
 		});
-		const result = await client.request('getSocketId', []);
+		const result = await client.request('getSocketId', []) as { id: string };
 
 		expect(ins).not.toBeNull();
-		const clents = server.getSockets(attr => attr.id === (result.result as { id: string }).id);
+		const clents = server.getSockets(attr => attr.id === result.id);
 
 		expect(clents.has(ins as unknown as Link<SocketAttr, string>)).toBe(true);
 	});
@@ -63,9 +63,9 @@ describe('服务器-其它功能接口', () => {
 		server.register('getAttr', (_params, socket) => {
 			return socket.attribute;
 		});
-		const result = await client.request('getAttr', []);
+		const result = await client.request('getAttr', []) as { id: string };
 
-		expect(server.getSocketAttr((result.result as { id: string }).id)).toStrictEqual(result.result);
+		expect(server.getSocketAttr(result.id)).toStrictEqual(result);
 	});
 
 	it('setSocketAttr-one', async () => {
@@ -73,9 +73,9 @@ describe('服务器-其它功能接口', () => {
 			server.setSocketAttr(socket.id, { testSetAttr: 'value-123' });
 			return socket.attribute;
 		});
-		const result = await client.request('getAttr', []);
+		const result = await client.request('getAttr', []) as { id: string };
 
-		expect(server.getSocketAttr((result.result as { id: string }).id, 'testSetAttr')).toStrictEqual('value-123');
+		expect(server.getSocketAttr(result.id, 'testSetAttr')).toStrictEqual('value-123');
 	});
 
 	it('setAttr', async () => {
@@ -84,19 +84,19 @@ describe('服务器-其它功能接口', () => {
 			socket.setAttr('testSetAttr', '11');
 			return socket.attribute;
 		});
-		const result = await client.request('socketGetAttr', []);
+		const result = await client.request('socketGetAttr', []) as { id: string };
 
-		expect(server.getSocketAttr((result.result as { id: string }).id, 'socketSetAttr')).toStrictEqual(11);
-		expect(server.getSocketAttr((result.result as { id: string }).id, 'testSetAttr')).toStrictEqual('11');
+		expect(server.getSocketAttr(result.id, 'socketSetAttr')).toStrictEqual(11);
+		expect(server.getSocketAttr(result.id, 'testSetAttr')).toStrictEqual('11');
 	});
 
 	it('getAttr-all', async () => {
 		server.register('socketGetAttr', (_params, socket) => {
 			return socket.getAttr();
 		});
-		const result = await client.request('socketGetAttr', []);
+		const result = await client.request('socketGetAttr', []) as { id: string };
 
-		expect(server.getSocketAttr((result.result as { id: string }).id)).toStrictEqual(result.result);
+		expect(server.getSocketAttr(result.id)).toStrictEqual(result);
 	});
 
 	it('getAttr-one', async () => {
@@ -105,7 +105,7 @@ describe('服务器-其它功能接口', () => {
 		});
 		const result = await client.request('socketGetAttr', []);
 
-		expect(result.result).toStrictEqual(11);
+		expect(result).toStrictEqual(11);
 	});
 
 	it('getAttr-partial', async () => {
@@ -114,7 +114,7 @@ describe('服务器-其它功能接口', () => {
 		});
 		const result = await client.request('socketGetAttr', []);
 
-		expect(result.result).toStrictEqual({
+		expect(result).toStrictEqual({
 			socketSetAttr: 11,
 			testSetAttr: '11'
 		});
@@ -124,9 +124,9 @@ describe('服务器-其它功能接口', () => {
 		server.register('getSocketId', (_params, socket) => {
 			return { id: socket.id };
 		});
-		const result = await client.request('getSocketId', []);
+		const result = await client.request('getSocketId', []) as { id: string };
 
-		expect(server.getSocketAttr((result.result as { id: string }).id, 'socketSetAttr', 'testSetAttr')).toStrictEqual({
+		expect(server.getSocketAttr(result.id, 'socketSetAttr', 'testSetAttr')).toStrictEqual({
 			socketSetAttr: 11,
 			testSetAttr: '11'
 		});

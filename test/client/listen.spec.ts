@@ -61,6 +61,6 @@ describe('客户端-listening', () => {
 		const response = await client.request('method2');
 
 		expect(await result).toStrictEqual(error);
-		expect(response.result).toStrictEqual({ res: 'response' });
+		expect(response).toStrictEqual({ res: 'response' });
 	});
 });

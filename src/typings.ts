@@ -46,8 +46,8 @@ export declare namespace Socket {
 		params?: unknown
 	}
 
-	export type ServerSuccessMessage<Result = unknown> = {
-		result: Result;
+	export type ServerSuccessMessage = {
+		result: unknown;
 		error?: never;
 	};
 	export type ServerErrorMessage = {
@@ -424,21 +424,20 @@ export declare namespace WsClient {
 	}
 
 	export type ListeningCallbackFn = (error: Socket.ServerErrorMessage['error'] | null, result: Socket.ServerSuccessMessage['result']) => void;
-	export type RequestResult<Result = unknown> = Socket.ServerSuccessMessage<Result> | Socket.ServerErrorMessage;
+	export type RequestResult = Socket.ServerSuccessMessage | Socket.ServerErrorMessage;
 
 	interface Request<Method extends string = string> {
 		/**
 		 * 发送一个method请求
 		 *
-		 * @template Result
 		 * @param {Method} method method名称
 		 * @param {*} [params]
 		 * @param {object} [option] Object
 		 * @param {number} [option.timeout] 超时时间，单位为秒，默认10秒
-		 * @returns {Promise<{ result: Result, error?: never } | { error: Socket.ServerErrorMessage['error'], result?: never }>}
+		 * @returns {Promise<unknown>}
 		 * @memberof Client
 		 */
-		<Result = unknown>(method: Method, params?: unknown, option?: { timeout: number }): Promise<{ result: Result, error?: never } | { error: Socket.ServerErrorMessage['error'], result?: never }>;
+		(method: Method, params?: unknown, option?: { timeout: number }): Promise<unknown>;
 	}
 
 	interface BatchRequests<Method extends string = string> {
@@ -449,10 +448,10 @@ export declare namespace WsClient {
 		 * - arg.params 参数
 		 * - arg.option.timeout 超时时间，单位为秒，默认10秒, 0表示不设置超时
 		 * @param {Array<{ method: Method, params?: unknown, option?: { timeout: number } }>} arg
-		 * @returns {Promise<Array<RequestResult>>}
+		 * @returns {Promise<Array<unknown>>}
 		 * @memberof Client
 		 */
-		(arg: Array<{ method: Method, params?: unknown, option?: { timeout: number } }>): Promise<Array<RequestResult>>;
+		(arg: Array<{ method: Method, params?: unknown, option?: { timeout: number } }>): Promise<Array<unknown>>;
 	}
 
 	interface Notify<Notice extends string = string> {
@@ -564,18 +563,18 @@ export declare namespace WsClient {
 		/**
 		 * ping
 		 *
-		 * @returns {Promise<RequestResult<'pong'>>}
+		 * @returns {Promise<'pong'>}
 		 * @memberof Client
 		 */
-		readonly ping: () => Promise<RequestResult<'pong'>>;
+		readonly ping: () => Promise<'pong'>;
 
 		/**
 		 * 获取连接信息(如连接id)
 		 *
-		 * @returns {Promise<RequestResult<{ msg: 'connected', session: string }>>}
+		 * @returns {Promise<{ msg: 'connected', session: string }>}
 		 * @memberof Client
 		 */
-		readonly connectInfo: () => Promise<RequestResult<{ msg: 'connected', session: string }>>;
+		readonly connectInfo: () => Promise<{ msg: 'connected', session: string }>;
 
 		/**
 		 * 注册一个/多个客户端离线时的回调函数

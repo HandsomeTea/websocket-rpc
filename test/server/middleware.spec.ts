@@ -34,13 +34,11 @@ describe('服务器-middleware', () => {
 		});
 		const result = await client.request('method1', []);
 
-		expect(result).toStrictEqual({
-			result: { result: 'success', status: 'method1-success' }
-		});
+		expect(result).toStrictEqual({ result: 'success', status: 'method1-success' });
 		expect(server.methodList).toStrictEqual(['method1']);
 	});
 
-	it('设置正对所有method的middleware', async () => {
+	it('设置针对所有method的middleware', async () => {
 		server.use(() => {
 			return {
 				status: 'method1-success-global-middleware'
@@ -48,9 +46,7 @@ describe('服务器-middleware', () => {
 		});
 		const result = await client.request('method1', []);
 
-		expect(result).toStrictEqual({
-			result: { result: 'success', status: 'method1-success-global-middleware' }
-		});
+		expect(result).toStrictEqual({ result: 'success', status: 'method1-success-global-middleware' });
 		expect(server.methodList).toStrictEqual(['method1']);
 	});
 
@@ -61,11 +57,9 @@ describe('服务器-middleware', () => {
 		const result = await client.request('method1', []).catch(e => e);
 
 		expect(result).toStrictEqual({
-			error: {
-				code: -32001,
-				message: 'Method Request failed',
-				data: ['test', 'error']
-			}
+			code: -32001,
+			message: 'Method Request failed',
+			data: ['test', 'error']
 		});
 		expect(server.methodList).toStrictEqual(['method1']);
 	});

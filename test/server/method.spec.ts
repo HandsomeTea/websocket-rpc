@@ -23,11 +23,9 @@ describe('服务器-method', () => {
 		const result = await client.request('method1', []).catch(e => e);
 
 		expect(result).toStrictEqual({
-			error: {
-				code: -32601,
-				message: 'Method not found',
-				data: expect.any(String)
-			}
+			code: -32601,
+			message: 'Method not found',
+			data: expect.any(String)
 		});
 	});
 
@@ -39,9 +37,7 @@ describe('服务器-method', () => {
 		});
 		const result = await client.request('method2', []);
 
-		expect(result).toStrictEqual({
-			result: { method: 'method2' }
-		});
+		expect(result).toStrictEqual({ method: 'method2' });
 		// expect(server.methodList).toStrictEqual(['method2']);
 	});
 
@@ -55,9 +51,7 @@ describe('服务器-method', () => {
 		});
 		const result = await client.request('method3', []);
 
-		expect(result).toStrictEqual({
-			result: { method: 'method3' }
-		});
+		expect(result).toStrictEqual({ method: 'method3' });
 		// expect(server.methodList).toStrictEqual(['method2', 'method3']);
 	});
 
@@ -77,12 +71,8 @@ describe('服务器-method', () => {
 		const result1 = await client.request('method4', []);
 		const result2 = await client.request('method5', []);
 
-		expect(result1).toStrictEqual({
-			result: { method: 'method4' }
-		});
-		expect(result2).toStrictEqual({
-			result: { method: 'method5' }
-		});
+		expect(result1).toStrictEqual({ method: 'method4' });
+		expect(result2).toStrictEqual({ method: 'method5' });
 		// expect(server.methodList).toStrictEqual(['method2', 'method3', 'method4', 'method5']);
 	});
 
@@ -96,12 +86,8 @@ describe('服务器-method', () => {
 		const result1 = await client.request('method6', []);
 		const result2 = await client.request('method7', []);
 
-		expect(result1).toStrictEqual({
-			result: { method: 'method6' }
-		});
-		expect(result2).toStrictEqual({
-			result: { method: 'method7' }
-		});
+		expect(result1).toStrictEqual({ method: 'method6' });
+		expect(result2).toStrictEqual({ method: 'method7' });
 		// expect(server.methodList).toStrictEqual(['method2', 'method3', 'method4', 'method5', 'method6', 'method7']);
 	});
 
@@ -114,12 +100,10 @@ describe('服务器-method', () => {
 		const result = await client.request('method10', []).catch(e => e);
 
 		expect(result).toStrictEqual({
-			error: {
-				code: -32001,
-				message: 'Method Request failed',
-				data: {
-					code: 'USER_NOT_FOUND'
-				}
+			code: -32001,
+			message: 'Method Request failed',
+			data: {
+				code: 'USER_NOT_FOUND'
 			}
 		});
 	});

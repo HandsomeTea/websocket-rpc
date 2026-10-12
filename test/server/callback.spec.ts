@@ -58,7 +58,7 @@ describe('服务器-回调事件', () => {
 
         client.close();
         server.close();
-        expect(result.result).toEqual('method-error');
+        expect(result).toEqual('method-error');
     });
 
     it('某个method的中间件error', async () => {
@@ -79,7 +79,7 @@ describe('服务器-回调事件', () => {
 
         client.close();
         server.close();
-        expect(result.result).toEqual('m1-middleware-error');
+        expect(result).toEqual('m1-middleware-error');
     });
 
     it('对所有method起作用的中间件error', async () => {
@@ -100,7 +100,7 @@ describe('服务器-回调事件', () => {
 
         client.close();
         server.close();
-        expect(result.result).toEqual('middleware-error');
+        expect(result).toEqual('middleware-error');
     });
 
     it('没有注册error处理函数，sendout兜底中间件', async () => {
@@ -128,12 +128,12 @@ describe('服务器-回调事件', () => {
 
         client.close();
         server.close();
-        expect(result1.error).toStrictEqual({
+        expect(result1).toStrictEqual({
             code: -32001,
             message: 'Method Request failed',
             data: { name: 'Error', message: 'all-middleware-error' }
         });
-        expect(result2.error).toStrictEqual({
+        expect(result2).toStrictEqual({
             code: -32001,
             message: 'Method Request failed',
             data: { name: 'Error', message: 'm4-middleware-error' }
@@ -150,7 +150,7 @@ describe('服务器-回调事件', () => {
 
         client.close();
         server.close();
-        expect(result.error).toStrictEqual({
+        expect(result).toStrictEqual({
             code: -32001,
             message: 'Method Request failed',
             data: { name: 'Error', message: 'm5-error' }
