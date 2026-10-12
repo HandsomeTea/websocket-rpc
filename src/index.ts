@@ -22,7 +22,7 @@ export type RPCError = WebSocketService.RPCError;
 
 export type ServerMessage<MessageMethod extends string = string> = Socket.ServerMessage<MessageMethod>;
 
-export type RequestResult<Result = unknown> = WsClient.RequestResult<Result>;
+export type RequestResult = WsClient.RequestResult;
 
 export type ServerOptions = WebSocketService.Options;
 
