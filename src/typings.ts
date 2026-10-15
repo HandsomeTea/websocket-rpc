@@ -430,14 +430,15 @@ export declare namespace WsClient {
 		/**
 		 * 发送一个method请求
 		 *
+		 * @template Params
 		 * @param {Method} method method名称
-		 * @param {*} [params]
+		 * @param {Params} [params]
 		 * @param {object} [option] Object
 		 * @param {number} [option.timeout] 超时时间，单位为秒，默认10秒
 		 * @returns {Promise<unknown>}
 		 * @memberof Client
 		 */
-		(method: Method, params?: unknown, option?: { timeout: number }): Promise<unknown>;
+		<Params = unknown>(method: Method, params?: Params, option?: { timeout: number }): Promise<unknown>;
 	}
 
 	interface BatchRequests<Method extends string = string> {
@@ -458,12 +459,13 @@ export declare namespace WsClient {
 		/**
 		 * 向服务器发送一次通知
 		 *
+		 * @template Params
 		 * @param {Notice} notice 通知名称
-		 * @param {*} [params]
+		 * @param {Params} [params]
 		 * @returns {void}
 		 * @memberof Client
 		 */
-		(notice: Notice, params?: unknown): void;
+		<Params = unknown>(notice: Notice, params?: Params): void;
 
 		/**
 		 * 向服务器批量发送多个通知

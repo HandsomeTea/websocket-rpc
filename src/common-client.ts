@@ -131,14 +131,15 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
     /**
      * 发送一个method请求
      *
+     * @template Params
      * @param {Method} method method名称
-     * @param {*} [params]
+     * @param {Params} [params]
      * @param {object} [option] Object
      * @param {number} [option.timeout] 超时时间，单位为秒，默认10秒, 0表示不设置超时
      * @returns {Promise<unknown>}
      * @memberof Client
      */
-    async request(method: Method, params?: unknown, option?: { timeout: number }): Promise<unknown> {
+    async request<Params = unknown>(method: Method, params?: Params, option?: { timeout: number }): Promise<unknown> {
         if (this.status !== WebSocket.OPEN) {
             throw new Error('WebSocket is not open!');
         }
@@ -238,12 +239,13 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
     /**
      * 向服务器发送一次通知
      *
+     * @template Params
      * @param {Notice} notice 通知名称
-     * @param {*} [params]
+     * @param {Params} [params]
      * @returns {void}
      * @memberof Client
      */
-    notify(notice: Notice, params?: unknown): void;
+    notify<Params = unknown>(notice: Notice, params?: Params): void;
 
     /**
      * 向服务器批量发送多个通知

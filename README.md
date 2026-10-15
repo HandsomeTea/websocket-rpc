@@ -2,47 +2,49 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [快速开始](#%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)
-- [这是什么？](#%E8%BF%99%E6%98%AF%E4%BB%80%E4%B9%88)
-  - [为什么要做](#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%81%9A)
-- [Server](#server)
-  - [method](#method)
-    - [内置method](#%E5%86%85%E7%BD%AEmethod)
-  - [中间件](#%E4%B8%AD%E9%97%B4%E4%BB%B6)
-  - [通知？](#%E9%80%9A%E7%9F%A5)
-  - [socket对象？](#socket%E5%AF%B9%E8%B1%A1)
-  - [socket属性](#socket%E5%B1%9E%E6%80%A7)
-    - [属性的设置](#%E5%B1%9E%E6%80%A7%E7%9A%84%E8%AE%BE%E7%BD%AE)
-    - [属性的获取](#%E5%B1%9E%E6%80%A7%E7%9A%84%E8%8E%B7%E5%8F%96)
-  - [server对象](#server%E5%AF%B9%E8%B1%A1)
-    - [获取连接](#%E8%8E%B7%E5%8F%96%E8%BF%9E%E6%8E%A5)
-    - [获取连接属性](#%E8%8E%B7%E5%8F%96%E8%BF%9E%E6%8E%A5%E5%B1%9E%E6%80%A7)
-    - [设置连接上的属性](#%E8%AE%BE%E7%BD%AE%E8%BF%9E%E6%8E%A5%E4%B8%8A%E7%9A%84%E5%B1%9E%E6%80%A7)
-  - [typescript？](#typescript)
-  - [回调](#%E5%9B%9E%E8%B0%83)
-    - [server.online](#serveronline)
-    - [server.offline](#serveroffline)
-    - [server.error](#servererror)
-  - [扩展配置](#%E6%89%A9%E5%B1%95%E9%85%8D%E7%BD%AE)
-    - [日志](#%E6%97%A5%E5%BF%97)
-    - [自定义JSON序列化](#%E8%87%AA%E5%AE%9A%E4%B9%89json%E5%BA%8F%E5%88%97%E5%8C%96)
-- [Client](#client)
-  - [发送请求](#%E5%8F%91%E9%80%81%E8%AF%B7%E6%B1%82)
-    - [发送](#%E5%8F%91%E9%80%81)
-    - [超时](#%E8%B6%85%E6%97%B6)
-    - [批量发送？](#%E6%89%B9%E9%87%8F%E5%8F%91%E9%80%81)
-  - [发送通知？](#%E5%8F%91%E9%80%81%E9%80%9A%E7%9F%A5)
-  - [监听服务端通知？](#%E7%9B%91%E5%90%AC%E6%9C%8D%E5%8A%A1%E7%AB%AF%E9%80%9A%E7%9F%A5)
-    - [基本监听](#%E5%9F%BA%E6%9C%AC%E7%9B%91%E5%90%AC)
-    - [一次性监听](#%E4%B8%80%E6%AC%A1%E6%80%A7%E7%9B%91%E5%90%AC)
-    - [取消监听](#%E5%8F%96%E6%B6%88%E7%9B%91%E5%90%AC)
-  - [离线处理](#%E7%A6%BB%E7%BA%BF%E5%A4%84%E7%90%86)
-  - [连接状态](#%E8%BF%9E%E6%8E%A5%E7%8A%B6%E6%80%81)
-- [关于ping](#%E5%85%B3%E4%BA%8Eping)
-- [其它](#%E5%85%B6%E5%AE%83)
-  - [关于id](#%E5%85%B3%E4%BA%8Eid)
+- [快速开始](#快速开始)
+- [简述](#简述)
+  - [这是什么](#这是什么)
+  - [为什么要做](#为什么要做)
+  - [特性](#特性)
+    - [await request(...)](#await-request)
+    - [自定义JSON序列化](#自定义json序列化)
+    - [JSON-RPC 2.0](#json-rpc-20)
+    - [其它](#其它)
+  - [Typescript支持](#typescript支持)
+    - [Server](#server)
+    - [Client](#client)
+- [Server](#server-1)
+  - [register](#register)
+  - [中间件-use](#中间件-use)
+  - [发送通知-sendout](#发送通知-sendout)
+  - [监听通知-onNotice](#监听通知-onnotice)
+  - [socket](#socket)
+  - [socket属性](#socket属性)
+    - [属性的设置](#属性的设置)
+    - [属性的获取](#属性的获取)
+  - [socket连接](#socket连接)
+    - [获取连接](#获取连接)
+    - [获取连接属性](#获取连接属性)
+    - [设置连接属性](#设置连接属性)
+    - [online](#online)
+    - [offline](#offline)
+  - [错误处理](#错误处理)
+- [Client](#client-1)
+  - [request](#request)
+  - [批量请求-batch](#批量请求-batch)
+  - [发送通知-notify](#发送通知-notify)
+  - [监听通知-listening](#监听通知-listening)
+  - [连接状态](#连接状态)
+    - [关闭连接](#关闭连接)
+    - [离线处理](#离线处理)
+- [其它](#其它-1)
+  - [关于id](#关于id)
   - [JsonRPCIdGenerator](#jsonrpcidgenerator)
-  - [多实例相关](#%E5%A4%9A%E5%AE%9E%E4%BE%8B%E7%9B%B8%E5%85%B3)
+  - [ping](#ping)
+  - [多实例相关](#多实例相关)
+  - [Server性能](#server性能)
+  - [暂无其它](#暂无其它)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -52,20 +54,12 @@
 npm install @coco-sheng/websocket-rpc
 ```
 
-服务端：
+Server：
 
 ```typescript
 import { WebSocketServer } from '@coco-sheng/websocket-rpc';
 
-interface SocketAttr {
-    userId: string;
-    role: string;
-    type: string
-    token: string;
-}
-
-const port = 3403;
-const server = new WebSocketServer<SocketAttr>({ port });
+const server = new WebSocketServer({ port: 3403 });
 
 server.register('hello', () => {
     return 'hello world!';
@@ -74,9 +68,7 @@ server.register('hello', () => {
 server.start();
 ```
 
-`SocketAttr`是socket连接上的属性，详见[socket属性](#socket%E5%B1%9E%E6%80%A7)部分。
-
-客户端(支持浏览器端)：
+Client(支持浏览器端)：
 
 ```typescript
 import { WebSocketClient } from '@coco-sheng/websocket-rpc';
@@ -86,21 +78,21 @@ import { WebSocketClient } from '@coco-sheng/websocket-rpc';
 const client = new WebSocketClient('ws://localhost:3403');
 
 await client.open();
+
 const result = await client.request('hello');
 
-
 console.log(result);
-// { result: 'hello world!' }
+// 'hello world!'
 ```
 
+# 简述
+## 这是什么
 
-# 这是什么？
-
-这是一个基于[ws](https://www.npmjs.com/package/ws)，遵循标准[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议的websocket应用框架，灵感来源于实际项目中使用websocket实现rpc的需求，可用性经过了实际项目的检测，性能表现优异。该项目专注RPC设计，旨在做纯粹的websocket RPC，极致轻量，支持自定义可插拔的`JSON`数据序列化工具，无任何业务逻辑入侵。
+这是一个基于[ws](https://www.npmjs.com/package/ws)，遵循标准[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议的websocket应用框架，灵感来源于实际项目中使用websocket实现rpc的需求，可用性经过了实际项目的检测，性能表现优异。该项目专注RPC设计，旨在做纯粹的websocket RPC，极致轻量，无任何业务逻辑入侵。
 
 ## 为什么要做
 
-在传统的websocket使用中，服务器端我们可能会这么做：
+在传统的websocket使用中，Server端我们可能会这么做：
 
 ```typescript
 // ...
@@ -108,7 +100,7 @@ console.log(result);
 const websocketServer = ...;
 
 websocketServer.on('connection',socket => {
-    socket.on('message',data=>{
+    socket.on('message',data => {
         if(data.xxx === 'xxx'){ // 业务标识判断
             // 具体业务逻辑
         }
@@ -125,14 +117,14 @@ websocketServer.on('connection',socket => {
 
 这种做法，出现了nodejs开发中极力避免的层层嵌套问题，同时需要对服务器接收到的数据做大量的业务标识判断，开发者需要分出一部分精力来把业务数据分流到对应的业务处理逻辑中，同时对websocket各个时间节点(上线、下线、登录、session等)进行小心维护。
 
-而在客户端我们可能会这么做：
+而在Client我们可能会这么做：
 
 ```typescript
 // ...
 
 const client = ...;
 
-client.on('open',() =>{
+client.on('open',() => {
     // ...
 };
 
@@ -161,12 +153,50 @@ client.on('xxx', () => {
 
 出现回调嵌套问题的同时，客户端会出现大量对请求响应数据的监听，影响性能和交互体验，也出现了大量的代码冗余，非常不方便开发。
 
-我们希望的服务器端没有太多针对请求的甄别判断来区分具体处理的业务，直接可以将精力聚焦到对业务的处理上。同时，我们对客户端不用对业务请求的结果做甄别，不用担心接收到的数据不是该业务的结果，也不用写大量的冗余监听。这就是`@coco-sheng/websocket-rpc`想要做的，除此之外，我们还针对服务器端上线、下线、基本错误、日志等情况做了处理，同时给出多实例部署的解决方案。当然你也可以从服务端/客户端能方便的获取到连接实例，根据自己的业务需求发送其它非JSON-RPC 2.0规范的数据。
+我们希望的服务器端没有太多针对请求的甄别判断来区分具体处理的业务，直接可以将精力聚焦到对业务的处理上。同时，我们对客户端不用对业务请求的结果做甄别，不用担心接收到的数据不是该业务的结果，也不用写大量的冗余监听。这就是`@coco-sheng/websocket-rpc`想要做的，除此之外，我还针对服务器端上线、下线、基本错误、Server日志、通知等情况做了处理，同时给出Server多实例部署的解决方案。当然你也可以从Server/Client对象上方便的获取到连接实例，根据自己的业务需求发送其它非[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)规范的数据，我保留了用户对原始对象的访问。
 
 `@coco-sheng/websocket-rpc`经过了实际项目的检测，性能表现优异，多实例部署也经住了考验(多实例部署方案见[多实例相关](#%E5%A4%9A%E5%AE%9E%E4%BE%8B%E7%9B%B8%E5%85%B3)部分)。
 
 
-# typescript支持
+## 特性
+### await request(...)
+&emsp;&emsp;传统websocket发送请求到服务器，希望收到响应，往往需要监听`message`事件，而`message`事件监听获得的消息是websocket发送的所有请求的响应，没有请求-响应的对应关系，因此需要开发者自己维护一个请求-响应的对应关系，而`@coco-sheng/websocket-rpc`通过`request`方法，将请求和响应的对应关系维护在内部，开发者只需要关注业务逻辑即可，无需关注请求-响应的对应关系。`request`方法返回的`Promise`对象，是真正意义上的收到响应即获得，其请求-响应的对应关系没有借用诸如`setTimeout/setInterval`来实现，可放心使用。
+
+### 自定义JSON序列化
+&emsp;&emsp;JavaScript的`JSON`对象在序列化`Date`时变成了`ISO`字符串，`BigInt`直接报错，`Uint8Array / Buffer`变成了普通对象，业务层必须在发送数据前后手动转译数据。`@coco-sheng/websocket-rpc`在Server和Client均设置了扩展配置项，允许用户自定义指定Json数据序列化和反序列化工具，解决了JavaScript的`JSON`对象数据类型丢失的问题。
+
+### JSON-RPC 2.0
+&emsp;&emsp;`@coco-sheng/websocket-rpc`严格遵循[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)规范，在Client，用户使用`request`等发送请求，不必关注数据是否符合规范，只需按照业务需求发送数据即可，`@coco-sheng/websocket-rpc`会自动将数据封装成符合规范的数据格式。在Server，用户注册的method，用户同样只需关注业务逻辑，无需关注数据格式，这一切都自动处理好了，即使你使用其他语言或框架发送消息，消息格式只要符合`JSON-RPC 2.0`规范，`@coco-sheng/websocket-rpc`的Server就可以正确接受和解析。当然，如果你想发送非`JSON-RPC 2.0`规范的数据，也可以在Server/Client对象上方便的获取到连接实例，发送自定义的数据。
+
+### 其它
+- 日志
+  - Server扩展配置项里，用户可开启日志打印，或自定义制定日志工具，日志打印将显示出服务器收到/发送的数据，详细配置请查看对应的配置项说明。
+- 监听/发送通知
+  - Server端封装了`onNotice`和`sendout`方法，可方便的监听Client推送的通知，以及向Client发送通知。
+  - Client提供了`listening`和`notify`方法，供Client来监听Server推送的通知，以及向Server发送通知。
+- 批量请求
+  - Client除了`request`发送单个请求外，还封装了`batch`方法，用户可批量发送请求，同时获取多个请求的响应。
+- 请求超时
+  - Client发送请求，允许用户在单个请求上设置超时时间，也可以在创建Client时在`WebSocketClient`的扩展配置上指定全局的统一的超时时间(适用于所有请求)，如果同时指定，则以每个请求上设置超时时间为准，如果都没有设置，则**默认全局超时10秒**，如果不希望设置超时，则可指定为0(全局设置/单个请求设置均支持)。
+
+## Typescript支持
+`@coco-sheng/websocket-rpc`提供了对typescript的支持，用户可通过泛型传递主要业务标识的定义，如`method`、通知消息的类型、通知消息监听的类型等。
+
+> [!NOTE]
+> &emsp;&emsp;我在设计typescript支持时，权衡了其在使用中的便利性和ts定义的灵活性，太全面的ts支持会使得用户在开发主要业务功能前就需要做大量的函数参数类型定义，这无疑会增加开发成本以及用户使用的心理负担，很多业务只有在功能设计完成后实际开发时才能确定其handler的参数都有什么，因此，`@coco-sheng/websocket-rpc`在ts支持上，舍弃了这种保姆式的类型定义支持，已经支持的ts定义，是我经过实际项目开发总结出来的开发者需要的定义，同时，允许用户不传递所有泛型也可以使用，当然，我也没有使handler的参数成为"anyscript"，根据实际项目的经验，大量的参数已经使用`unknown`进行了收窄，也给用户留出了需要"保姆式"定义的空间。
+
+### Server
+`new WebSocketServer()`的使用，提供了`Attr`、`Method`、`OnNoticeMethod`、`SendMethod`四个泛型：
+- `Attr`：typescript定义[socket连接上的属性](#socket%E5%B1%9E%E6%80%A7)。
+- `Method`：typescript定义Server注册的method，即[register](#request)注册的method。
+- `OnNoticeMethod`：typescript定义Server注册的消息监听事件，即onNotice监听的notice。
+- `SendMethod`：typescript定义Server发送通知的method，即sendout发送的method。
+
+### Client
+`new WebSocketClient()`的使用，提供了`Method`、`Notice`、`ListeningMethod`三个泛型：
+- `Method`：typescript定义发送请求时的method值，即request请求的method。
+- `Notice`：typescript定义Client发送通知时的notice值，即notify发送的notice。
+- `ListeningMethod`：typescript定义Client注册的消息监听事件，即listening监听的method。
 
 
 # Server
@@ -196,16 +226,11 @@ client.on('xxx', () => {
 |`methodList`|当前服务器实例中所有定义的method名称|
 |`port`|当前服务器实例监听的端口|
 
-## method
+## register
 
-定义method(类似于定义一个api)
-
-method.ts
+定义method(类似于定义一个api)：
 
 ```typescript
-import server from './server';
-
-
 server.register('hello', () => {
     return 'hello world!';
 });
@@ -214,10 +239,6 @@ server.register('hello', () => {
 你也可以同时定义多个method
 
 ```typescript
-import { MethodFn } from '@coco-sheng/websocket-rpc';
-import server from './server';
-
-
 server.register({
     hello1() {
         return 'hello world1!';
@@ -234,82 +255,51 @@ server.register({
 
 
 // 使用变量定义
-const testMethod: MethodFn<SocketAttr> = () => {
-    console.log('test');
+import { MethodFn } from '@coco-sheng/websocket-rpc';
+
+const testMethod1: MethodFn<SocketAttr> = () => {
+    console.log('test1');
+};
+const testMethod2: MethodFn<SocketAttr> = () => {
+    console.log('test2');
 };
 
 
-server.register({ testMethod });
+server.register({ testMethod1, testMethod2 });
 ```
 
-client.ts
+Client的请求：
 
 ```typescript
-import { WebSocketClient } from '@coco-sheng/websocket-rpc';
+const result1 = await client.request('hello1');
 
-const client = new WebSocketClient('ws://localhost:3403');
-
-await client.open();
-
-const result1 = await client.request('hello');
 console.log(result1);
-// { result: 'hello world!' }
+// 'hello world1!'
 ```
 
-主动向客户端发送消息
+***系统内置了两个method***：`connect`、`ping`。
 
 ```typescript
-server.register('hello',(_params, socket)=>{
-    // _params 为method的请求参数
-    socket.sendout({
-    	id: 'id-1',
-        method: 'test',
-        result: 'pending hello'
-    });
-
-    // 或者
-    socket.send(JSON.stringify({
-    	id: 'id-1',
-        jsonrpc: '2.0',
-        method: 'test',
-        result: 'pending hello'
-    }));
-});
-```
-
-`sendout`和`send`的区别在于`sendout`会把要发送的数据转换为符合`jsonrpc2.0`规范的格式；`send`则需要手动组装`jsonrpc2.0`规范的数据。
-
-### 内置method
-
-系统内置了两个method：`connect`，`ping`
-
-```typescript
-const client = new WebSocketClient('ws://localhost:3403');
-await client.open();
-
 const result1 = await client.isConnected();
+
 console.log(result1);
-// {
-//     result: {
-//         msg: 'connected',
-//         session: 'xxxxxxxxxx'
-//     }
-// }
+// { msg: 'connected', session: 'xxxxxxxxxx' }
 
 const result2 = await client.ping();
+
 console.log(result2);
-// { result: 'pong' }
+// 'pong'
 ```
 
-> 注意
+> [!NOTE]
 > - 要中断method函数的执行，可以直接`return`，或者`throw`(你可以throw任何数据，比如数组、Object、Error对象等)，throw抛出的数据会被系统捕获，并封装为一个符合`JSONRPC-2.0`规范的错误数据返回，你也可以定义全局的[错误捕获回调函数](#servererror)，来自行处理`throw`抛出的数据。
 > - 内置的method不支持注册中间件，若注册则被忽略。
 
-## 中间件
+## 中间件-use
 
 中间件是一个在请求到达method之前对请求的数据和业务进行处理的函数。该函数如果返回一个Object，则会将该Object的属性挂载到当前socket连接的属性(后续业务可获取)上；返回其它数据结构则不做任何处理，后续业务逻辑也无法获取该返回值。可以定义针对全部method的一个或多个中间件，也可以为某个method定义一个或多个中间件，中间件的执行顺序为中间件定义的代码逻辑顺序。
 
-middleware.ts，定义全局的中间件：
+定义全局的中间件：
 
 ```typescript
 import { MiddlewareFn } from '@coco-sheng/websocket-rpc';
@@ -362,21 +352,105 @@ const checkPermission: MiddlewareFn<SocketAttr> = () => {
 server.use('login', checkLoginToken, checkPermission);
 ```
 
-使用中间件函数的socket参数，也可以在中间件里向客户端主动发送消息。
+## 发送通知-sendout
 
-## 通知？
-
+> [!IMPORTANT]
 > 标准[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议中规定，一个请求对象不包含`id`字段，则被认定为是一个通知。
 
 - 客户端向服务器发送的消息，如果没有`id`字段，则被认定为是一个通知，服务器不会返回任何数据，客户端也不会收到任何数据，服务器使用`onNotice`来监听和注册用来处理这类消息的函数。
-- 服务器向客户端主动发送的消息，使用`socket.sendout/send`。
+- 服务器向客户端主动发送的消息，使用`socket.sendout/send`，事实上，只要能获取到`socket`对象的地方，都可以发送，例如定义中间件的use中。
 
-## socket对象？
+```typescript
+server.register('xxx', async (_params, socket) => {
+    // ...
+
+    socket.sendout({
+        method: 'updatePwd',
+        result: {
+            expiredAt: new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 2).toISOString()
+        }
+    });
+
+    // 或者例如
+    socket.send(JSON.stringify({
+    	id: 'id-1',
+        jsonrpc: '2.0',
+        method: 'updatePwd',
+        error: {
+            code: 32333,
+            message: 'password is expired'
+        }
+    }));
+
+    // ...
+});
+
+server.use('xxx', async (_params, socket) => {
+    socket.sendout({
+        method: 'updatePwd',
+        error: {
+            code: 32333,
+            message: 'password is expired'
+        }
+    });
+});
+```
+
+> [!NOTE]
+> - `sendout`和`send`的区别在于，`sendout`会把要发送的数据转换为符合`JSON-RPC 2.0`规范的格式；`send`是[ws](https://www.npmjs.com/package/ws)原生的数据发送工具函数，发送数据需要手动组装`JSON-RPC 2.0`规范的格式。
+> - 另外需要说明的是，`sendout`是对要发送的数据JSON序列化后借用`send`发送的封装。
+
+## 监听通知-onNotice
+- 当Client使用`notify`向Server发送一个通知时，`onNotice`可以注册一个函数来处理该通知，函数的参数为通知的参数。
+
+Client发送通知：
+```typescript
+client.notify('userOnline', { userId: 'user-1' })
+```
+
+Server注册一个只处理`userOnline`通知的函数：
+```typescript
+server.onNotice('userOnline', (params: { userId: string }) => {
+    console.log(params);
+    // { userId: 'user-1' }
+});
+```
+当然，也可以注册多个：
+```typescript
+server.onNotice('userOnline',
+    // handler1
+    params => {
+        // ...
+    },
+    // handler2
+    params => {
+        // ...
+    }
+);
+```
+甚至可以注册一个或多个全局监听函数，监听Client发送的所有通知：
+```typescript
+server.onNotice(
+    // handler1
+    params => {
+        // ...
+    },
+    // handler2
+    params => {
+        // ...
+    }
+);
+```
+
+> [!NOTE]
+> 注意：监听函数的执行顺序为函数在代码逻辑上注册的顺序。
+
+## socket
 
 
 ## socket属性
 
-socket的属性即挂载到当前socket连接上的数据，该设计旨在把socket连接比较关心的数据(如：用户id，用户角色，登录token等)直接设置到连接上，便于业务随时使用(鉴权等)。
+socket的属性即挂载到当前socket连接上的数据，该设计旨在把socket连接比较关心的数据(如：用户id，用户角色，登录token，登录状态等)直接设置到连接上，便于业务随时使用(鉴权等)。
 
 ### 属性的设置
 
@@ -408,7 +482,7 @@ server.use((_params, socket, method)=>{
 });
 ```
 
-> 注意
+> [!IMPORTANT]
 > - 中间件函数的返回值设置属性，不是覆盖整个属性的key设置，而是追加，只有已有的key才会被覆盖，例如：假如`socket`属性中原有`attribute.user.id`和`attribute.user.role`，中间件返回的对象结构为`user.role`，则只会更新`socket`属性中的`attribute.user.role`，而不是将整个`socket`属性设置为`attribute.user = { role }`，如果原有`socket`属性中没有`user`这个key，才会在中间件返回`user.role`时，设置`attribute.user = { role }`。
 > - 使用`setSocketAttr/socket.setAttr`设置`socket`属性会覆盖整个属性的key设置。
 
@@ -448,7 +522,7 @@ const values = socket.getAttr('key1', 'key2', ...);
 // }
 ```
 
-## server对象
+## socket连接
 
 ### 获取连接
 
@@ -531,7 +605,7 @@ const values = server.getSocketsAttr((attr: SocketAttr) => {
 }, 'key1', 'key2', ...);
 ```
 
-### 设置连接上的属性
+### 设置连接属性
 
 你也可以通过`server`设置某个socket连接的属性值：
 
@@ -544,9 +618,7 @@ server.setSocketAttr(socketId, {
 });
 ```
 
-## 回调
-
-### server.online
+### online
 
 有客户端连接成功的回调函数，可传入多个，按顺序执行
 
@@ -563,7 +635,7 @@ const online2: OnlineCallbackFn<SocketAttr> = () => {
 server.online(online1, online2);
 ```
 
-### server.offline
+### offline
 
 有客户端断开连接时的回调函数，可传入多个，按顺序执行
 
@@ -576,9 +648,9 @@ const offline2: OfflineCallbackFn<SocketAttr> = () => { };
 server.offline(offline1, offline2);
 ```
 
-### server.error
+## 错误处理
 
-捕获到全局错误时的回调，系统内置了一个全局错误处理逻辑，当捕获到错误时，会发送一条符合`jsonrpc2.0`规范的错误信息到客户端（客户端已下线除外），当配置了log(详情见扩展配置)，该错误信息也会打印到控制台。如果设置`server.error`回调函数，则不会执行系统内置的错误逻辑，但是依然会根据log配置打印错误信息，但是`server.error`设置的**错误回调函数内部的错误并不会再次捕获处理**。
+捕获到全局错误时的回调，系统内置了一个全局错误处理逻辑，当捕获到错误时，会发送一条符合`JSON-RPC 2.0`规范的错误信息到客户端（客户端已下线除外），当配置了log(详情见扩展配置)，该错误信息也会打印到控制台。如果设置`server.error`回调函数，则不会执行系统内置的错误逻辑，但是依然会根据log配置打印错误信息，但是`server.error`设置的**错误回调函数内部的错误并不会再次捕获处理**。
 
 ```typescript
 import { ErrorCallbackFn } from '@coco-sheng/websocket-rpc';
@@ -596,17 +668,6 @@ const error2: ErrorCallbackFn<SocketAttr, SystemError> = () => { };
 
 server.error(error1, error2);
 ```
-
-## 扩展配置
-
-`new WebSocketServer(config, options);`
-
-### 日志
-
-- `[options.log]`：`Boolean | Function`，默认`false`关闭日志打印，当为`true`时，将采用内置的`pino`日志配置打印日志，在使用内置`pino`打印日志时，如果读取到`process.env.NODE_ENV`为`development`时，日志将会显示打印位置，并做简单美化；如果为一个函数，则需要返回一个`Logger`对象，系统的日志将采用该对象打印。
-
-### 自定义JSON序列化
-
 
 # Client
 
@@ -635,9 +696,7 @@ server.error(error1, error2);
 |`client`|当前客户端原始实例对象|
 |`status`|获取当前连接状态|
 
-## 发送请求
-
-### 发送
+## request
 
 ```typescript
 const { result } = await client.request('hello', { page: 1, size: 10 });
@@ -645,21 +704,19 @@ const { result } = await client.request('hello', { page: 1, size: 10 });
 console.log('请求成功:', result);
 ```
 
-### 超时
+**超时**:
 
 ```typescript
 // 第三个参数可以覆盖默认超时时间（单位：秒）
 const result = await client.request('slow-task', params, { timeout: 30 });
 ```
-### 批量发送？
+## 批量请求-batch
 
 
-## 发送通知？
+## 发送通知-notify
 
 
-## 监听服务端通知？
-
-### 基本监听
+## 监听通知-listening
 
 服务端可以通过 `socket.sendout()` 向客户端主动推送消息。客户端使用 `listening` 来监听：
 
@@ -695,8 +752,6 @@ client.listening('price_update', (error, data) => {
 await client.request('subscribe');
 ```
 
-### 一次性监听
-
 第三个参数 `once: true` 表示只监听一次：
 
 ```typescript
@@ -705,7 +760,7 @@ client.listening('first_blood', (error, data) => {
 }, true);
 ```
 
-### 取消监听
+取消监听
 
 ```typescript
 const handler = (error, data) => { /* ... */ };
@@ -716,20 +771,6 @@ client.listening('some_event', handler);
 client.removeListening('some_event', handler);
 ```
 
-
-## 离线处理
-
-```typescript
-// 注册离线回调
-client.offline(() => {
-    console.log('连接已断开，执行清理逻辑');
-});
-
-client.offline(async () => {
-    // 也可以在离线时做异步操作
-    await cleanupResources();
-});
-```
 
 ## 连接状态
 
@@ -744,9 +785,22 @@ client.CLOSED      // 3
 console.log(client.status);  // 1
 ```
 
-# 关于ping
+### 关闭连接
 
-服务器端不建议主动去ping客户端以此对连接进行保活，这样做会消耗服务器性能，所以系统内置了一个`ping`的method，当客户端发送`ping`的method时，系统会回复一条数据，详见[内置method](#%E5%86%85%E7%BD%AEmethod)。当然，你也可以通过其它方式实现ping来对连接保活。
+
+### 离线处理
+
+```typescript
+// 注册离线回调
+client.offline(() => {
+    console.log('连接已断开，执行清理逻辑');
+});
+
+client.offline(async () => {
+    // 也可以在离线时做异步操作
+    await cleanupResources();
+});
+```
 
 # 其它
 
@@ -765,9 +819,17 @@ import { JsonRPCIdGenerator } from '@coco-sheng/websocket-rpc';
 const idGenerator = new JsonRPCIdGenerator();
 const rpcMsgId = idGenerator.id();
 ```
+## ping
+
+Server端不建议主动对Client做ping以此对连接进行保活，这样做会消耗服务器性能，所以系统内置了一个`ping`的method，当客户端发送`ping`的method时，系统会回复一条数据，详见[内置method](#%E5%86%85%E7%BD%AEmethod)。当然，你也可以通过其它方式实现ping来对连接保活。
 
 ## 多实例相关
 
 - 关于服务器端多实例部署的解决方案，详见[多实例管理方案](https://github.com/HandsomeTea/websocket-rpc/tree/develop/multiple-instances).
 
-- 暂无其它。
+## Server性能
+我提供了性能评测脚本`test:benchmark`，使用`npm run test:benchmark`可运行查看具体性能数据。如下：
+![alt text](.github/images/benchmark.jpg)
+
+## 暂无其它
+- 暂无

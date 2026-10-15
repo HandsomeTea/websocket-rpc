@@ -21,7 +21,7 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
-		"test:benchmark": "tsx ./bench.ts",
+		"test:benchmark": "tsx --expose-gc ./bench.ts",
 		"example": "tsx ./example/example.ts",
 		"instance-server": "tsx ./multiple-instances/server.ts",
 		"instance-client": "tsx ./multiple-instances/client.ts",
