@@ -95,10 +95,6 @@ console.log(result);
 在传统的websocket使用中，Server端我们可能会这么做：
 
 ```typescript
-// ...
-
-const websocketServer = ...;
-
 websocketServer.on('connection',socket => {
     socket.on('message',data => {
         if(data.xxx === 'xxx'){ // 业务标识判断
@@ -106,8 +102,6 @@ websocketServer.on('connection',socket => {
         }
         // ...
     });
-
-    socket.on(...)
 
     // ...
 });
@@ -120,10 +114,6 @@ websocketServer.on('connection',socket => {
 而在Client我们可能会这么做：
 
 ```typescript
-// ...
-
-const client = ...;
-
 client.on('open',() => {
     // ...
 };
@@ -198,6 +188,8 @@ client.on('xxx', () => {
 - `Notice`：typescript定义Client发送通知时的notice值，即notify发送的notice。
 - `ListeningMethod`：typescript定义Client注册的消息监听事件，即listening监听的method。
 
+> [!TIP]
+> 为了使用方便，默认Server和Client的`string`泛型(指事件名称等)，在定义其类型的同时没有支持定义其handler的参数，但是设计上我做了权衡，为其留出了空间：
 
 # Server
 
@@ -268,29 +260,6 @@ const testMethod2: MethodFn<SocketAttr> = () => {
 server.register({ testMethod1, testMethod2 });
 ```
 
-Client的请求：
-
-```typescript
-const result1 = await client.request('hello1');
-
-console.log(result1);
-// 'hello world1!'
-```
-
-***框架内置了两个method***：`connect`、`ping`。
-
-```typescript
-const result1 = await client.isConnected();
-
-console.log(result1);
-// { msg: 'connected', session: 'xxxxxxxxxx' }
-
-const result2 = await client.ping();
-
-console.log(result2);
-// 'pong'
-```
-
 > [!NOTE]
 > - 要中断method函数的执行，可以直接`return`，或者`throw`(你可以throw任何数据，比如数组、Object、Error对象等)，throw抛出的数据会被系统捕获，并封装为一个符合`JSONRPC-2.0`规范的错误数据返回，你也可以定义全局的[错误捕获回调函数](#servererror)，来自行处理`throw`抛出的数据。
 > - 内置的method不支持注册中间件，若注册则被忽略。
@@ -299,7 +268,7 @@ console.log(result2);
 
 中间件是一个在请求到达method之前对请求的数据和业务进行处理的函数。该函数如果返回一个Object，则会将该Object的属性挂载到当前socket连接的属性(后续业务可获取)上；返回其它数据结构则不做任何处理，后续业务逻辑也无法获取该返回值。可以定义针对全部method的一个或多个中间件，也可以为某个method定义一个或多个中间件，中间件的执行顺序为中间件定义的代码逻辑顺序。
 
-定义全局的中间件：
+- 定义全局的中间件：
 
 ```typescript
 import { MiddlewareFn } from '@coco-sheng/websocket-rpc';
@@ -324,9 +293,10 @@ const mdw2: MiddlewareFn<SocketAttr> = () =>{
 server.use(mdw1, mdw2, ...);
 ```
 
-使用`return`结束中间件的执行，只是结束了当前中间件的执行，后续的中间件及method依然会执行，要想在中间件中直接结束整个method的业务逻辑，只能通过`throw`，throw抛出错误的处理逻辑同method，详见[method部分](#method)。
+> [!IMPORTANT]
+> 使用`return`结束中间件的执行，只是结束了当前中间件的执行，后续的中间件及method依然会执行，要想在中间件中直接结束整个method的业务逻辑(一般是业务不被允许)，只能通过`throw`，throw抛出错误的处理逻辑同method，详见[method部分](#method)。
 
-定义针对某个method的中间件。
+- 定义针对某个method的中间件。
 
 ```typescript
 import { MiddlewareFn } from '@coco-sheng/websocket-rpc';
@@ -490,36 +460,22 @@ server.use((_params, socket, method)=>{
 
 ### 属性的获取
 
-获取全部属性
+
 
 ```typescript
+// 获取全部属性
 const attr = socket.getAttr();
+// { ... }
 
-// 全部属性
-// {
-//     ...
-// }
-```
-
-获取某个属性
-
-```typescript
+// 获取某个属性
 const value = socket.getAttr('key');
+// 直接得到该属性的值
 
-// 该属性值
-// ...
-```
-
-获取某些属性
-
-```typescript
+// 获取某些属性
 const values = socket.getAttr('key1', 'key2', ...);
-
-
-// key1, key2, ...的属性
 // {
-//     key1: ...,
-//     key2: ...,
+//     key1: xxx,
+//     key2: xxx,
 //     ...
 // }
 ```
@@ -539,14 +495,10 @@ server.register('hello', (_params, socket) => {
 当你知道某个socket连接的id时，可以通过server直接拿到对应的socket对象：
 
 ```typescript
-import crypto from 'crypto';
-
 const socketId = 'xxxxxxxxx';
 const socket = server.getSocket(socketId);
 
-
 socket?.sendout({
-    id: crypto.randomUUID(),
     method: 'notice',
     result: 'noticed!'
 });
@@ -703,12 +655,31 @@ server.error(error1, error2);
 ## request
 
 ```typescript
-const { result } = await client.request('hello', { page: 1, size: 10 });
+const result = await client.request('hello', { page: 1, size: 10 });
 
 console.log('请求成功:', result);
 ```
 
-**超时**:
+
+> [!TIP]
+> ***框架内置了两个请求***：`connect`、`ping`，Client个Server均已做了支持和封装。
+
+发送`connect`请求:
+```typescript
+const result = await client.isConnected();
+
+console.log(result);
+// { msg: 'connected', session: 'xxxxxxxxxx' }
+```
+
+发送`ping`:
+```typescript
+const result = await client.ping();
+
+console.log(result);
+// 'pong'
+```
+**超时设置**:
 
 ```typescript
 // 第三个参数可以覆盖默认超时时间（单位：秒）
@@ -778,12 +749,13 @@ client.removeListening('some_event', handler);
 
 ## 连接状态
 
+- 客户端提供了`status`属性和状态常量属性，用于获取和判断当前连接状态：
 ```typescript
 // 状态常量
-client.CONNECTING  // 0
-client.OPEN        // 1
-client.CLOSING     // 2
-client.CLOSED      // 3
+client.CONNECTING
+client.OPEN
+client.CLOSING
+client.CLOSED
 
 // 当前状态
 console.log(client.status);

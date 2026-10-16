@@ -4,7 +4,7 @@ export type MiddlewareFn<Attribute extends AnyObject, SendMethod extends string 
 
 export type MethodFn<Attribute extends AnyObject, SendMethod extends string = string, Params = unknown> = WebSocketService.MethodFn<Attribute, SendMethod, Params>;
 
-export type NoticeFn<Attribute extends AnyObject> = WebSocketService.NoticeFn<Attribute>;
+export type NoticeFn<Attribute extends AnyObject, Params = unknown> = WebSocketService.NoticeFn<Attribute, Params>;
 
 export type OnlineCallbackFn<Attribute extends AnyObject, SendMethod extends string = string> = WebSocketService.OnlineCallbackFn<Attribute, SendMethod>;
 

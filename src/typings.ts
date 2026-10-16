@@ -224,7 +224,7 @@ export declare namespace WebSocketService {
 		 *
 		 * @template Params
 		 * @param {OnNoticeMethod} notice 消息事件名称，取消息中的method值
-		 * @param {...Array<NoticeFn<Attribute>>} noticeHandlers
+		 * @param {...Array<NoticeFn<Attribute, Params>>} noticeHandlers
 		 */
 		<Params = unknown>(notice: OnNoticeMethod, ...noticeHandlers: Array<NoticeFn<Attribute, Params>>): void;
 	}
@@ -430,7 +430,6 @@ export declare namespace WsClient {
 		/**
 		 * 发送一个method请求
 		 *
-		 * @template Params
 		 * @param {Method} method method名称
 		 * @param {Params} [params]
 		 * @param {object} [option] Object
@@ -438,7 +437,7 @@ export declare namespace WsClient {
 		 * @returns {Promise<unknown>}
 		 * @memberof Client
 		 */
-		<Params = unknown>(method: Method, params?: Params, option?: { timeout: number }): Promise<unknown>;
+		(method: Method, params?: unknown, option?: { timeout: number }): Promise<unknown>;
 	}
 
 	interface BatchRequests<Method extends string = string> {
@@ -459,13 +458,12 @@ export declare namespace WsClient {
 		/**
 		 * 向服务器发送一次通知
 		 *
-		 * @template Params
 		 * @param {Notice} notice 通知名称
 		 * @param {Params} [params]
 		 * @returns {void}
 		 * @memberof Client
 		 */
-		<Params = unknown>(notice: Notice, params?: Params): void;
+		(notice: Notice, params?: unknown): void;
 
 		/**
 		 * 向服务器批量发送多个通知
