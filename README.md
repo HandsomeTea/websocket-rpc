@@ -277,7 +277,7 @@ console.log(result1);
 // 'hello world1!'
 ```
 
-***系统内置了两个method***：`connect`、`ping`。
+***框架内置了两个method***：`connect`、`ping`。
 
 ```typescript
 const result1 = await client.isConnected();
@@ -358,7 +358,7 @@ server.use('login', checkLoginToken, checkPermission);
 > 标准[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议中规定，一个请求对象不包含`id`字段，则被认定为是一个通知。
 
 - 客户端向服务器发送的消息，如果没有`id`字段，则被认定为是一个通知，服务器不会返回任何数据，客户端也不会收到任何数据，服务器使用`onNotice`来监听和注册用来处理这类消息的函数。
-- 服务器向客户端主动发送的消息，使用`socket.sendout/send`，事实上，只要能获取到`socket`对象的地方，都可以发送，例如定义中间件的use中。
+- 服务器向客户端主动发送的消息，使用`socket.sendout/send`，事实上，Server端只要能获取到`socket`对象的地方，都可以发送，例如定义中间件的use中。
 
 ```typescript
 server.register('xxx', async (_params, socket) => {
@@ -398,7 +398,7 @@ server.use('xxx', async (_params, socket) => {
 
 > [!NOTE]
 > - `sendout`和`send`的区别在于，`sendout`会把要发送的数据转换为符合`JSON-RPC 2.0`规范的格式；`send`是[ws](https://www.npmjs.com/package/ws)原生的数据发送工具函数，发送数据需要手动组装`JSON-RPC 2.0`规范的格式。
-> - 另外需要说明的是，`sendout`是对要发送的数据JSON序列化后借用`send`发送的封装。
+> - 另外需要说明的是，`sendout`是对要发送的数据做`JSON-RPC 2.0`规范处理和JSON序列化后借用`send`发送的封装。
 
 ## 监听通知-onNotice
 - 当Client使用`notify`向Server发送一个通知时，`onNotice`可以注册一个函数来处理该通知，函数的参数为通知的参数。
@@ -425,7 +425,8 @@ server.onNotice('userOnline',
     // handler2
     params => {
         // ...
-    }
+    },
+    // ...
 );
 ```
 甚至可以注册一个或多个全局监听函数，监听Client发送的所有通知：
@@ -438,7 +439,8 @@ server.onNotice(
     // handler2
     params => {
         // ...
-    }
+    },
+    // ...
 );
 ```
 
@@ -680,6 +682,8 @@ server.error(error1, error2);
 - `new BrowserWsClient(address, options?)`：在浏览器端创建一个WebSocketClient实例。
   - `address`：服务器地址。
   - `options`：扩展配置，同`WebSocketClient`的`options`。
+
+
 |方法|说明|
 |------|------|
 |`open()`|打开WebSocket连接，返回`Promise`|
@@ -782,7 +786,7 @@ client.CLOSING     // 2
 client.CLOSED      // 3
 
 // 当前状态
-console.log(client.status);  // 1
+console.log(client.status);
 ```
 
 ### 关闭连接

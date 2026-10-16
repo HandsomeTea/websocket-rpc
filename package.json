@@ -1,6 +1,6 @@
 {
 	"name": "@coco-sheng/websocket-rpc",
-	"version": "1.2.0",
+	"version": "1.3.0",
 	"description": "简单易用的websocket-rpc服务，基于ws，遵循JSON-RPC 2.0协议",
 	"exports": {
 		".": {
@@ -55,7 +55,11 @@
 		"websocket-rpc",
 		"websocket-json-rpc",
 		"websocket-jsonrpc",
-		"websocket-jsonrpc2"
+		"websocket-jsonrpc2",
+		"ws",
+		"typescript",
+		"typescript-rpc",
+		"browser-websocket"
 	],
 	"author": "HandsomeTea.coco@gmail.com",
 	"license": "MIT",
