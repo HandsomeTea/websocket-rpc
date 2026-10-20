@@ -33,9 +33,11 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
 
     protected _close: Array<() => void> = [];
 
-    protected listeners: Record<string, Set<WsClient.ListeningCallbackFn>> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    protected listeners: Record<string, Set<WsClient.ListeningCallbackFn<any>>> = {};
 
-    private onceListenerMap: Record<string, WeakMap<WsClient.ListeningCallbackFn, WsClient.ListeningCallbackFn>> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private onceListenerMap: Record<string, WeakMap<WsClient.ListeningCallbackFn<any>, WsClient.ListeningCallbackFn<any>>> = {};
 
     private idGenerator = new JsonRPCIdGenerator();
 
@@ -131,14 +133,31 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
     /**
      * 发送一个method请求
      *
+     * @template Result
+     * @template Params
      * @param {Method} method method名称
-     * @param {Params} [params]
+     * @param {Params} params
      * @param {object} [option] Object
      * @param {number} [option.timeout] 超时时间，单位为秒，默认10秒, 0表示不设置超时
-     * @returns {Promise<unknown>}
+     * @returns {Promise<Result>}
      * @memberof Client
      */
-    async request(method: Method, params?: unknown, option?: { timeout: number }): Promise<unknown> {
+    request<Result = unknown, Params = unknown>(method: Method, params: Params, option?: { timeout: number }): Promise<Result>;
+
+    /**
+     * 发送一个method请求
+     *
+     * @template Result
+     * @param {Method} method method名称
+     * @param {undefined} [params]
+     * @param {object} [option] Object
+     * @param {number} [option.timeout] 超时时间，单位为秒，默认10秒, 0表示不设置超时
+     * @returns {Promise<Result>}
+     * @memberof Client
+     */
+    request<Result = unknown>(method: Method, params?: undefined, option?: { timeout: number }): Promise<Result>;
+
+    async request<Result = unknown, Params = unknown>(method: Method, params?: Params, option?: { timeout: number }): Promise<Result> {
         if (this.status !== WebSocket.OPEN) {
             throw new Error('WebSocket is not open!');
         }
@@ -201,7 +220,7 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
                     delete self.record[cacheId];
                 }
 
-                set result(data: unknown) {
+                set result(data: Result) {
                     this.clearTimer();
                     resolve(data);
                 }
@@ -238,12 +257,23 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
     /**
      * 向服务器发送一次通知
      *
+     * @template Params
      * @param {Notice} notice 通知名称
-     * @param {Params} [params]
+     * @param {Params} params
      * @returns {void}
      * @memberof Client
      */
-    notify(notice: Notice, params?: unknown): void;
+    notify<Params = unknown>(notice: Notice, params: Params): void;
+
+    /**
+     * 向服务器发送一次通知
+     *
+     * @param {Notice} notice 通知名称
+     * @param {undefined} [params]
+     * @returns {void}
+     * @memberof Client
+     */
+    notify(notice: Notice, params?: undefined): void;
 
     /**
      * 向服务器批量发送多个通知
@@ -283,12 +313,13 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
      * 服务器主动推送的数据没有method字段时，可通过listening('unknownMsg', ...)来监听
      * 可添加多次，监听事件会按添加顺序触发
      *
+     * @template Result
      * @param {ListeningMethod} method
-     * @param {WsClient.ListeningCallbackFn} callback
+     * @param {WsClient.ListeningCallbackFn<Result>} callback
      * @returns {void}
      * @memberof Client
      */
-    listening(method: ListeningMethod, callback: WsClient.ListeningCallbackFn): void {
+    listening<Result = unknown>(method: ListeningMethod, callback: WsClient.ListeningCallbackFn<Result>): void {
         if (!this.listeners[method]) {
             this.listeners[method] = new Set();
         }
@@ -298,12 +329,13 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
     /**
      * 同listening，但只监听一次就移除
      *
+     * @template Result
      * @param {ListeningMethod} method
-     * @param {WsClient.ListeningCallbackFn} callback
+     * @param {WsClient.ListeningCallbackFn<Result>} callback
      * @returns {void}
      * @memberof Client
      */
-    listeningOnce(method: ListeningMethod, callback: WsClient.ListeningCallbackFn): void {
+    listeningOnce<Result = unknown>(method: ListeningMethod, callback: WsClient.ListeningCallbackFn<Result>): void {
         if (!this.listeners[method]) {
             this.listeners[method] = new Set();
         }
@@ -334,7 +366,8 @@ export abstract class BaseWsClient<WebSocketType extends WebSocketLike,
      * @returns {void}
      * @memberof Client
      */
-    removeListening(method: ListeningMethod, callback: WsClient.ListeningCallbackFn): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    removeListening(method: ListeningMethod, callback: WsClient.ListeningCallbackFn<any>): void {
         const wrapper = this.onceListenerMap[method]?.get(callback);
 
         if (wrapper) {

@@ -46,15 +46,15 @@ export declare namespace Socket {
 		params?: unknown
 	}
 
-	export type ServerSuccessMessage = {
-		result: unknown;
+	export type ServerSuccessMessage<Result = unknown> = {
+		result: Result;
 		error?: never;
 	};
 	export type ServerErrorMessage = {
 		result?: never;
 		error: WebSocketService.RPCError;
 	};
-	export type ServerMessage<SendMethod extends string = string> = {
+	export type ServerMessage<SendoutMethod extends string = string> = {
 		jsonrpc: '2.0';
 		/** 一般为随机字符串或数字 */
 		id: string | number | null;
@@ -63,10 +63,10 @@ export declare namespace Socket {
 		 * - 用于标记某个method的结果时，可取请求数据的method值；也可自定义取值，来标记服务器自定义的推送信息
 		 * - 不可以为`unknownMsg`，以`unknownMsg`为名的method是客户端监听未知消息的固定method
 		 */
-		method?: SendMethod;
+		method?: SendoutMethod;
 	} & (ServerSuccessMessage | ServerErrorMessage);
 
-	export interface Link<Attr, SendMethod extends string = string> extends WebSocket {
+	export interface Link<Attr, SendoutMethod extends string = string> extends WebSocket {
 		/** 连接的全部属性 */
 		readonly attribute: Attr
 		/** 连接的id */
@@ -110,18 +110,19 @@ export declare namespace Socket {
 		 * });
 		 * ```
 		 *
-		 * @template SendMethod
+		 * @template Result
+		 * @template SendoutMethod
 		 * @param {ServerMessage['id']} [id] 可选项，若为空(不含null)，则自动设置
-		 * @param {ServerMessage<SendMethod>['method']} [method] 可选项，也非jsonrpc2.0标准字段，用于自定义业务标记
-		 * @param {ServerSuccessMessage['result']} [result] 可选项，与message.error二选一
+		 * @param {ServerMessage<SendoutMethod>['method']} [method] 可选项，也非jsonrpc2.0标准字段，用于自定义业务标记
+		 * @param {ServerSuccessMessage<Result>['result']} [result] 可选项，与message.error二选一
 		 * @param {ServerErrorMessage['error']} [error] 可选项，与message.result二选一
 		 * @memberof Link
 		 */
-		readonly sendout: (message:
+		readonly sendout: <Result = unknown>(message:
 			{
 				id?: ServerMessage['id'],
-				method?: ServerMessage<SendMethod>['method']
-			} & (ServerSuccessMessage | ServerErrorMessage)
+				method?: ServerMessage<SendoutMethod>['method']
+			} & (ServerSuccessMessage<Result> | ServerErrorMessage)
 		) => Promise<void>;
 
 		readonly setAttr: SetAttr<Attr>;
@@ -158,28 +159,28 @@ export declare namespace WebSocketService {
 	}
 
 	/** 中间件阶段Attribute可能未完全设置，可能为空 */
-	export type MiddlewareFn<Attribute extends AnyObject, SendMethod extends string = string, Params = unknown> = (params: Params, socket: Socket.Link<Partial<Attribute>, SendMethod>, method: string) => Partial<Attribute> | undefined | Promise<Partial<Attribute> | undefined>
+	export type MiddlewareFn<Attribute extends AnyObject, SendoutMethod extends string = string, Params = unknown> = (params: Params, socket: Socket.Link<Partial<Attribute>, SendoutMethod>, method: string) => Partial<Attribute> | undefined | Promise<Partial<Attribute> | undefined>
 
-	export type MethodFn<Attribute extends AnyObject, SendMethod extends string = string, Params = unknown> = (params: Params, socket: Socket.Link<Attribute, SendMethod>) => unknown | Promise<unknown>;
+	export type MethodFn<Attribute extends AnyObject, SendoutMethod extends string = string, Params = unknown> = (params: Params, socket: Socket.Link<Attribute, SendoutMethod>) => unknown | Promise<unknown>;
 
 	export type NoticeFn<Attribute extends AnyObject, Params = unknown> = (params: Params, attribute: Attribute, notice: string) => void | Promise<void>;
 
 	/** online阶段Attribute几乎未设置，可能为空 */
-	export type OnlineCallbackFn<Attribute extends AnyObject, SendMethod extends string = string> = (socket: Socket.Link<Partial<Attribute>, SendMethod>, request: http.IncomingMessage) => void | Promise<void>;
+	export type OnlineCallbackFn<Attribute extends AnyObject, SendoutMethod extends string = string> = (socket: Socket.Link<Partial<Attribute>, SendoutMethod>, request: http.IncomingMessage) => void | Promise<void>;
 
 	export type OfflineCallbackFn<Attribute extends AnyObject> = (attribute: Attribute, id: string) => void | Promise<void>;
 
 	/** 中间件阶段可能触发错误回调，Attribute可能未完全获取到 */
-	export type ErrorCallbackFn<Attribute extends AnyObject, E, SendMethod extends string = string> = (error: E, socket: Socket.Link<Partial<Attribute>, SendMethod>, reqData?: Socket.MethodRequest) => void | Promise<void>;
+	export type ErrorCallbackFn<Attribute extends AnyObject, E, SendoutMethod extends string = string> = (error: E, socket: Socket.Link<Partial<Attribute>, SendoutMethod>, reqData?: Socket.MethodRequest) => void | Promise<void>;
 
-	interface Use<Attribute extends AnyObject, Method extends string = string, SendMethod extends string = string> {
+	interface Use<Attribute extends AnyObject, Method extends string = string, SendoutMethod extends string = string> {
 		/**
 		 * 注册适用于所有method的一个或多个中间件
 		 * - 内置的ping和connect不会执行任何中间件
 		 *
-		 * @param {...Array<MiddlewareFn<Attribute, SendMethod>>} middlewares
+		 * @param {...Array<MiddlewareFn<Attribute, SendoutMethod>>} middlewares
 		*/
-		(middleware: MiddlewareFn<Attribute, SendMethod>, ...middlewares: Array<MiddlewareFn<Attribute, SendMethod>>): void;
+		(middleware: MiddlewareFn<Attribute, SendoutMethod>, ...middlewares: Array<MiddlewareFn<Attribute, SendoutMethod>>): void;
 
 		/**
 		 * 注册只适用于某个method的一个或多个中间件
@@ -187,28 +188,28 @@ export declare namespace WebSocketService {
 		 *
 		 * @template Params
 		 * @param {Method} method method名称
-		 * @param {...Array<MiddlewareFn<Attribute, SendMethod, Params>>} middlewares
+		 * @param {...Array<MiddlewareFn<Attribute, SendoutMethod, Params>>} middlewares
 		*/
-		<Params = unknown>(method: Method, ...middlewares: Array<MiddlewareFn<Attribute, SendMethod, Params>>): void;
+		<Params = unknown>(method: Method, ...middlewares: Array<MiddlewareFn<Attribute, SendoutMethod, Params>>): void;
 	}
 
-	interface Register<Attribute extends AnyObject, Method extends string = string, SendMethod extends string = string> {
+	interface Register<Attribute extends AnyObject, Method extends string = string, SendoutMethod extends string = string> {
 		/**
 		 * 注册一个method
 		 *
 		 * @template Params
 		 * @param {Method} method method名称，不支持ping和connect(已内置)，若传入ping或connect，则忽略
-		 * @param {MethodFn<Attribute, SendMethod, Params>} cb
+		 * @param {MethodFn<Attribute, SendoutMethod, Params>} cb
 		 */
-		<Params = unknown>(method: Method, cb: MethodFn<Attribute, SendMethod, Params>): void;
+		<Params = unknown>(method: Method, cb: MethodFn<Attribute, SendoutMethod, Params>): void;
 
 		/**
 		 * 注册一个或多个method
 		 * - method名称不支持ping和connect(已内置)，若传入ping或connect，则忽略
 		 *
-		 * @param {Partial<Record<Method, MethodFn<Attribute, SendMethod>>>} methods
+		 * @param {Partial<Record<Method, MethodFn<Attribute, SendoutMethod>>>} methods
 		 */
-		(methods: Partial<Record<Method, WebSocketService.MethodFn<Attribute, SendMethod>>>): void;
+		(methods: Partial<Record<Method, WebSocketService.MethodFn<Attribute, SendoutMethod>>>): void;
 	}
 
 	interface OnNotice<Attribute extends AnyObject, OnNoticeMethod extends string = string> {
@@ -288,7 +289,7 @@ export declare namespace WebSocketService {
 		<K extends keyof Attribute>(is: IsThisSocket<Attribute>, ...attributes: Array<K>): Array<Pick<Attribute, Array<K>[number]>>;
 	}
 
-	export interface Server<Attribute extends AnyObject, Method extends string = string, OnNoticeMethod extends string = string, SendMethod extends string = string> {
+	export interface Server<Attribute extends AnyObject, Method extends string = string, OnNoticeMethod extends string = string, SendoutMethod extends string = string> {
 
 		/**
 		 * 启动服务
@@ -297,9 +298,9 @@ export declare namespace WebSocketService {
 		 */
 		readonly start: () => Promise<void>;
 
-		readonly register: Register<Attribute, Method, SendMethod>;
+		readonly register: Register<Attribute, Method, SendoutMethod>;
 
-		readonly use: Use<Attribute, Method, SendMethod>;
+		readonly use: Use<Attribute, Method, SendoutMethod>;
 
 		readonly onNotice: OnNotice<Attribute, OnNoticeMethod>;
 
@@ -307,19 +308,19 @@ export declare namespace WebSocketService {
 		 * 根据socket的连接id获取socket对象
 		 *
 		 * @param {string} connectId
-		 * @returns {(Socket.Link<Attribute, SendMethod> | undefined)}
+		 * @returns {(Socket.Link<Attribute, SendoutMethod> | undefined)}
 		 * @memberof Server
 		 */
-		readonly getSocket: (connectId: string) => Socket.Link<Attribute, SendMethod> | undefined;
+		readonly getSocket: (connectId: string) => Socket.Link<Attribute, SendoutMethod> | undefined;
 
 		/**
 		 * 根据socket连接的属性数据获取socket对象
 		 *
 		 * @param {IsThisSocket<Attribute>} is
-		 * @returns {Set<Socket.Link<Attribute, SendMethod>>}
+		 * @returns {Set<Socket.Link<Attribute, SendoutMethod>>}
 		 * @memberof Server
 		 */
-		readonly getSockets: (is: IsThisSocket<Attribute>) => Set<Socket.Link<Attribute, SendMethod>>;
+		readonly getSockets: (is: IsThisSocket<Attribute>) => Set<Socket.Link<Attribute, SendoutMethod>>;
 
 		/**
 		 * 获取单个连接上的attribute信息
@@ -347,10 +348,10 @@ export declare namespace WebSocketService {
 		/**
 		 * 新连接构建成功后的回调
 		 *
-		 * @param {...Array<OnlineCallbackFn<Attribute, SendMethod>>} args
+		 * @param {...Array<OnlineCallbackFn<Attribute, SendoutMethod>>} args
 		 * @memberof Server
 		 */
-		readonly online: (...args: Array<OnlineCallbackFn<Attribute, SendMethod>>) => void;
+		readonly online: (...args: Array<OnlineCallbackFn<Attribute, SendoutMethod>>) => void;
 
 		/**
 		 * 连接断开后的回调
@@ -365,10 +366,10 @@ export declare namespace WebSocketService {
 		 * - 注意：只处理middleware和method执行抛出的错误
 		 *
 		 * @template E
-		 * @param {...Array<ErrorCallbackFn<Attribute, E, SendMethod>>} args
+		 * @param {...Array<ErrorCallbackFn<Attribute, E, SendoutMethod>>} args
 		 * @memberof Server
 		 */
-		readonly error: <E>(...args: Array<ErrorCallbackFn<Attribute, E, SendMethod>>) => void;
+		readonly error: <E>(...args: Array<ErrorCallbackFn<Attribute, E, SendoutMethod>>) => void;
 
 		/**
 		 * 停止服务
@@ -380,10 +381,10 @@ export declare namespace WebSocketService {
 		/**
 		 * 当前服务器实例中所有socket连接
 		 *
-		 * @type {Set<Socket.Link<Attribute, SendMethod>>}
+		 * @type {Set<Socket.Link<Attribute, SendoutMethod>>}
 		 * @memberof Server
 		 */
-		readonly clients: Set<Socket.Link<Attribute, SendMethod>>;
+		readonly clients: Set<Socket.Link<Attribute, SendoutMethod>>;
 
 		/**
 		 * 当前服务器实例中所有定义的method名称
@@ -423,21 +424,36 @@ export declare namespace WsClient {
 		perMessageHandler?: (data: unknown) => string | Promise<string>;
 	}
 
-	export type ListeningCallbackFn = (error: Socket.ServerErrorMessage['error'] | null, result: Socket.ServerSuccessMessage['result']) => void;
+	export type ListeningCallbackFn<Result = unknown> = (error: Socket.ServerErrorMessage['error'] | null, result: Socket.ServerSuccessMessage<Result>['result']) => void;
 	export type RequestResult = Socket.ServerSuccessMessage | Socket.ServerErrorMessage;
 
 	interface Request<Method extends string = string> {
 		/**
 		 * 发送一个method请求
 		 *
+		 * @template Result
+		 * @template Params
 		 * @param {Method} method method名称
-		 * @param {Params} [params]
+		 * @param {Params} params
 		 * @param {object} [option] Object
 		 * @param {number} [option.timeout] 超时时间，单位为秒，默认10秒
-		 * @returns {Promise<unknown>}
+		 * @returns {Promise<Result>}
 		 * @memberof Client
 		 */
-		(method: Method, params?: unknown, option?: { timeout: number }): Promise<unknown>;
+		<Result = unknown, Params = unknown>(method: Method, params: Params, option?: { timeout: number }): Promise<Result>;
+
+		/**
+		 * 发送一个method请求
+		 *
+		 * @template Result
+		 * @param {Method} method method名称
+		 * @param {undefined} [params]
+		 * @param {object} [option] Object
+		 * @param {number} [option.timeout] 超时时间，单位为秒，默认10秒
+		 * @returns {Promise<Result>}
+		 * @memberof Client
+		 */
+		<Result = unknown>(method: Method, params?: undefined, option?: { timeout: number }): Promise<Result>;
 	}
 
 	interface BatchRequests<Method extends string = string> {
@@ -458,12 +474,23 @@ export declare namespace WsClient {
 		/**
 		 * 向服务器发送一次通知
 		 *
+		 * @template Params
 		 * @param {Notice} notice 通知名称
-		 * @param {Params} [params]
+		 * @param {Params} params
 		 * @returns {void}
 		 * @memberof Client
 		 */
-		(notice: Notice, params?: unknown): void;
+		<Params = unknown>(notice: Notice, params: Params): void;
+
+		/**
+		 * 向服务器发送一次通知
+		 *
+		 * @param {Notice} notice 通知名称
+		 * @param {undefined} [params]
+		 * @returns {void}
+		 * @memberof Client
+		 */
+		(notice: Notice, params?: undefined): void;
 
 		/**
 		 * 向服务器批量发送多个通知
@@ -526,29 +553,31 @@ export declare namespace WsClient {
 		 * 服务器主动推送的数据没有method字段时，可通过listening('unknownMsg', ...)来监听
 		 * 可添加多次，监听事件会按添加顺序触发
 		 *
+		 * @template Result
 		 * @param {ListeningMethod} method
-		 * @param {ListeningCallbackFn} callback
+		 * @param {ListeningCallbackFn<Result>} callback
 		 * @returns {void}
 		 * @memberof Client
 		 */
-		readonly listening: (method: ListeningMethod, callback: ListeningCallbackFn) => void;
+		readonly listening: <Result = unknown>(method: ListeningMethod, callback: ListeningCallbackFn<Result>) => void;
 
 		/**
 		 * 同listening，但只监听一次就移除
 		 *
+		 * @template Result
 		 * @param {ListeningMethod} method
-		 * @param {ListeningCallbackFn} callback
+		 * @param {ListeningCallbackFn<Result>} callback
 		 * @returns {void}
 		 * @memberof Client
 		 */
-		readonly listeningOnce: (method: ListeningMethod, callback: ListeningCallbackFn) => void;
+		readonly listeningOnce: <Result = unknown>(method: ListeningMethod, callback: ListeningCallbackFn<Result>) => void;
 
 		/**
 		 * 移除对服务端某个method消息的监听事件
 		 *
 		 * - 例如：
 		 * ```
-		 * const calback = (error, result) => { ... };
+		 * const callback = (error, result) => { ... };
 		 * client.listening('method', callback);
 		 * client.removeListening('method', callback);
 		 * ```

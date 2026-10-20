@@ -1,20 +1,20 @@
 import type { WebSocketService, Socket, WsClient, AnyObject } from './typings.js';
 
-export type MiddlewareFn<Attribute extends AnyObject, SendMethod extends string = string, Params = unknown> = WebSocketService.MiddlewareFn<Attribute, SendMethod, Params>;
+export type MiddlewareFn<Attribute extends AnyObject, SendoutMethod extends string = string, Params = unknown> = WebSocketService.MiddlewareFn<Attribute, SendoutMethod, Params>;
 
-export type MethodFn<Attribute extends AnyObject, SendMethod extends string = string, Params = unknown> = WebSocketService.MethodFn<Attribute, SendMethod, Params>;
+export type MethodFn<Attribute extends AnyObject, SendoutMethod extends string = string, Params = unknown> = WebSocketService.MethodFn<Attribute, SendoutMethod, Params>;
 
 export type NoticeFn<Attribute extends AnyObject, Params = unknown> = WebSocketService.NoticeFn<Attribute, Params>;
 
-export type OnlineCallbackFn<Attribute extends AnyObject, SendMethod extends string = string> = WebSocketService.OnlineCallbackFn<Attribute, SendMethod>;
+export type OnlineCallbackFn<Attribute extends AnyObject, SendoutMethod extends string = string> = WebSocketService.OnlineCallbackFn<Attribute, SendoutMethod>;
 
 export type OfflineCallbackFn<Attribute extends AnyObject> = WebSocketService.OfflineCallbackFn<Attribute>;
 
-export type ErrorCallbackFn<Attribute extends AnyObject, E extends Error = Error, SendMethod extends string = string> = WebSocketService.ErrorCallbackFn<Attribute, E, SendMethod>;
+export type ErrorCallbackFn<Attribute extends AnyObject, E extends Error = Error, SendoutMethod extends string = string> = WebSocketService.ErrorCallbackFn<Attribute, E, SendoutMethod>;
 
-export type Link<Attribute extends AnyObject, SendMethod extends string = string> = Socket.Link<Attribute, SendMethod>;
+export type Link<Attribute extends AnyObject, SendoutMethod extends string = string> = Socket.Link<Attribute, SendoutMethod>;
 
-export type ClientListeningCallbackFn = WsClient.ListeningCallbackFn;
+export type ClientListeningCallbackFn<Result = unknown> = WsClient.ListeningCallbackFn<Result>;
 
 export type Attribute = AnyObject;
 

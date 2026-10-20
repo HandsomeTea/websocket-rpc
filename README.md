@@ -170,17 +170,17 @@ client.on('xxx', () => {
   - Client发送请求，允许用户在单个请求上设置超时时间，也可以在创建Client时在`WebSocketClient`的扩展配置上指定全局的统一的超时时间(适用于所有请求)，如果同时指定，则以每个请求上设置超时时间为准，如果都没有设置，则**默认全局超时10秒**，如果不希望设置超时，则可指定为0(全局设置/单个请求设置均支持)。
 
 ## Typescript支持
-`@coco-sheng/websocket-rpc`提供了对typescript的支持，用户可通过泛型传递主要业务标识的定义，如`method`、通知消息的类型、通知消息监听的类型等。
+`@coco-sheng/websocket-rpc`提供了对typescript的支持，用户可通过泛型传递主要业务标识的定义，如`method`、通知消息的类型、通知消息监听的类型等。详情示例查看`typescript`文件夹下的内容。
 
 > [!NOTE]
 > &emsp;&emsp;我在设计typescript支持时，权衡了其在使用中的便利性和ts定义的灵活性，太全面的ts支持会使得用户在开发主要业务功能前就需要做大量的函数参数类型定义，这无疑会增加开发成本以及用户使用的心理负担，很多业务只有在功能设计完成后实际开发时才能确定其handler的参数都有什么，因此，`@coco-sheng/websocket-rpc`在ts支持上，舍弃了这种保姆式的类型定义支持，已经支持的ts定义，是我经过实际项目开发总结出来的开发者需要的定义，同时，允许用户不传递所有泛型也可以使用，当然，我也没有使handler的参数成为"anyscript"，根据实际项目的经验，大量的参数已经使用`unknown`进行了收窄，也给用户留出了需要"保姆式"定义的空间。
 
 ### Server
-`new WebSocketServer()`的使用，提供了`Attr`、`Method`、`OnNoticeMethod`、`SendMethod`四个泛型：
+`new WebSocketServer()`的使用，提供了`Attr`、`Method`、`OnNoticeMethod`、`SendoutMethod`四个泛型：
 - `Attr`：typescript定义[socket连接上的属性](#socket%E5%B1%9E%E6%80%A7)。
 - `Method`：typescript定义Server注册的method，即[register](#request)注册的method。
 - `OnNoticeMethod`：typescript定义Server注册的消息监听事件，即onNotice监听的notice。
-- `SendMethod`：typescript定义Server发送通知的method，即sendout发送的method。
+- `SendoutMethod`：typescript定义Server发送通知的method，即sendout发送的method。
 
 ### Client
 `new WebSocketClient()`的使用，提供了`Method`、`Notice`、`ListeningMethod`三个泛型：

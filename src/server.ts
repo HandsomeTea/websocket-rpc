@@ -12,9 +12,9 @@ export class WebSocketServer<
     Attr extends AnyObject,
     Method extends string = string,
     OnNoticeMethod extends string = string,
-    SendMethod extends string = string
-> implements WebSocketService.Server<Attr, Method, OnNoticeMethod, SendMethod> {
-    private options: { jsonSerializer: Socket.Link<Attr, SendMethod>['option']['jsonSerializer'], log?: boolean | Socket.Link<Attr, SendMethod>['logger'] } = {
+    SendoutMethod extends string = string
+> implements WebSocketService.Server<Attr, Method, OnNoticeMethod, SendoutMethod> {
+    private options: { jsonSerializer: Socket.Link<Attr, SendoutMethod>['option']['jsonSerializer'], log?: boolean | Socket.Link<Attr, SendoutMethod>['logger'] } = {
         jsonSerializer: {
             serialize: jsonSerialize,
             deserialize: JSON.parse
@@ -72,11 +72,11 @@ export class WebSocketServer<
             this.server.on('listening', () => {
                 resolve(true);
             });
-            this.server.on('connection', async (socket: Socket.Link<Attr, SendMethod>, request: http.IncomingMessage) => {
+            this.server.on('connection', async (socket: Socket.Link<Attr, SendoutMethod>, request: http.IncomingMessage) => {
 
                 const mount = socket as {
-                    option: Socket.Link<Attr, SendMethod>['option'];
-                    logger?: Socket.Link<Attr, SendMethod>['logger'];
+                    option: Socket.Link<Attr, SendoutMethod>['option'];
+                    logger?: Socket.Link<Attr, SendoutMethod>['logger'];
                     id: string;
                     attribute: Partial<Attr>;
                 };
@@ -127,7 +127,7 @@ export class WebSocketServer<
                             }
                         } else {
                             socket.sendout({
-                                method: 'connection' as SendMethod,
+                                method: 'connection' as SendoutMethod,
                                 error: {
                                     code: -32603,
                                     message: 'Internal error',
@@ -146,20 +146,20 @@ export class WebSocketServer<
      *
      * @template Params
      * @param {Method} method method名称，不支持ping和connect(已内置)，若传入ping或connect，则忽略
-     * @param {WebSocketService.MethodFn<Attr, SendMethod, Params>} cb
+     * @param {WebSocketService.MethodFn<Attr, SendoutMethod, Params>} cb
      * @memberof WebSocketServer
      */
-    register<Params = unknown>(method: Method, cb: WebSocketService.MethodFn<Attr, SendMethod, Params>): void;
+    register<Params = unknown>(method: Method, cb: WebSocketService.MethodFn<Attr, SendoutMethod, Params>): void;
     /**
      * 注册一个或多个method
      * method名称不支持ping和connect(已内置)，若传入ping或connect，则忽略
      *
-     * @param {Partial<Record<Method, WebSocketService.MethodFn<Attr, SendMethod>>>} methods method回调函数
+     * @param {Partial<Record<Method, WebSocketService.MethodFn<Attr, SendoutMethod>>>} methods method回调函数
      * @memberof WebSocketServer
      */
-    register(methods: Partial<Record<Method, WebSocketService.MethodFn<Attr, SendMethod>>>): void;
+    register(methods: Partial<Record<Method, WebSocketService.MethodFn<Attr, SendoutMethod>>>): void;
 
-    register(method: Method | Partial<Record<Method, WebSocketService.MethodFn<Attr, SendMethod>>>, cb?: WebSocketService.MethodFn<Attr, SendMethod>) {
+    register(method: Method | Partial<Record<Method, WebSocketService.MethodFn<Attr, SendoutMethod>>>, cb?: WebSocketService.MethodFn<Attr, SendoutMethod>) {
         if (typeof method === 'string' && typeof cb === 'function') {
             if (method === 'ping' || method === 'connect') {
                 return;
@@ -183,22 +183,22 @@ export class WebSocketServer<
      * 注册适用于所有method的一个或多个中间件
      * 内置的ping和connect不会执行任何中间件
      *
-     * @param {...Array<WebSocketService.MiddlewareFn<Attr, SendMethod>>} middlewares
+     * @param {...Array<WebSocketService.MiddlewareFn<Attr, SendoutMethod>>} middlewares
      * @memberof WebSocketServer
      */
-    use(middleware: WebSocketService.MiddlewareFn<Attr, SendMethod>, ...middlewares: Array<WebSocketService.MiddlewareFn<Attr, SendMethod>>): void;
+    use(middleware: WebSocketService.MiddlewareFn<Attr, SendoutMethod>, ...middlewares: Array<WebSocketService.MiddlewareFn<Attr, SendoutMethod>>): void;
     /**
      * 注册只适用于某个method的一个或多个中间件
      * 内置的ping和connect不支持注册中间件
      *
      * @template Params
      * @param {Method} method method名称
-     * @param {...Array<WebSocketService.MiddlewareFn<Attr, SendMethod, Params>>} middlewares
+     * @param {...Array<WebSocketService.MiddlewareFn<Attr, SendoutMethod, Params>>} middlewares
      * @memberof WebSocketServer
      */
-    use<Params = unknown>(method: Method, ...middlewares: Array<WebSocketService.MiddlewareFn<Attr, SendMethod, Params>>): void;
+    use<Params = unknown>(method: Method, ...middlewares: Array<WebSocketService.MiddlewareFn<Attr, SendoutMethod, Params>>): void;
 
-    use(...middlewares: Array<WebSocketService.MiddlewareFn<Attr, SendMethod>> | [Method, ...Array<WebSocketService.MiddlewareFn<Attr, SendMethod>>]) {
+    use(...middlewares: Array<WebSocketService.MiddlewareFn<Attr, SendoutMethod>> | [Method, ...Array<WebSocketService.MiddlewareFn<Attr, SendoutMethod>>]) {
         if (typeof middlewares[0] === 'string') {
             const method = middlewares.shift() as string;
 
@@ -264,12 +264,12 @@ export class WebSocketServer<
         }
     }
 
-    getSocket(connectId: string): Socket.Link<Attr, SendMethod> | undefined {
-        return _sessionMap[connectId] as Socket.Link<Attr, SendMethod> | undefined;
+    getSocket(connectId: string): Socket.Link<Attr, SendoutMethod> | undefined {
+        return _sessionMap[connectId] as Socket.Link<Attr, SendoutMethod> | undefined;
     }
 
     getSockets(is: WebSocketService.IsThisSocket<Attr>) {
-        const clients: Set<Socket.Link<Attr, SendMethod>> = new Set();
+        const clients: Set<Socket.Link<Attr, SendoutMethod>> = new Set();
 
         if (typeof is === 'function') {
             for (const socket of this.clients) {
@@ -377,7 +377,7 @@ export class WebSocketServer<
         }
     }
 
-    online(...args: Array<WebSocketService.OnlineCallbackFn<Attr, SendMethod>>): void {
+    online(...args: Array<WebSocketService.OnlineCallbackFn<Attr, SendoutMethod>>): void {
         if (Array.isArray(args) && args.length > 0) {
             for (const fn of args) {
                 if (typeof fn === 'function') {
@@ -402,7 +402,7 @@ export class WebSocketServer<
         }
     }
 
-    error<E>(...args: Array<WebSocketService.ErrorCallbackFn<Attr, E, SendMethod>>): void {
+    error<E>(...args: Array<WebSocketService.ErrorCallbackFn<Attr, E, SendoutMethod>>): void {
         if (Array.isArray(args) && args.length > 0) {
             for (const fn of args) {
                 if (typeof fn === 'function') {
@@ -442,7 +442,7 @@ export class WebSocketServer<
     }
 
     get clients() {
-        return (this.server?.clients || new Set()) as Set<Socket.Link<Attr, SendMethod>>;
+        return (this.server?.clients || new Set()) as Set<Socket.Link<Attr, SendoutMethod>>;
     }
 
     get methodList() {
