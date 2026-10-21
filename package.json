@@ -40,7 +40,11 @@
 	],
 	"publishConfig": {
 		"registry": "https://registry.npmjs.org",
-		"access": "public"
+		"access": "public",
+		"publish-branch": [
+			"latest",
+			"beta"
+		]
 	},
 	"repository": {
 		"type": "git",
