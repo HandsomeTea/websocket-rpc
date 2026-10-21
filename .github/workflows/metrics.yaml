@@ -15,8 +15,6 @@ jobs:
               with:
                   node-version: ${{ matrix.node-version }}
             - uses: pnpm/action-setup@v4
-              with:
-                  version: 9
             - run: pnpm install
             - run: pnpm lint
             - run: pnpm test
@@ -32,8 +30,6 @@ jobs:
               with:
                   node-version: ${{ matrix.node-version }}
             - uses: pnpm/action-setup@v4
-              with:
-                  version: 9
             - run: pnpm install
             - run: pnpm lint
             - run: pnpm test:coverage
@@ -49,8 +45,6 @@ jobs:
               with:
                   node-version: ${{ matrix.node-version }}
             - uses: pnpm/action-setup@v4
-              with:
-                  version: 9
             - run: pnpm install
             - run: pnpm lint
             - run: pnpm test:benchmark
@@ -64,7 +58,5 @@ jobs:
                   node-version: "24.15.x"
                   registry-url: "https://registry.npmjs.org"
             - uses: pnpm/action-setup@v4
-              with:
-                  version: 9
             - run: pnpm install
             - run: pnpm build
