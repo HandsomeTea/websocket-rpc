@@ -35,7 +35,7 @@ const client = new WebSocketClient<Method, keyof ClientNotifies, keyof ServerNot
 
 // ===================================== 开始 ======================================
 
-server.register('login', async (params: MethodParams<'login'>, socket) => {
+server.register<MethodParams<'login'>, MethodReturn<'login'>>('login', async (params, socket) => {
     const { username, password } = params;
 
     console.log(username);
@@ -49,6 +49,10 @@ server.register('login', async (params: MethodParams<'login'>, socket) => {
             expiredAt: new Date().toISOString()
         }
     });
+
+    return {
+        token: '123456'
+    };
 });
 
 server.onNotice('userOnline', (params: ClientNotifies['userOnline']) => {

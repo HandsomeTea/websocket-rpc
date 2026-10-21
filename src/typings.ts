@@ -161,7 +161,7 @@ export declare namespace WebSocketService {
 	/** 中间件阶段Attribute可能未完全设置，可能为空 */
 	export type MiddlewareFn<Attribute extends AnyObject, SendoutMethod extends string = string, Params = unknown> = (params: Params, socket: Socket.Link<Partial<Attribute>, SendoutMethod>, method: string) => Partial<Attribute> | undefined | Promise<Partial<Attribute> | undefined>
 
-	export type MethodFn<Attribute extends AnyObject, SendoutMethod extends string = string, Params = unknown> = (params: Params, socket: Socket.Link<Attribute, SendoutMethod>) => unknown | Promise<unknown>;
+	export type MethodFn<Attribute extends AnyObject, SendoutMethod extends string = string, Params = unknown, Return = unknown> = (params: Params, socket: Socket.Link<Attribute, SendoutMethod>) => Return | Promise<Return>;
 
 	export type NoticeFn<Attribute extends AnyObject, Params = unknown> = (params: Params, attribute: Attribute, notice: string) => void | Promise<void>;
 
@@ -197,11 +197,12 @@ export declare namespace WebSocketService {
 		/**
 		 * 注册一个method
 		 *
-		 * @template Params
+		 * @template HandlerParams
+		 * @template HandlerReturn
 		 * @param {Method} method method名称，不支持ping和connect(已内置)，若传入ping或connect，则忽略
-		 * @param {MethodFn<Attribute, SendoutMethod, Params>} cb
+		 * @param {MethodFn<Attribute, SendoutMethod, HandlerParams, HandlerReturn>} cb
 		 */
-		<Params = unknown>(method: Method, cb: MethodFn<Attribute, SendoutMethod, Params>): void;
+		<HandlerParams = unknown, HandlerReturn = unknown>(method: Method, cb: MethodFn<Attribute, SendoutMethod, HandlerParams, HandlerReturn>): void;
 
 		/**
 		 * 注册一个或多个method

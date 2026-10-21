@@ -1,4 +1,4 @@
-typescript目录下`example.interface.ts`、`example.notype.ts`、`example.simple.ts`文件仅为ts类型定义示例参考文件，没有考虑业务逻辑严密性，也不具备严谨的运行逻辑。
+typescript目录下`example.interface.ts`(函数签名 + interface推导完整类型)、`example.simple.ts`(简单string泛型)、`example.notype.ts`(零类型定义)文件仅为ts类型定义示例参考文件，没有考虑业务逻辑严密性，也不具备严谨的运行逻辑。
 <br/>
 ts类型定义的使用主要用于以下三个方面：
 - request：

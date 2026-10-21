@@ -2,7 +2,7 @@ import type { WebSocketService, Socket, WsClient, AnyObject } from './typings.js
 
 export type MiddlewareFn<Attribute extends AnyObject, SendoutMethod extends string = string, Params = unknown> = WebSocketService.MiddlewareFn<Attribute, SendoutMethod, Params>;
 
-export type MethodFn<Attribute extends AnyObject, SendoutMethod extends string = string, Params = unknown> = WebSocketService.MethodFn<Attribute, SendoutMethod, Params>;
+export type MethodFn<Attribute extends AnyObject, SendoutMethod extends string = string, Params = unknown, Return = unknown> = WebSocketService.MethodFn<Attribute, SendoutMethod, Params, Return>;
 
 export type NoticeFn<Attribute extends AnyObject, Params = unknown> = WebSocketService.NoticeFn<Attribute, Params>;
 

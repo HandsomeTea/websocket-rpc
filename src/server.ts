@@ -144,12 +144,13 @@ export class WebSocketServer<
     /**
      * 注册一个method
      *
-     * @template Params
+     * @template HandlerParams
+     * @template HandlerReturn
      * @param {Method} method method名称，不支持ping和connect(已内置)，若传入ping或connect，则忽略
-     * @param {WebSocketService.MethodFn<Attr, SendoutMethod, Params>} cb
+     * @param {WebSocketService.MethodFn<Attr, SendoutMethod, HandlerParams, HandlerReturn>} cb
      * @memberof WebSocketServer
      */
-    register<Params = unknown>(method: Method, cb: WebSocketService.MethodFn<Attr, SendoutMethod, Params>): void;
+    register<HandlerParams = unknown, HandlerReturn = unknown>(method: Method, cb: WebSocketService.MethodFn<Attr, SendoutMethod, HandlerParams, HandlerReturn>): void;
     /**
      * 注册一个或多个method
      * method名称不支持ping和connect(已内置)，若传入ping或connect，则忽略

@@ -686,7 +686,7 @@ console.log(result);
 const result = await client.request('slow-task', params, { timeout: 30 });
 ```
 ## 批量请求-batch
-
+- batch不会await执行，attribute有竟态问题需注意
 
 ## 发送通知-notify
 
