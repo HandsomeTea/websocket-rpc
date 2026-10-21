@@ -2,9 +2,42 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
+<p align="center">
+  <a href="https://github.com/HandsomeTea/websocket-rpc/blob/develop/LICENSE">
+    <img src="https://img.shields.io/github/license/HandsomeTea/websocket-rpc.svg?style=flat-square&logo=github" alt="License" />
+  </a>
+  <a href="https://www.npmjs.com/package/@coco-sheng/websocket-rpc">
+    <img src="https://img.shields.io/node/v/@coco-sheng/websocket-rpc?style=flat-square&logo=nodedotjs&logoColor=white&color=339933" alt="node version" />
+  </a>
+  <a href="https://www.npmjs.com/package/@coco-sheng/websocket-rpc">
+    <img src="https://img.shields.io/npm/v/@coco-sheng/websocket-rpc.svg?style=flat-square&logo=npm&logoColor=white&color=cb3837" alt="npm version" />
+  </a>
+  <a href="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/test.yaml">
+    <img src="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/test.yaml/badge.svg" alt="Test Status" />
+  </a>
+
+  <a href="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/coverage.yaml">
+    <img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/HandsomeTea/a6c64056620e2edf7f83be8be8cbce9b/raw/websocket-rpc-coverage.json" alt="Code Coverage" />
+  </a>
+
+  <a href="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/build.yaml">
+    <img src="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/build.yaml/badge.svg" alt="Build Status" />
+  </a>
+  <a href="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/benchmark.yaml">
+    <img src="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/benchmark.yaml/badge.svg" alt="Benchmark Metrics" />
+  </a>
+  <a href="https://bundlephobia.com/package/@coco-sheng/websocket-rpc">
+    <img src="https://img.shields.io/bundlephobia/minzip/@coco-sheng/websocket-rpc?style=flat-square&color=blue" alt="bundle size" />
+  </a>
+</p>
+
+> 这是一个基于[ws](https://www.npmjs.com/package/ws)，遵循标准[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议的websocket应用框架，灵感来源于实际项目中使用websocket实现rpc的需求，可用性经过了实际项目的检测，性能表现优异。该项目专注RPC设计，旨在做纯粹的websocket RPC，极致轻量，无任何业务逻辑入侵，同时拥有完善的`typescript`类型支持。
+
+<details>
+<summary><b style="cursor:pointer">点击展开 / 收起文档目录</b></summary>
+
 - [快速开始](#快速开始)
 - [简述](#简述)
-  - [这是什么](#这是什么)
   - [为什么要做](#为什么要做)
   - [特性](#特性)
     - [await request(...)](#await-request)
@@ -47,6 +80,8 @@
   - [暂无其它](#暂无其它)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
+</details>
+
 
 # 快速开始
 
@@ -86,9 +121,6 @@ console.log(result);
 ```
 
 # 简述
-## 这是什么
-
-这是一个基于[ws](https://www.npmjs.com/package/ws)，遵循标准[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议的websocket应用框架，灵感来源于实际项目中使用websocket实现rpc的需求，可用性经过了实际项目的检测，性能表现优异。该项目专注RPC设计，旨在做纯粹的websocket RPC，极致轻量，无任何业务逻辑入侵。
 
 ## 为什么要做
 
