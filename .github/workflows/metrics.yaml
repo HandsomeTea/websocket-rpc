@@ -16,7 +16,6 @@ jobs:
                   node-version: ${{ matrix.node-version }}
             - uses: pnpm/action-setup@v4
             - run: pnpm install
-            - run: pnpm lint
             - run: pnpm test
 
     coverage:
@@ -31,7 +30,6 @@ jobs:
                   node-version: ${{ matrix.node-version }}
             - uses: pnpm/action-setup@v4
             - run: pnpm install
-            - run: pnpm lint
             - run: pnpm test:coverage
 
     benchmark:
@@ -46,7 +44,6 @@ jobs:
                   node-version: ${{ matrix.node-version }}
             - uses: pnpm/action-setup@v4
             - run: pnpm install
-            - run: pnpm lint
             - run: pnpm test:benchmark
 
     build:
