@@ -17,3 +17,23 @@ jobs:
             - uses: pnpm/action-setup@v4
             - run: pnpm install
             - run: pnpm test:coverage
+              id: coverage
+            - name: Extract Coverage Output
+              id: get_coverage
+              run: |
+                  COVERAGE=$(node -e "console.log(require('./coverage/coverage-summary.json').total.statements.pct)")
+                  echo "pct=${COVERAGE}%" >> $GITHUB_OUTPUT
+                  echo "num=${COVERAGE}" >> $GITHUB_OUTPUT
+
+            - name: Update Coverage Badge
+              uses: schneegans/dynamic-badges-action@v1.7.0
+              with:
+                  auth: ${{ secrets.GIST_TOKEN }}
+                  gistID: a6c64056620e2edf7f83be8be8cbce9b
+                  filename: websocket-rpc-coverage.json
+                  label: coverage
+                  message: ${{ steps.get_coverage.outputs.pct }}
+                  valColorRange: ${{ steps.get_coverage.outputs.num }}
+                  minColorRange: 65
+                  maxColorRange: 85
+                  style: flat-square
