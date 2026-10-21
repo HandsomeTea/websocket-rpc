@@ -1,4 +1,4 @@
-name: Engineering metrics
+name: benchmark metrics
 on:
     workflow_dispatch:
     # push:

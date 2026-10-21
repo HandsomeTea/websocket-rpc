@@ -1,4 +1,4 @@
-name: publish latest to npmjs
+name: publish latest
 on:
     push:
         branches: [latest]

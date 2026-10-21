@@ -1,4 +1,4 @@
-name: Engineering metrics
+name: coverage metrics
 on:
     workflow_dispatch:
     # push:

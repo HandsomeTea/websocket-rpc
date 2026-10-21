@@ -1,4 +1,4 @@
-name: publish beta to npmjs
+name: publish beta
 on:
     push:
         branches: [beta]
