@@ -1,4 +1,4 @@
-name: test metrics
+name: Test Status
 on:
     workflow_dispatch:
     # push:

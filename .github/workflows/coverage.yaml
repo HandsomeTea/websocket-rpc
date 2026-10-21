@@ -1,4 +1,4 @@
-name: coverage metrics
+name: Code Coverage
 on:
     workflow_dispatch:
     # push:
