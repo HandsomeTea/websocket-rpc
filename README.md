@@ -3,41 +3,61 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
 <p align="center">
-  <a href="https://github.com/HandsomeTea/websocket-rpc/blob/develop/LICENSE">
-    <img src="https://img.shields.io/github/license/HandsomeTea/websocket-rpc.svg?style=flat-square&logo=github" alt="License" />
-  </a>
-  <a href="https://www.npmjs.com/package/@coco-sheng/websocket-rpc">
-    <img src="https://img.shields.io/node/v/@coco-sheng/websocket-rpc?style=flat-square&logo=nodedotjs&logoColor=white&color=339933" alt="node version" />
-  </a>
-  <a href="https://www.npmjs.com/package/@coco-sheng/websocket-rpc">
-    <img src="https://img.shields.io/npm/v/@coco-sheng/websocket-rpc.svg?style=flat-square&logo=npm&logoColor=white&color=cb3837" alt="npm version" />
-  </a>
-  <a href="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/test.yaml">
-    <img src="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/test.yaml/badge.svg" alt="Test Status" />
-  </a>
-
-  <a href="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/coverage.yaml">
-    <img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/HandsomeTea/a6c64056620e2edf7f83be8be8cbce9b/raw/websocket-rpc-coverage.json" alt="Code Coverage" />
-  </a>
-
-  <a href="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/build.yaml">
-    <img src="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/build.yaml/badge.svg" alt="Build Status" />
-  </a>
-  <a href="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/benchmark.yaml">
-    <img src="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/benchmark.yaml/badge.svg" alt="Benchmark Metrics" />
-  </a>
-  <a href="https://bundlephobia.com/package/@coco-sheng/websocket-rpc">
-    <img src="https://img.shields.io/bundlephobia/minzip/@coco-sheng/websocket-rpc?style=flat-square&color=blue" alt="bundle size" />
-  </a>
+    <a href="https://github.com/HandsomeTea/websocket-rpc/blob/develop/LICENSE">
+        <img src="https://img.shields.io/github/license/HandsomeTea/websocket-rpc.svg?style=flat-square&logo=github" alt="License" />
+    </a>
+    <a href="https://github.com/HandsomeTea/websocket-rpc/pulls">
+        <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square" alt="PRs Welcome" />
+    </a>
+    <a href="https://www.npmjs.com/package/@coco-sheng/websocket-rpc">
+        <img src="https://img.shields.io/node/v/@coco-sheng/websocket-rpc?style=flat-square&logo=nodedotjs&logoColor=white&color=339933" alt="node version" />
+    </a>
+    <a href="https://www.typescriptlang.org/">
+        <img src="https://img.shields.io/badge/TypeScript-Ready-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript Ready" />
+    </a>
+    <a href="https://nodejs.org/api/esm.html">
+        <img src="https://img.shields.io/badge/module-ESM%20Only-3178C6?style=flat-square" alt="ESM Only" />
+    </a>
+    <a href="https://www.npmjs.com/package/@coco-sheng/websocket-rpc">
+        <img src="https://img.shields.io/npm/v/@coco-sheng/websocket-rpc.svg?style=flat-square&logo=npm&logoColor=white&color=cb3837" alt="npm version" />
+    </a>
+    <a href="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/test.yaml">
+        <img src="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/test.yaml/badge.svg" alt="Test Status" />
+    </a>
+    <a href="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/coverage.yaml">
+        <img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/HandsomeTea/a6c64056620e2edf7f83be8be8cbce9b/raw/websocket-rpc-coverage.json" alt="Code Coverage" />
+    </a>
+    <a href="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/build.yaml">
+        <img src="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/build.yaml/badge.svg" alt="Build Status" />
+    </a>
+    <a href="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/benchmark.yaml">
+        <img src="https://github.com/HandsomeTea/websocket-rpc/actions/workflows/benchmark.yaml/badge.svg" alt="Benchmark Metrics" />
+    </a>
+    <a href="https://www.npmjs.com/package/@coco-sheng/websocket-rpc">
+        <img src="https://img.shields.io/npm/unpacked-size/@coco-sheng/websocket-rpc?style=flat-square&color=green" alt="unpacked size" />
+    </a>
+    <!-- <a href="https://bundlephobia.com/package/@coco-sheng/websocket-rpc">
+        <img src="https://img.shields.io/bundlephobia/minzip/@coco-sheng/websocket-rpc?style=flat-square&color=blue" alt="bundle size" />
+    </a> -->
+    <a href="https://eslint.org/">
+        <img src="https://img.shields.io/badge/code_style-eslint-4B32C6.svg?style=flat-square&logo=eslint&logoColor=white" alt="Code Style: ESLint" />
+    </a>
+    <a href="https://www.npmjs.com/package/@coco-sheng/websocket-rpc">
+        <img src="https://img.shields.io/npm/dm/@coco-sheng/websocket-rpc?style=flat-square&color=blue" alt="Monthly Downloads" />
+    </a>
+    <a href="https://www.npmjs.com/package/@coco-sheng/websocket-rpc">
+        <img src="https://img.shields.io/npm/dt/@coco-sheng/websocket-rpc?style=flat-square&color=blue" alt="Total Downloads" />
+    </a>
 </p>
 
-> 这是一个基于[ws](https://www.npmjs.com/package/ws)，遵循标准[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议的websocket应用框架，灵感来源于实际项目中使用websocket实现rpc的需求，可用性经过了实际项目的检测，性能表现优异。该项目专注RPC设计，旨在做纯粹的websocket RPC，极致轻量，无任何业务逻辑入侵，同时拥有完善的`typescript`类型支持。
+> 专注于纯粹RPC设计的websocket框架，完善的`TypeScript`支持，用`await request()`替代回调地狱，极致轻量，性能优异。
 
 <details>
 <summary><b style="cursor:pointer">点击展开 / 收起文档目录</b></summary>
 
 - [快速开始](#快速开始)
 - [简述](#简述)
+  - [这是什么](#这是什么)
   - [为什么要做](#为什么要做)
   - [特性](#特性)
     - [await request(...)](#await-request)
@@ -48,6 +68,7 @@
     - [Server](#server)
     - [Client](#client)
 - [Server](#server-1)
+  - [API速查表](#api速查表)
   - [register](#register)
   - [中间件-use](#中间件-use)
   - [发送通知-sendout](#发送通知-sendout)
@@ -64,6 +85,7 @@
     - [offline](#offline)
   - [错误处理](#错误处理)
 - [Client](#client-1)
+  - [API速查表](#api速查表-1)
   - [request](#request)
   - [批量请求-batch](#批量请求-batch)
   - [发送通知-notify](#发送通知-notify)
@@ -101,6 +123,7 @@ server.register('hello', () => {
 });
 
 server.start();
+// server.close();
 ```
 
 Client(支持浏览器端)：
@@ -118,9 +141,14 @@ const result = await client.request('hello');
 
 console.log(result);
 // 'hello world!'
+
+client.close();
 ```
 
 # 简述
+
+## 这是什么
+这是一个基于[ws](https://www.npmjs.com/package/ws)，遵循标准[JSON-RPC 2.0](https://wiki.geekdream.com/Specification/json-rpc_2.0.html)协议的websocket应用框架，灵感来源于实际项目中使用websocket实现rpc的需求，可用性经过了实际项目的检测，性能表现优异。该项目专注RPC设计，旨在做纯粹的websocket RPC，极致轻量，无任何业务逻辑入侵，同时拥有完善的`typescript`类型支持。
 
 ## 为什么要做
 
@@ -179,6 +207,11 @@ client.on('xxx', () => {
 
 `@coco-sheng/websocket-rpc`经过了实际项目的检测，性能表现优异，多实例部署也经住了考验(多实例部署方案见[多实例相关](#%E5%A4%9A%E5%AE%9E%E4%BE%8B%E7%9B%B8%E5%85%B3)部分)。
 
+> [!TIP]
+> `21154 请求/秒 · P99 延迟 31.3 ms · 内存占用 17.1 MB`
+> ![alt text](.github/images/benchmark.jpg)
+> 关于Server性能，详情查看[Server性能](#server性能)部分。
+
 
 ## 特性
 ### await request(...)
@@ -202,29 +235,35 @@ client.on('xxx', () => {
   - Client发送请求，允许用户在单个请求上设置超时时间，也可以在创建Client时在`WebSocketClient`的扩展配置上指定全局的统一的超时时间(适用于所有请求)，如果同时指定，则以每个请求上设置超时时间为准，如果都没有设置，则**默认全局超时10秒**，如果不希望设置超时，则可指定为0(全局设置/单个请求设置均支持)。
 
 ## Typescript支持
-`@coco-sheng/websocket-rpc`提供了对typescript的支持，用户可通过泛型传递主要业务标识的定义，如`method`、通知消息的类型、通知消息监听的类型等。详情示例查看`typescript`文件夹下的内容。
+`@coco-sheng/websocket-rpc`提供了对typescript的支持，用户可通过泛型传递主要业务标识的定义，如`method`、通知消息的类型、通知消息监听的类型等。
 
 > [!NOTE]
-> &emsp;&emsp;我在设计typescript支持时，权衡了其在使用中的便利性和ts定义的灵活性，太全面的ts支持会使得用户在开发主要业务功能前就需要做大量的函数参数类型定义，这无疑会增加开发成本以及用户使用的心理负担，很多业务只有在功能设计完成后实际开发时才能确定其handler的参数都有什么，因此，`@coco-sheng/websocket-rpc`在ts支持上，舍弃了这种保姆式的类型定义支持，已经支持的ts定义，是我经过实际项目开发总结出来的开发者需要的定义，同时，允许用户不传递所有泛型也可以使用，当然，我也没有使handler的参数成为"anyscript"，根据实际项目的经验，大量的参数已经使用`unknown`进行了收窄，也给用户留出了需要"保姆式"定义的空间。
+> &emsp;&emsp;我在设计typescript支持时，权衡了其在使用中的便利性和ts定义的灵活性，太全面的ts支持会使得用户在开发主要业务功能前就需要做大量的函数参数类型定义，这无疑会增加开发成本以及用户使用的心理负担，很多业务只有在功能设计完成后实际开发时才能确定其handler的参数都有什么，因此，`@coco-sheng/websocket-rpc`在ts支持上，在保姆式的类型定义和简单的类型定义间做了权衡，现以支持的ts类型定义，是我经过实际项目开发总结出来的开发者需要的定义，当然，也允许用户不传递所有泛型也可以使用，同时也没有使handler的参数成为"anyscript"，根据实际项目的经验，大量的参数已经使用`unknown`进行了收窄，并且给用户留出了需要"保姆式"定义的空间。
 
 ### Server
 `new WebSocketServer()`的使用，提供了`Attr`、`Method`、`OnNoticeMethod`、`SendoutMethod`四个泛型：
-- `Attr`：typescript定义[socket连接上的属性](#socket%E5%B1%9E%E6%80%A7)。
-- `Method`：typescript定义Server注册的method，即[register](#request)注册的method。
-- `OnNoticeMethod`：typescript定义Server注册的消息监听事件，即onNotice监听的notice。
-- `SendoutMethod`：typescript定义Server发送通知的method，即sendout发送的method。
+|泛型名称|约束内容|对应API|
+|------|------|------|
+|`Attr`|typescript定义[socket连接上的属性](#socket%E5%B1%9E%E6%80%A7)|socket上`getSocketAttr`等属性|
+|`Method`|typescript定义Server注册的method，即[register](#register)注册的method|`register`|
+|`OnNoticeMethod`|typescript定义Server注册的消息监听事件，即onNotice监听的notice|`onNotice`|
+|`SendoutMethod`|typescript定义Server发送通知的method，即sendout发送的method|`sendout`|
 
 ### Client
 `new WebSocketClient()`的使用，提供了`Method`、`Notice`、`ListeningMethod`三个泛型：
-- `Method`：typescript定义发送请求时的method值，即request请求的method。
-- `Notice`：typescript定义Client发送通知时的notice值，即notify发送的notice。
-- `ListeningMethod`：typescript定义Client注册的消息监听事件，即listening监听的method。
+|泛型名称|约束内容|对应API|
+|------|------|------|
+|`Method`|typescript定义Client发送请求时的method值，即request请求的method。|`request`|
+|`Notice`|typescript定义Client发送通知时的notice值，即notify发送的notice。|`notify`|
+|`ListeningMethod`|typescript定义Client注册的消息监听事件，即listening监听的method。|`listening`|
+> 一般Client的`Method`与Server的`Method`应保持一致（同一套`method`名，只有Server提供了的method，Client才能请求）。
 
 > [!TIP]
-> 为了使用方便，默认Server和Client的`string`泛型(指事件名称等)，在定义其类型的同时没有支持定义其handler的参数，但是设计上我做了权衡，为其留出了空间：
+> ts类型定义的支持，我给出了详细的示例和方案，详情查看项目`typescript`文件夹。
 
 # Server
 
+## API速查表
 - `new WebSocketServer(configs, options?)`：创建一个`WebSocketServer`实例。
   - `configs`：服务器配置，详见[ws](https://www.npmjs.com/package/ws)的`WebSocketServer`中`ServerOptions`。
   - `options`：扩展配置。
@@ -293,7 +332,7 @@ server.register({ testMethod1, testMethod2 });
 ```
 
 > [!NOTE]
-> - 要中断method函数的执行，可以直接`return`，或者`throw`(你可以throw任何数据，比如数组、Object、Error对象等)，throw抛出的数据会被系统捕获，并封装为一个符合`JSONRPC-2.0`规范的错误数据返回，你也可以定义全局的[错误捕获回调函数](#servererror)，来自行处理`throw`抛出的数据。
+> - 要中断method函数的执行，可以直接`return`，或者`throw`(你可以throw任何数据，比如数组、Object、Error对象等)，throw抛出的数据会被系统捕获，并封装为一个符合`JSON-RPC 2.0`规范的错误数据返回，你也可以定义全局的[错误捕获回调函数](#servererror)，来自行处理`throw`抛出的数据。
 > - 内置的method不支持注册中间件，若注册则被忽略。
 
 ## 中间件-use
@@ -657,6 +696,7 @@ server.error(error1, error2);
 
 # Client
 
+## API速查表
 - `new WebSocketClient(address, configs?, options?)`：创建一个WebSocketClient实例。
   - `address`, `configs`：详见[ws](https://www.npmjs.com/package/ws)的`WebSocket`配置项。
   - `options`：扩展配置。
@@ -836,7 +876,7 @@ Server端不建议主动对Client做ping以此对连接进行保活，这样做�
 - 关于服务器端多实例部署的解决方案，详见[多实例管理方案](https://github.com/HandsomeTea/websocket-rpc/tree/develop/multiple-instances).
 
 ## Server性能
-我提供了性能评测脚本`test:benchmark`，使用`npm run test:benchmark`可运行查看具体性能数据。如下：
+我提供了性能评测脚本`test:benchmark`，使用`npm run test:benchmark`可运行查看具体性能数据。个人电脑运行结果如下：
 ![alt text](.github/images/benchmark.jpg)
 
 ## 暂无其它

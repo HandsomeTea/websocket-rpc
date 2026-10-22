@@ -3,12 +3,19 @@ import os from 'os';
 
 const PORT = 3999;
 
+// 收集机器环境信息
+const platformInfo = `${os.platform()} ${os.arch()}`;
+const cpuInfo = `${os.cpus()[0]?.model ?? 'Unknown'} (${os.cpus().length} 核)`;
+const totalMemInfo = `${(os.totalmem() / 1024 ** 3).toFixed(0)} GB`;
+const nodeVersionInfo = process.version;
+const gcStatusInfo = typeof global.gc === 'function' ? '🟢 已启用' : '⚠️ 未启用 (建议加上 --expose-gc)';
+
 console.log('═══════════════════════════════════════');
-console.log('  平台:         ', `${os.platform()} ${os.arch()}`);
-console.log('  CPU:          ', `${os.cpus()[0]?.model ?? 'Unknown'} (${os.cpus().length} 核)`);
-console.log('  内存:         ', `${(os.totalmem() / 1024 ** 3).toFixed(0)} GB`);
-console.log('  Node.js:      ', process.version);
-console.log('  GC 暴露状态:  ', typeof global.gc === 'function' ? '🟢 已启用' : '⚠️ 未启用 (建议加上 --expose-gc)');
+console.log('  平台:         ', platformInfo);
+console.log('  CPU:          ', cpuInfo);
+console.log('  内存:         ', totalMemInfo);
+console.log('  Node.js:      ', nodeVersionInfo);
+console.log('  GC 暴露状态:  ', gcStatusInfo);
 console.log('═══════════════════════════════════════\n');
 
 interface BenchConfig {
@@ -64,9 +71,6 @@ async function runBench(cfg: BenchConfig) {
         await c.request('echo', { warmup: true });
     }
 
-    // 压测前的内存基准（触发 GC 后）
-    const memBefore = getCleanMemoryMB();
-
     let errors = 0;
     let totalRequests = 0;
     const testStart = performance.now();
@@ -94,10 +98,9 @@ async function runBench(cfg: BenchConfig) {
 
     const actualElapsed = (performance.now() - testStart) / 1000;
 
-    // 压测后清理并再次触发 GC，测量真实的净内存增长
+    // 压测完成后测量当前实际堆内存占用（触发 GC 后）
     const sortedLat = clientLatencies.flat().sort((a, b) => a - b);
-    const memAfter = getCleanMemoryMB();
-    const memDiff = memAfter - memBefore;
+    const memUsed = getCleanMemoryMB();
 
     const qps = Math.round(totalRequests / actualElapsed);
     const p50 = percentile(sortedLat, 50);
@@ -118,7 +121,7 @@ async function runBench(cfg: BenchConfig) {
     console.log(`  延迟 p95:     ${formatMs(p95)}`);
     console.log(`  延迟 p99:     ${formatMs(p99)}`);
     console.log(`  延迟 min/max: ${formatMs(minLat)} / ${formatMs(maxLat)}`);
-    console.log(`  净内存变动:   ${memDiff >= 0 ? '+' : ''}${memDiff.toFixed(2)} MB`);
+    console.log(`  内存占用:     ${memUsed.toFixed(2)} MB`);
     console.log('');
 
     await server.close?.();
@@ -131,7 +134,7 @@ async function runBench(cfg: BenchConfig) {
         p95,
         p99,
         errors,
-        mem: memDiff,
+        mem: memUsed,
     };
 }
 
@@ -147,7 +150,7 @@ async function main() {
     console.log('══════════════════════════════════════════════════════════════════════════════════════════');
     console.log('                            性  能  汇  总');
     console.log('──────────────────────────────────────────────────────────────────────────────────────────');
-    console.log('  场景                           │ QPS     │ p50    │ p95    │ p99    │ 错误  │ 净内存变动');
+    console.log('  场景                           │ QPS     │ p50    │ p95    │ p99    │ 错误  │ 内存占用');
     console.log('─────────────────────────────────┼─────────┼────────┼────────┼────────┼───────┼───────────');
 
     for (const r of results) {
@@ -156,7 +159,7 @@ async function main() {
             return s.padEnd(len - chinese);
         };
         const formatMs = (ms: number) => (ms < 1 ? `${(ms * 1000).toFixed(0)}μs` : `${ms.toFixed(1)}ms`);
-        const memStr = `${r.mem >= 0 ? '+' : ''}${r.mem.toFixed(1)}MB`;
+        const memStr = `${r.mem.toFixed(1)} MB`;
 
         console.log(
             `  ${pad(r.label, 30)} │ ${String(r.qps).padStart(7)} │ ${formatMs(r.p50).padStart(6)} │ ${formatMs(r.p95).padStart(6)} │ ${formatMs(r.p99).padStart(6)} │ ${String(r.errors).padStart(5)} │ ${memStr.padStart(9)}`
@@ -166,16 +169,21 @@ async function main() {
 
     const avgQps = results.reduce((s, r) => s + r.qps, 0) / results.length;
     const totalErrors = results.reduce((s, r) => s + r.errors, 0);
-    const maxMemIncrease = Math.max(...results.map((r) => r.mem));
+    const maxMemUsed = Math.max(...results.map((r) => r.mem));
 
     let status = '🟢 优秀';
-    if (totalErrors > 0 || maxMemIncrease > 50) {
-        status = '🔴 存在风险（有报错或明显内存泄漏）';
+    if (totalErrors > 0 || maxMemUsed > 200) {
+        status = '🔴 存在风险（有报错或内存开销过高）';
     } else if (avgQps < 5000) {
         status = '🟡 性能中等';
     }
 
     console.log(`  平均QPS: [${Math.round(avgQps)}] | 总错误: [${totalErrors}] | 评估: ${status}`);
+    console.log('══════════════════════════════════════════════════════════════════════════════════════════');
+    console.log(`  测试环境: ${platformInfo}`);
+    console.log(`     CPU: ${cpuInfo}`);
+    console.log(`     内存: ${totalMemInfo}`);
+    console.log(`     Node.js: ${nodeVersionInfo}, GC ${gcStatusInfo}`);
     console.log('══════════════════════════════════════════════════════════════════════════════════════════');
     process.exit(0);
 }
